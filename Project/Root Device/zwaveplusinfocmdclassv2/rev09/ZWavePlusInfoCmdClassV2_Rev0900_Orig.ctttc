@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="dc0de554-188a-49dd-8b20-f8ad0b44d06a">
+  <ProjectItemId>cf1cc6bb-cabf-4f42-8127-9b4c13550249</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>92712a72-8f26-45bd-bbe4-26d97dd8a86f</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="Interactive_ZWavePlusInfoReport" Description="&quot;Verifies general content of Z-Wave Plus Info Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>0d6a31e8-d764-4863-9ead-8f3c2291ef69</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VerifyVersion" Description="&quot;Verify device is implementing at least version 2 of Z-Wave Plus Info Command Class&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>aabedd0c-6d96-4b75-96e2-986bcae0155f</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="GetEndPoints" Description="&quot;Gets number of End Points&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>932891ec-935b-4941-b382-63ef671cf52a</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionHighestSecurityForDeviceResetLocally" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>65ba143a-d247-4c57-9905-5cc03c480eae</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionAtLowerSecurityLevelForDeviceResetLocally" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>276af0a6-a70b-4e00-9e34-536c7214daad</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionHighestSecurityForBasic" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>b0ca70ae-5505-4d20-b04d-3c12ef539da8</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionAtLowerSecurityForBasic" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>2d7bfbc0-b5ed-4d02-bed4-0a477e0d5734</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>ZWavePlusInfoCmdClassV2_Rev0900_Orig</Name>
+</TestCase>

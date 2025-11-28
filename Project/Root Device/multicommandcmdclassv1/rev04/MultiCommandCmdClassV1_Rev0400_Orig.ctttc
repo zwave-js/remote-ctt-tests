@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="d6eb05dc-f1b6-481a-8760-6f773e48b5e8">
+  <ProjectItemId>095f21c2-97ba-4e03-a3db-6f276b9ce78c</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="MultipleEncapCommands" Description="&quot;Verifies returns the correct number of encapsulated responses&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>f07bc02d-bed8-455f-92b9-9166f21c46a8</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="ExceedingResponsePayload" Description="&quot;Verifies what happens if the responses do not fit in one Z-Wave message&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>1c5787c4-acd8-4a0d-b93d-12479c7dfbb5</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>MultiCommandCmdClassV1_Rev0400_Orig</Name>
+</TestCase>

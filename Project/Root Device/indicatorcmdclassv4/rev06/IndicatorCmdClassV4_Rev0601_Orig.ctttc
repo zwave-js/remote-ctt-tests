@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="c92c8627-785b-4c0d-bcae-17ecd1f9aef4">
+  <ProjectItemId>57ab38db-9761-4f94-a189-dff855a87cbd</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>58d7f4c2-bc02-4eaa-a4b6-efbe9a6efd45</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupportedIndicators" Description="&quot;Lists all supported indicators and their properties&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>04a73e74-ce9a-46e1-8056-db1177074cbc</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InitialValues" Description="&quot;Lists the current values for each indicator&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>427cf698-25fb-4010-986a-4f83bc99daa1</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="IndividualValuesNodeIdentify" Description="&quot;Set individual values for properties 0x03, 0x04, 0x05 of Indicator ID 0x50 (Node Identify)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>0665f887-84a5-498c-83ff-8de229bb73c7</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>IndicatorCmdClassV4_Rev0601_Orig</Name>
+</TestCase>

@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCasePackage>
+  <TestCases>
+    <TestCase TestCaseId="f638dd0a-fc5e-496c-a008-04b91fcdc689" ProjectItemId="4ecbc8fc-aed2-45a4-b84d-778f89375d2e" Name="VersionCmdClassV3_Rev09_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PASSED" ResultLR="NONE">
+          <IdGuid>df71f226-290b-4807-85a7-b46db1bf7c7d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VersionParameters" Description="&quot;Check Version Report parameters&quot;" Included="true" Result="PASSED" ResultLR="NONE">
+          <IdGuid>8a4b4afc-4080-430b-88e4-2555a83994fa</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="CheckFirmwareData" Description="&quot;Check firmware meta data of Version CC and FirmwareUpdateMd CC&quot;" Included="true" Result="PASSED" ResultLR="NONE">
+          <IdGuid>0af7ae65-4735-432e-98bd-dabad4763e96</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="3d7a13d2-d3bb-42ba-9450-d3aa2ed84245" ProjectItemId="d0409da4-715f-416a-9bde-1980e430c62c" Name="AssociationGrpInfoCmdClassV3_Rev0200_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>395911d7-6659-42a3-b080-d8e4b9aa0224</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupNames" Description="&quot;Verify Association Group Names&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>99303646-b62c-41bf-89c3-920d62433d6b</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupInfoListModeOff" Description="&quot;Verify Association Group Info with List Mode = 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b516f155-13bc-4d04-b874-0b4c0afd3ddf</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupInfoListModeOn" Description="&quot;Verify Association Group Info in List Mode&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>84f1f149-560d-4d83-a0ac-93fdc6b9de59</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupCommandList" Description="&quot;Verify Association Group Command List&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f5d94602-a91b-4924-bed7-d698a38287e7</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="8c7eb8aa-b2b2-4b1b-a9dd-5e06ce0b2020" ProjectItemId="6b51f831-786d-4ff0-adbd-2377cb4e7b7b" Name="BasicMappingNotAllowed_Rev0300_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="CheckBasicCommandClassSupport" Description="&quot;Checks the support of Basic CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>c5209d9d-c745-4e82-90a1-729af7ec7c63</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="86a5d3b5-8451-4dc5-9bc2-b0fe5f4078f3" ProjectItemId="627e5eae-48b3-403f-927f-06bf65430844" Name="FirmwareUpdateMetaDataCmdClassV8_Rev0100_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b40819e7-09bb-40e0-ba5a-01a84a711873</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="GetCurrentFirmwareData" Description="&quot;Report current firmware meta data&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>ed7ecf56-68d9-43e2-98ec-71c627689b12</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidTarget" Description="&quot;Check for correct behavior if invalid targets are addressed&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>29b31ef4-d078-4128-a075-b96a379bf207</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidID" Description="&quot;Check for correct behavior if invalid IDs are provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2dd4ac92-0fcf-4c1d-a35b-73993caff2b9</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidFragmentSize" Description="&quot;Check for correct behavior if invalid Fragment Size is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>9a241e36-b3a8-403d-916e-3d4c42cab96b</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidTarget0Upgrade" Description="&quot;Check behavior if target 0 is not upgradable&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f88ab4b6-8f5f-4c58-bdf9-194ea8719878</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="AbortedFirmwareUpdate" Description="&quot;Check for correct behavior if transmission fails&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>cefb0ddc-8a8d-4215-995a-984e92245708</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidChecksumAndFragment" Description="&quot;Check for correct behavior if invalid checksum or fragment number is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>35552331-3f1d-4789-860d-e0669f44deeb</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidFwChecksumAndResumingAnUpdate" Description="&quot;Verify behavior if firmware checksum is invalid and resuming a previously aborted update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>7c02538d-0669-4f01-a2f2-fcf8f18ce148</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="FirmwareRetrieve" Description="&quot;Checks the firmware transfer process from node to controller&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>936b1e3a-7d78-48ac-8ee8-6cdf52a6cb2d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Interactive_NonSecureFirmwareUpdate" Description="&quot;Verify behavior in regards to a non-secure firmware update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2cfffffd-b151-49f5-9223-3cea3fa08ac4</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="d6eb05dc-f1b6-481a-8760-6f773e48b5e8" ProjectItemId="632eb371-220d-4102-ad41-4615ec6ca04b" Name="MultiCommandCmdClassV1_Rev0400_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="MultipleEncapCommands" Description="&quot;Verifies returns the correct number of encapsulated responses&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f07bc02d-bed8-455f-92b9-9166f21c46a8</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="ExceedingResponsePayload" Description="&quot;Verifies what happens if the responses do not fit in one Z-Wave message&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>1c5787c4-acd8-4a0d-b93d-12479c7dfbb5</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="f638dd0a-fc5e-496c-a008-04b91fcdc689" ProjectItemId="02ca148b-e8ed-4132-bfd4-3f315bdd62a8" Name="VersionCmdClassV3_Rev0900_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>df71f226-290b-4807-85a7-b46db1bf7c7d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VersionParameters" Description="&quot;Check Version Report parameters&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>8a4b4afc-4080-430b-88e4-2555a83994fa</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="CheckFirmwareData" Description="&quot;Check firmware meta data of Version CC and FirmwareUpdateMd CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0af7ae65-4735-432e-98bd-dabad4763e96</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="dc0de554-188a-49dd-8b20-f8ad0b44d06a" ProjectItemId="a1f975c7-9a29-4bb0-89da-013c6682087e" Name="ZWavePlusInfoCmdClassV2_Rev0900_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>92712a72-8f26-45bd-bbe4-26d97dd8a86f</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Interactive_ZWavePlusInfoReport" Description="&quot;Verifies general content of Z-Wave Plus Info Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0d6a31e8-d764-4863-9ead-8f3c2291ef69</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyVersion" Description="&quot;Verify device is implementing at least version 2 of Z-Wave Plus Info Command Class&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>aabedd0c-6d96-4b75-96e2-986bcae0155f</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="GetEndPoints" Description="&quot;Gets number of End Points&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>932891ec-935b-4941-b382-63ef671cf52a</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurityForDeviceResetLocally" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>65ba143a-d247-4c57-9905-5cc03c480eae</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionAtLowerSecurityLevelForDeviceResetLocally" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>276af0a6-a70b-4e00-9e34-536c7214daad</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurityForBasic" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b0ca70ae-5505-4d20-b04d-3c12ef539da8</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionAtLowerSecurityForBasic" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2d7bfbc0-b5ed-4d02-bed4-0a477e0d5734</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="c92c8627-785b-4c0d-bcae-17ecd1f9aef4" ProjectItemId="f39eb132-1db6-4fa5-bf4f-d79ba09535be" Name="IndicatorCmdClassV4_Rev0601_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>58d7f4c2-bc02-4eaa-a4b6-efbe9a6efd45</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupportedIndicators" Description="&quot;Lists all supported indicators and their properties&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>04a73e74-ce9a-46e1-8056-db1177074cbc</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialValues" Description="&quot;Lists the current values for each indicator&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>427cf698-25fb-4010-986a-4f83bc99daa1</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="IndividualValuesNodeIdentify" Description="&quot;Set individual values for properties 0x03, 0x04, 0x05 of Indicator ID 0x50 (Node Identify)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0665f887-84a5-498c-83ff-8de229bb73c7</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="c92c8627-785b-4c0d-bcae-17ecd1f9aef4" ProjectItemId="1bd532de-6ea3-45f1-a5c9-d42244610df5" Name="IndicatorCmdClassV4_Rev0601_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>58d7f4c2-bc02-4eaa-a4b6-efbe9a6efd45</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupportedIndicators" Description="&quot;Lists all supported indicators and their properties&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>04a73e74-ce9a-46e1-8056-db1177074cbc</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialValues" Description="&quot;Lists the current values for each indicator&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>427cf698-25fb-4010-986a-4f83bc99daa1</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="IndividualValuesNodeIdentify" Description="&quot;Set individual values for properties 0x03, 0x04, 0x05 of Indicator ID 0x50 (Node Identify)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0665f887-84a5-498c-83ff-8de229bb73c7</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+  </TestCases>
+</TestCasePackage>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="3d7a13d2-d3bb-42ba-9450-d3aa2ed84245">
+  <ProjectItemId>88d51efc-160b-45c7-900c-d31fc98aa6c4</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>395911d7-6659-42a3-b080-d8e4b9aa0224</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VerifyGroupNames" Description="&quot;Verify Association Group Names&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>99303646-b62c-41bf-89c3-920d62433d6b</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VerifyGroupInfoListModeOff" Description="&quot;Verify Association Group Info with List Mode = 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>b516f155-13bc-4d04-b874-0b4c0afd3ddf</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VerifyGroupInfoListModeOn" Description="&quot;Verify Association Group Info in List Mode&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>84f1f149-560d-4d83-a0ac-93fdc6b9de59</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VerifyGroupCommandList" Description="&quot;Verify Association Group Command List&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>f5d94602-a91b-4924-bed7-d698a38287e7</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>AssociationGrpInfoCmdClassV3_Rev0200_Orig</Name>
+</TestCase>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="8c7eb8aa-b2b2-4b1b-a9dd-5e06ce0b2020">
+  <ProjectItemId>208a07b8-d71b-49fb-a5d4-4fe425e57861</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="CheckBasicCommandClassSupport" Description="&quot;Checks the support of Basic CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>c5209d9d-c745-4e82-90a1-729af7ec7c63</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>BasicMappingNotAllowed_Rev0300_Orig</Name>
+</TestCase>

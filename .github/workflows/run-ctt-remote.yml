@@ -15,6 +15,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Setup Node.js 24
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: 'npm'
+
     - name: Setup .NET Framework 4.8
       shell: powershell
       run: |

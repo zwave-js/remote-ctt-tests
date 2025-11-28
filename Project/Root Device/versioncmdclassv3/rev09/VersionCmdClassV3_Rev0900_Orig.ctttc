@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="f638dd0a-fc5e-496c-a008-04b91fcdc689">
+  <ProjectItemId>555e8863-60a9-4479-9a95-f9d2e9eb6eb0</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>df71f226-290b-4807-85a7-b46db1bf7c7d</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="VersionParameters" Description="&quot;Check Version Report parameters&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>8a4b4afc-4080-430b-88e4-2555a83994fa</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="CheckFirmwareData" Description="&quot;Check firmware meta data of Version CC and FirmwareUpdateMd CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>0af7ae65-4735-432e-98bd-dabad4763e96</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>VersionCmdClassV3_Rev0900_Orig</Name>
+</TestCase>
