@@ -5,11 +5,15 @@ import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { createWebSocketServer } from './ws-server.ts';
 import type { ManagedWebSocketServer } from './ws-server.ts';
+import { runTestCases } from './ctt-client.ts';
+import { Driver } from 'zwave-js';
+import { ZwavejsServer } from '@zwave-js/server';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
+const ZWAVE_JS_SERVER_PORT = 3000;
 const IS_LINUX = process.platform === 'linux';
 
 interface ManagedProcess {
@@ -36,7 +40,8 @@ const ZWAVE_DEVICES: ZWaveDevice[] = [
 class ProcessManager {
   private processes: ManagedProcess[] = [];
   private wsServer?: ManagedWebSocketServer;
-  private dockerContainerName = 'zwave-stack';
+  private zwaveDriver?: Driver;
+  private zwaveServer?: ZwavejsServer;
 
   async startDockerContainer(): Promise<void> {
     console.log('Starting Docker container for Z-Wave stack...');
@@ -127,6 +132,58 @@ class ProcessManager {
   stopZWaveStackNative(): void {
     console.log('Stopping Z-Wave stack processes...');
     // Processes are stopped in the main cleanup loop
+  }
+
+  async startZWaveJSServer(): Promise<void> {
+    console.log('Starting Z-Wave JS driver and server...');
+
+    const cacheDir = path.join(__dirname, '..', '.zwave-js-cache');
+    fs.mkdirSync(cacheDir, { recursive: true });
+
+    // Connect to the simulated controller via TCP
+    this.zwaveDriver = new Driver('tcp://127.0.0.1:5000', {
+      storage: {
+        cacheDir,
+      },
+      logConfig: {
+        enabled: true,
+        level: 'warn',
+      },
+    });
+
+    // Wait for driver to be ready
+    await new Promise<void>((resolve, reject) => {
+      this.zwaveDriver!.once('driver ready', () => {
+        console.log('Z-Wave JS driver is ready');
+        resolve();
+      });
+
+      this.zwaveDriver!.once('error', (error) => {
+        console.error('Z-Wave JS driver error:', error);
+        reject(error);
+      });
+
+      this.zwaveDriver!.start().catch(reject);
+    });
+
+    // Start the Z-Wave JS WebSocket server
+    this.zwaveServer = new ZwavejsServer(this.zwaveDriver!, {
+      port: ZWAVE_JS_SERVER_PORT,
+    });
+
+    await this.zwaveServer.start();
+    console.log(`Z-Wave JS server listening on port ${ZWAVE_JS_SERVER_PORT}`);
+  }
+
+  async stopZWaveJSServer(): Promise<void> {
+    if (this.zwaveServer) {
+      console.log('Stopping Z-Wave JS server...');
+      await this.zwaveServer.destroy();
+    }
+    if (this.zwaveDriver) {
+      console.log('Stopping Z-Wave JS driver...');
+      await this.zwaveDriver.destroy();
+    }
   }
 
   setupWineAppData(): void {
@@ -268,8 +325,23 @@ class ProcessManager {
       port: PORT,
       onFatalError: () => this.cleanup(),
       onProjectLoaded: () => {
-        console.log('\n✓ Project loaded successfully - test complete!');
-        this.cleanup();
+        console.log('\n✓ Project loaded successfully!');
+        console.log('Waiting 5 seconds before running test...\n');
+
+        // Wait 5 seconds then run the test
+        setTimeout(async () => {
+          try {
+            console.log('\n--- Running test case AGD_AssociationGroupData_Rev01 ---');
+            const result = await runTestCases({
+              testCaseNames: ['AGD_AssociationGroupData_Rev01'],
+              endPointIds: [0],
+              ZWaveExecutionModes: ['Classic'],
+            });
+            console.log('Test started:', result);
+          } catch (error) {
+            console.error('Failed to run test case:', error);
+          }
+        }, 5000);
       }
     });
   }
@@ -293,6 +365,9 @@ class ProcessManager {
 
   async cleanup(): Promise<void> {
     console.log('Shutting down...');
+
+    // Stop Z-Wave JS server and driver
+    await this.stopZWaveJSServer();
 
     // Kill all managed processes
     for (const managedProcess of this.processes) {
@@ -365,7 +440,10 @@ async function main() {
     // Give Z-Wave devices a moment to fully initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Start WebSocket server
+    // Start Z-Wave JS driver and server (connects to simulated controller on port 5000)
+    await manager.startZWaveJSServer();
+
+    // Start WebSocket server for CTT communication
     manager.startWebSocketServer();
 
     // Setup Wine AppData before starting CTT-Remote on Linux
@@ -383,6 +461,7 @@ async function main() {
     console.log('  Controller 3 (CTT):       localhost:5002');
     console.log('  End Device 1 (CTT):       localhost:5003');
     console.log('  End Device 2 (CTT):       localhost:5004');
+    console.log(`  Z-Wave JS Server:         ws://localhost:${ZWAVE_JS_SERVER_PORT}`);
   } catch (error) {
     console.error('Failed to start services:', error);
     await manager.cleanup();

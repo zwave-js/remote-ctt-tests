@@ -17,13 +17,7 @@
       <Category>Association Group Data</Category>
       <DateLastModified>2024-01-04T14:48:02.8348334+01:00</DateLastModified>
       <Checksum>FZ68eaqqscmKuhxdNOPjMg==</Checksum>
-      <ExecutionResult Name="AGD_AssociationGroupData_Rev01" Result="Pass" TestRunFolder="240521_155144" TimeStamp="2024-05-21T15:51:44.6435999+02:00">
-        <KeyResult Key="ASSOCIATION_GROUP_1_GROUPING_ID" Result="Pass" />
-        <KeyResult Key="ASSOCIATION_GROUP_1_MAX_NODES" Result="Pass" />
-        <KeyResult Key="ASSOCIATION_GROUP_1_NAME" Result="Pass" />
-        <KeyResult Key="ASSOCIATION_GROUP_1_PROFILE" Result="Pass" />
-        <KeyResult Key="ASSOCIATION_GROUP_1_COMMAND" Result="Pass" />
-      </ExecutionResult>
+      <ExecutionResult Name="AGD_AssociationGroupData_Rev01" Result="Abort" TestRunFolder="AGD_AssociationGroupData_Rev01_251128_1454" TimeStamp="2025-11-28T14:54:17.7958902+01:00" />
       <InputKeys>
         <InputKey>
           <Key>ASSOCIATION_GROUP_$1$_GROUPING_ID</Key>
@@ -58,7 +52,7 @@
         <string>ASSOCIATION_GROUP_$1$_PROFILE</string>
         <string>ASSOCIATION_GROUP_$1$_COMMAND</string>
       </ResultKeys>
-      <LastExecutionDateTime>2024-05-21T15:51:44.6435999+02:00</LastExecutionDateTime>
+      <LastExecutionDateTime>2025-11-28T14:54:17.7958902+01:00</LastExecutionDateTime>
       <Description>'Association Grouping Data' in the ZCP Form MUST match the data reported by the DUT.</Description>
       <RequirementNo>
         <string />
@@ -99,6 +93,36 @@
           <ExecutionTime>2024-05-21T15:51:44.6435999+02:00</ExecutionTime>
           <Path>C:\Users\domin\Documents\Z-Wave Alliance\Z-Wave CTT 3\Projects\Z-Wave JS with HA\Log\240521_155144\AGD_AssociationGroupData_Rev01-EU.txt</Path>
           <ZnifferLink>C:\Users\domin\Documents\Z-Wave Alliance\Z-Wave CTT 3\Projects\Z-Wave JS with HA\Log\240521_155144\AGD_AssociationGroupData_Rev01-EU.zlf</ZnifferLink>
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-11-28T14:32:04.9620539+01:00</ExecutionTime>
+          <Path />
+          <ZnifferLink />
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-11-28T14:49:06.5944736+01:00</ExecutionTime>
+          <Path />
+          <ZnifferLink />
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-11-28T14:50:01.1799699+01:00</ExecutionTime>
+          <Path />
+          <ZnifferLink />
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-11-28T14:50:51.8733995+01:00</ExecutionTime>
+          <Path />
+          <ZnifferLink />
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-11-28T14:54:17.7958902+01:00</ExecutionTime>
+          <Path />
+          <ZnifferLink />
           <VersionInfo>1.5</VersionInfo>
         </LogHistoryItem>
       </TestCaseLogs>
@@ -4239,7 +4263,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -4288,7 +4314,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -4334,7 +4362,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -4386,7 +4416,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -4431,7 +4463,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -4483,7 +4517,9 @@ Further, a controller node that has performed S2 bootstrapping to a Node A SHOUL
       </RequiredDevices>
       <ZnifferRequired>true</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic LongRangeStar</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -6558,7 +6594,9 @@ QR Code Format' (Gen2 QR codes) into its Node Provisioning List when scanning th
       <RequiredDevices />
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -11486,7 +11524,9 @@ The DUT MUST communicate via the Lifeline association if any Lifeline associatio
       </RequiredDevices>
       <ZnifferRequired>true</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -11530,7 +11570,9 @@ The DUT MUST communicate via the Lifeline association if any Lifeline associatio
       </RequiredDevices>
       <ZnifferRequired>true</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -11591,7 +11633,9 @@ If no Security Class was granted, the node MUST support all its Command Class us
       </RequiredDevices>
       <ZnifferRequired>false</ZnifferRequired>
       <MissingHardware>false</MissingHardware>
-      <ExternalFileRequired />
+      <ExternalFileRequired>
+        <FileExtensions />
+      </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
       <TestCaseLogs />
@@ -11892,7 +11936,7 @@ If no Security Class was granted, the node MUST support all its Command Class us
               </Items>
               <LastExecutionDateTime>0001-01-01T00:00:00</LastExecutionDateTime>
               <IsAborted>false</IsAborted>
-              <MissingHardware>false</MissingHardware>
+              <MissingHardware>true</MissingHardware>
               <LongRangeBuddy>f39eb132-1db6-4fa5-bf4f-d79ba09535be</LongRangeBuddy>
               <IsLongRange>true</IsLongRange>
               <TestCaseLogs />
