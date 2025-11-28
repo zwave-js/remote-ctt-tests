@@ -134,9 +134,33 @@ class ProcessManager {
 
     const homeDir = os.homedir();
     const winePrefix = process.env.WINEPREFIX || path.join(homeDir, '.wine');
+    const dosdevices = path.join(winePrefix, 'dosdevices');
     const wineAppDataRoaming = path.join(winePrefix, 'drive_c', 'users', os.userInfo().username, 'AppData', 'Roaming');
     const wineZWaveAlliance = path.join(wineAppDataRoaming, 'Z-Wave Alliance');
     const repoAppData = path.join(__dirname, '..', 'appdata');
+    const repoRoot = path.join(__dirname, '..');
+
+    // Remove Z: drive mapping to prevent Wine from accessing Linux root filesystem
+    // This avoids errors like "Z:\home\runner\..." path access issues
+    const zDriveLink = path.join(dosdevices, 'z:');
+    try {
+      fs.unlinkSync(zDriveLink);
+      console.log('Removed Z: drive mapping');
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('Could not remove Z: drive:', err);
+      }
+    }
+
+    // Map the repository to X: drive so CTT-Remote can access it via Windows paths
+    const xDriveLink = path.join(dosdevices, 'x:');
+    try {
+      fs.unlinkSync(xDriveLink);
+    } catch {
+      // Ignore if doesn't exist
+    }
+    fs.symlinkSync(repoRoot, xDriveLink);
+    console.log(`Mapped X: drive to ${repoRoot}`);
 
     // Ensure Wine AppData/Roaming directory exists
     fs.mkdirSync(wineAppDataRoaming, { recursive: true });
@@ -174,6 +198,15 @@ class ProcessManager {
     fs.mkdirSync(programFiles, { recursive: true });
     fs.mkdirSync(programFilesX86, { recursive: true });
     console.log('Ensured Program Files directories exist');
+
+    // CTT-Remote tries to access %ProgramW6432% as a literal path when env var isn't expanded
+    // Create empty folders to prevent crashes
+    const cttRemoteDir = path.join(__dirname, '..', 'CTT-Remote');
+    const literalProgramW6432 = path.join(cttRemoteDir, '%ProgramW6432%');
+    const literalProgramFilesX86 = path.join(cttRemoteDir, '%ProgramFiles(x86)%');
+    fs.mkdirSync(literalProgramW6432, { recursive: true });
+    fs.mkdirSync(literalProgramFilesX86, { recursive: true });
+    console.log('Created fallback folders for unexpanded env vars');
   }
 
   startCTTRemote(): ManagedProcess {
@@ -186,21 +219,21 @@ class ProcessManager {
 
     if (IS_LINUX) {
       // On Linux, use Wine to run the Windows executable
+      // Use Windows-style paths via X: drive mapping
       console.log('Using Wine to run CTT-Remote on Linux...');
-      const winePrefix = process.env.WINEPREFIX || path.join(os.homedir(), '.wine');
-      const programFiles = path.join(winePrefix, 'drive_c', 'Program Files');
-      const programFilesX86 = path.join(winePrefix, 'drive_c', 'Program Files (x86)');
+      const wineCttRemotePath = 'X:\\CTT-Remote\\CTT-Remote.exe';
+      const wineSolutionPath = 'X:\\Project\\zwave-js.cttsln';
 
-      cttProcess = spawn('wine', [cttRemotePath, solutionPath], {
+      cttProcess = spawn('wine', [wineCttRemotePath, wineSolutionPath], {
         cwd: path.join(__dirname, '..', 'CTT-Remote'),
         stdio: 'inherit',
         env: {
           ...process.env,
           WINEDEBUG: '-all',  // Suppress Wine debug messages
-          // Set Windows environment variables for Wine
-          ProgramW6432: programFiles,
-          'ProgramFiles(x86)': programFilesX86,
-          ProgramFiles: programFiles,
+          // Set Windows environment variables with Windows-style paths
+          ProgramW6432: 'C:\\Program Files',
+          'ProgramFiles(x86)': 'C:\\Program Files (x86)',
+          ProgramFiles: 'C:\\Program Files',
         }
       });
     } else {
