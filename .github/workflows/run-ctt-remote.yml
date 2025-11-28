@@ -56,6 +56,40 @@ jobs:
           exit 1
         }
 
+    - name: Enable Docker Linux containers
+      shell: powershell
+      run: |
+        Write-Host "Switching Docker to Linux containers..."
+        & "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+
+        # Poll Docker until it's ready with Linux containers (max 30 seconds)
+        $maxAttempts = 30
+        $attempt = 0
+        $ready = $false
+
+        while ($attempt -lt $maxAttempts) {
+          $attempt++
+          Write-Host "Checking Docker status (attempt $attempt/$maxAttempts)..."
+
+          try {
+            $dockerInfo = docker info 2>&1 | Out-String
+            if ($dockerInfo -match "OSType: linux") {
+              Write-Host "Docker is configured for Linux containers"
+              $ready = $true
+              break
+            }
+          } catch {
+            Write-Host "Docker not ready yet..."
+          }
+
+          Start-Sleep -Seconds 1
+        }
+
+        if (-not $ready) {
+          Write-Error "Docker failed to switch to Linux containers within 30 seconds"
+          exit 1
+        }
+
     - name: Build Docker image for Z-Wave stack
       run: docker compose build
 
