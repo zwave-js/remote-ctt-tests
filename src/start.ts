@@ -167,6 +167,13 @@ class ProcessManager {
     // Create symlink from Wine's Z-Wave Alliance to repo's appdata
     fs.symlinkSync(repoAppData, wineZWaveAlliance, 'dir');
     console.log(`Created symlink: ${wineZWaveAlliance} -> ${repoAppData}`);
+
+    // Create Program Files folders that CTT might try to access
+    const programFiles = path.join(winePrefix, 'drive_c', 'Program Files');
+    const programFilesX86 = path.join(winePrefix, 'drive_c', 'Program Files (x86)');
+    fs.mkdirSync(programFiles, { recursive: true });
+    fs.mkdirSync(programFilesX86, { recursive: true });
+    console.log('Ensured Program Files directories exist');
   }
 
   startCTTRemote(): ManagedProcess {
@@ -180,12 +187,20 @@ class ProcessManager {
     if (IS_LINUX) {
       // On Linux, use Wine to run the Windows executable
       console.log('Using Wine to run CTT-Remote on Linux...');
+      const winePrefix = process.env.WINEPREFIX || path.join(os.homedir(), '.wine');
+      const programFiles = path.join(winePrefix, 'drive_c', 'Program Files');
+      const programFilesX86 = path.join(winePrefix, 'drive_c', 'Program Files (x86)');
+
       cttProcess = spawn('wine', [cttRemotePath, solutionPath], {
         cwd: path.join(__dirname, '..', 'CTT-Remote'),
         stdio: 'inherit',
         env: {
           ...process.env,
-          WINEDEBUG: '-all'  // Suppress Wine debug messages
+          WINEDEBUG: '-all',  // Suppress Wine debug messages
+          // Set Windows environment variables for Wine
+          ProgramW6432: programFiles,
+          'ProgramFiles(x86)': programFilesX86,
+          ProgramFiles: programFiles,
         }
       });
     } else {
