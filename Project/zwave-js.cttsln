@@ -10446,9 +10446,9 @@
         <SName>localhost</SName>
         <SPort>5001</SPort>
         <SType>TCP</SType>
-        <ChipSeries>ZW080x</ChipSeries>
+        <ChipSeries>ZW050x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.23</VersionNumbers>
+        <VersionNumbers>6.84</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10459,9 +10459,9 @@
         <SName>localhost</SName>
         <SPort>5002</SPort>
         <SType>TCP</SType>
-        <ChipSeries>ZW080x</ChipSeries>
+        <ChipSeries>ZW050x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.23</VersionNumbers>
+        <VersionNumbers>6.84</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10472,9 +10472,9 @@
         <SName>localhost</SName>
         <SPort>5003</SPort>
         <SType>TCP</SType>
-        <ChipSeries>ZW080x</ChipSeries>
+        <ChipSeries>ZW050x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.23</VersionNumbers>
+        <VersionNumbers>6.84</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10485,9 +10485,9 @@
         <SName>localhost</SName>
         <SPort>5004</SPort>
         <SType>TCP</SType>
-        <ChipSeries>ZW080x</ChipSeries>
+        <ChipSeries>ZW050x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.23</VersionNumbers>
+        <VersionNumbers>6.84</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>

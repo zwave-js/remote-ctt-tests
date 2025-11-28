@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 export interface WebSocketServerOptions {
   port: number;
   onFatalError?: () => void;
+  onProjectLoaded?: () => void;
   fatalErrorPatterns?: string[];
 }
 
@@ -22,7 +23,7 @@ function shouldShutdownOnError(message: string, patterns: string[]): boolean {
 }
 
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
-  const { port, onFatalError, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS } = options;
+  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS } = options;
 
   const wss = new WebSocketServer({ port });
 
@@ -35,15 +36,23 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
       const messageStr = data.toString();
       console.log('Received message:', messageStr);
 
-      // Parse JSON-RPC message and check for fatal errors
+      // Parse JSON-RPC message and check for fatal errors or success
       try {
         const message = JSON.parse(messageStr);
 
-        if (message.method === 'generalLogMsg' &&
-            message.params?.errorType === 'Error' &&
-            message.params?.output) {
+        if (message.method === 'generalLogMsg' && message.params?.output) {
+          // Check for project loaded success
+          if (message.params.errorType === 'None' &&
+              message.params.output.includes('Project loaded successfully')) {
+            console.log('Project loaded successfully detected!');
+            if (onProjectLoaded) {
+              onProjectLoaded();
+            }
+          }
 
-          if (shouldShutdownOnError(message.params.output, fatalErrorPatterns)) {
+          // Check for fatal errors
+          if (message.params.errorType === 'Error' &&
+              shouldShutdownOnError(message.params.output, fatalErrorPatterns)) {
             console.error('Fatal error detected, shutting down...');
             if (onFatalError) {
               onFatalError();

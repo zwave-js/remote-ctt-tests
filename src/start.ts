@@ -1,5 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { createWebSocketServer } from './ws-server.ts';
 import type { ManagedWebSocketServer } from './ws-server.ts';
@@ -8,12 +10,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
+const IS_LINUX = process.platform === 'linux';
 
 interface ManagedProcess {
   name: string;
   process: ChildProcess;
   pid?: number;
 }
+
+interface ZWaveDevice {
+  name: string;
+  port: number;
+  binary: string;
+  storageDir: string;
+}
+
+const ZWAVE_DEVICES: ZWaveDevice[] = [
+  { name: 'Controller 1 (Z-Wave JS)', port: 5000, binary: 'controller', storageDir: '/tmp/controller1' },
+  { name: 'Controller 2 (CTT)', port: 5001, binary: 'controller', storageDir: '/tmp/controller2' },
+  { name: 'Controller 3 (CTT)', port: 5002, binary: 'controller', storageDir: '/tmp/controller3' },
+  { name: 'End Device 1 (CTT)', port: 5003, binary: 'end_device', storageDir: '/tmp/enddevice1' },
+  { name: 'End Device 2 (CTT)', port: 5004, binary: 'end_device', storageDir: '/tmp/enddevice2' },
+];
 
 class ProcessManager {
   private processes: ManagedProcess[] = [];
@@ -59,17 +77,125 @@ class ProcessManager {
     });
   }
 
+  startZWaveStackNative(): void {
+    console.log('Starting Z-Wave stack natively on Linux...');
+
+    const zwaveStackDir = path.join(__dirname, '..', 'zwave_stack');
+    const controllerBinary = 'ZW_zwave_ncp_serial_api_controller_25_9_0_x86_REALTIME_DEBUG.elf';
+    const endDeviceBinary = 'ZW_zwave_ncp_serial_api_end_device_25_9_0_x86_REALTIME_DEBUG.elf';
+
+    for (const device of ZWAVE_DEVICES) {
+      const binaryName = device.binary === 'controller' ? controllerBinary : endDeviceBinary;
+      const binaryPath = path.join(zwaveStackDir, binaryName);
+
+      console.log(`Starting ${device.name} on port ${device.port}...`);
+
+      const proc = spawn(binaryPath, [
+        '--port', device.port.toString(),
+        '--storage', device.storageDir
+      ], {
+        cwd: zwaveStackDir,
+        stdio: 'pipe'
+      });
+
+      proc.stdout?.on('data', (data) => {
+        console.log(`[${device.name}] ${data.toString().trim()}`);
+      });
+
+      proc.stderr?.on('data', (data) => {
+        console.error(`[${device.name}] ${data.toString().trim()}`);
+      });
+
+      proc.on('error', (error) => {
+        console.error(`Failed to start ${device.name}:`, error);
+      });
+
+      proc.on('exit', (code) => {
+        console.log(`${device.name} exited with code ${code}`);
+      });
+
+      this.processes.push({
+        name: device.name,
+        process: proc,
+        pid: proc.pid
+      });
+    }
+
+    console.log('All Z-Wave devices started natively');
+  }
+
+  stopZWaveStackNative(): void {
+    console.log('Stopping Z-Wave stack processes...');
+    // Processes are stopped in the main cleanup loop
+  }
+
+  setupWineAppData(): void {
+    console.log('Setting up Wine AppData for CTT...');
+
+    const homeDir = os.homedir();
+    const winePrefix = process.env.WINEPREFIX || path.join(homeDir, '.wine');
+    const wineAppDataRoaming = path.join(winePrefix, 'drive_c', 'users', os.userInfo().username, 'AppData', 'Roaming');
+    const wineZWaveAlliance = path.join(wineAppDataRoaming, 'Z-Wave Alliance');
+    const repoAppData = path.join(__dirname, '..', 'appdata');
+
+    // Ensure Wine AppData/Roaming directory exists
+    fs.mkdirSync(wineAppDataRoaming, { recursive: true });
+
+    // Check if symlink or folder already exists
+    // Note: Use lstatSync to detect broken symlinks (existsSync returns false for them)
+    try {
+      const stats = fs.lstatSync(wineZWaveAlliance);
+      if (stats.isSymbolicLink()) {
+        const target = fs.readlinkSync(wineZWaveAlliance);
+        if (target === repoAppData) {
+          console.log('Symlink already exists and points to correct location');
+          return;
+        }
+        fs.unlinkSync(wineZWaveAlliance);
+        console.log('Removed existing symlink (wrong target)');
+      } else {
+        fs.rmSync(wineZWaveAlliance, { recursive: true });
+        console.log('Removed existing Z-Wave Alliance folder');
+      }
+    } catch (err: unknown) {
+      // ENOENT means path doesn't exist, which is fine
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw err;
+      }
+    }
+
+    // Create symlink from Wine's Z-Wave Alliance to repo's appdata
+    fs.symlinkSync(repoAppData, wineZWaveAlliance, 'dir');
+    console.log(`Created symlink: ${wineZWaveAlliance} -> ${repoAppData}`);
+  }
+
   startCTTRemote(): ManagedProcess {
     const cttRemotePath = path.join(__dirname, '..', 'CTT-Remote', 'CTT-Remote.exe');
     const solutionPath = path.join(__dirname, '..', 'Project', 'zwave-js.cttsln');
 
     console.log(`Starting CTT-Remote: ${cttRemotePath} ${solutionPath}`);
 
-    const cttProcess = spawn(cttRemotePath, [solutionPath], {
-      cwd: path.join(__dirname, '..', 'CTT-Remote'),
-      stdio: 'inherit',
-      windowsHide: true
-    });
+    let cttProcess: ChildProcess;
+
+    if (IS_LINUX) {
+      // On Linux, use Wine to run the Windows executable
+      console.log('Using Wine to run CTT-Remote on Linux...');
+      cttProcess = spawn('wine', [cttRemotePath, solutionPath], {
+        cwd: path.join(__dirname, '..', 'CTT-Remote'),
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          WINEDEBUG: '-all'  // Suppress Wine debug messages
+        }
+      });
+    } else {
+      // On Windows, run directly
+      cttProcess = spawn(cttRemotePath, [solutionPath], {
+        cwd: path.join(__dirname, '..', 'CTT-Remote'),
+        stdio: 'inherit',
+        windowsHide: true
+      });
+    }
 
     cttProcess.on('error', (error) => {
       console.error('Failed to start CTT-Remote:', error);
@@ -92,7 +218,11 @@ class ProcessManager {
   startWebSocketServer(): void {
     this.wsServer = createWebSocketServer({
       port: PORT,
-      onFatalError: () => this.cleanup()
+      onFatalError: () => this.cleanup(),
+      onProjectLoaded: () => {
+        console.log('\n✓ Project loaded successfully - test complete!');
+        this.cleanup();
+      }
     });
   }
 
@@ -126,8 +256,10 @@ class ProcessManager {
       await this.wsServer.close();
     }
 
-    // Stop Docker container
-    await this.stopDockerContainer();
+    // Stop Docker container (only on Windows where we use Docker)
+    if (!IS_LINUX) {
+      await this.stopDockerContainer();
+    }
 
     process.exit(0);
   }
@@ -172,14 +304,26 @@ async function main() {
   manager.setupExitHandlers();
 
   try {
-    // Start Docker container first
-    await manager.startDockerContainer();
+    if (IS_LINUX) {
+      // On Linux, run Z-Wave stack natively
+      console.log('Running on Linux - using native Z-Wave binaries');
+      manager.startZWaveStackNative();
+    } else {
+      // On Windows, use Docker for Z-Wave stack
+      console.log('Running on Windows - using Docker for Z-Wave stack');
+      await manager.startDockerContainer();
+    }
 
-    // Give Docker containers a moment to fully initialize
+    // Give Z-Wave devices a moment to fully initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Start WebSocket server
     manager.startWebSocketServer();
+
+    // Setup Wine AppData before starting CTT-Remote on Linux
+    if (IS_LINUX) {
+      manager.setupWineAppData();
+    }
 
     // Start CTT-Remote
     manager.startCTTRemote();

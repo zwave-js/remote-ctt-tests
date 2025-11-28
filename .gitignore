@@ -2,3 +2,6 @@ node_modules/
 
 # CTT lock file
 Project/lock
+
+# AppData folder (extracted from appdata.tgz)
+appdata/
