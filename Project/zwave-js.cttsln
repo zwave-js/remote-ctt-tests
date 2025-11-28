@@ -10443,12 +10443,12 @@
       <FirstController>
         <Alias>Controller1</Alias>
         <DevType>Controller</DevType>
-        <SName>COM6</SName>
-        <SPort p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-        <SType>COM</SType>
+        <SName>localhost</SName>
+        <SPort>5001</SPort>
+        <SType>TCP</SType>
         <ChipSeries>ZW080x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.17</VersionNumbers>
+        <VersionNumbers>7.23</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10456,12 +10456,12 @@
       <ThirdController>
         <Alias>Controller3</Alias>
         <DevType>Controller</DevType>
-        <SName>COM7</SName>
-        <SPort p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-        <SType>COM</SType>
+        <SName>localhost</SName>
+        <SPort>5002</SPort>
+        <SType>TCP</SType>
         <ChipSeries>ZW080x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.21</VersionNumbers>
+        <VersionNumbers>7.23</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10469,13 +10469,12 @@
       <FirstEndDevice>
         <Alias>EndDevice1</Alias>
         <DevType>EndDevice</DevType>
-        <SName>COM5</SName>
-        <SPort p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-        <SType>COM</SType>
-        <JName>440194188</JName>
-        <ChipSeries>ZW070x</ChipSeries>
+        <SName>localhost</SName>
+        <SPort>5003</SPort>
+        <SType>TCP</SType>
+        <ChipSeries>ZW080x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.18</VersionNumbers>
+        <VersionNumbers>7.23</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10483,13 +10482,12 @@
       <SecondEndDevice>
         <Alias>EndDevice2</Alias>
         <DevType>EndDevice</DevType>
-        <SName>COM19</SName>
-        <SPort p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-        <SType>COM</SType>
-        <JName>440315869</JName>
+        <SName>localhost</SName>
+        <SPort>5004</SPort>
+        <SType>TCP</SType>
         <ChipSeries>ZW080x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.22</VersionNumbers>
+        <VersionNumbers>7.23</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>

@@ -18,6 +18,46 @@ interface ManagedProcess {
 class ProcessManager {
   private processes: ManagedProcess[] = [];
   private wsServer?: ManagedWebSocketServer;
+  private dockerContainerName = 'zwave-stack';
+
+  async startDockerContainer(): Promise<void> {
+    console.log('Starting Docker container for Z-Wave stack...');
+
+    // Start docker compose (using modern Docker CLI plugin)
+    const dockerProcess = spawn('docker', ['compose', 'up', '-d'], {
+      cwd: path.join(__dirname, '..'),
+      stdio: 'inherit',
+      shell: true
+    });
+
+    return new Promise((resolve, reject) => {
+      dockerProcess.on('close', (code) => {
+        if (code === 0) {
+          console.log('Docker container started successfully');
+          resolve();
+        } else {
+          reject(new Error(`Docker container failed to start with code ${code}`));
+        }
+      });
+    });
+  }
+
+  async stopDockerContainer(): Promise<void> {
+    console.log('Stopping Docker container...');
+
+    return new Promise((resolve) => {
+      const dockerProcess = spawn('docker', ['compose', 'down'], {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'inherit',
+        shell: true
+      });
+
+      dockerProcess.on('close', () => {
+        console.log('Docker container stopped');
+        resolve();
+      });
+    });
+  }
 
   startCTTRemote(): ManagedProcess {
     const cttRemotePath = path.join(__dirname, '..', 'CTT-Remote', 'CTT-Remote.exe');
@@ -86,6 +126,9 @@ class ProcessManager {
       await this.wsServer.close();
     }
 
+    // Stop Docker container
+    await this.stopDockerContainer();
+
     process.exit(0);
   }
 
@@ -124,7 +167,34 @@ class ProcessManager {
 }
 
 // Main execution
-const manager = new ProcessManager();
-manager.setupExitHandlers();
-manager.startWebSocketServer();
-manager.startCTTRemote();
+async function main() {
+  const manager = new ProcessManager();
+  manager.setupExitHandlers();
+
+  try {
+    // Start Docker container first
+    await manager.startDockerContainer();
+
+    // Give Docker containers a moment to fully initialize
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Start WebSocket server
+    manager.startWebSocketServer();
+
+    // Start CTT-Remote
+    manager.startCTTRemote();
+
+    console.log('\nAll services started successfully!');
+    console.log('Z-Wave devices available at:');
+    console.log('  Controller 1 (Z-Wave JS): localhost:5000');
+    console.log('  Controller 2 (CTT):       localhost:5001');
+    console.log('  Controller 3 (CTT):       localhost:5002');
+    console.log('  End Device 1 (CTT):       localhost:5003');
+    console.log('  End Device 2 (CTT):       localhost:5004');
+  } catch (error) {
+    console.error('Failed to start services:', error);
+    await manager.cleanup();
+  }
+}
+
+main();

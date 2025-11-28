@@ -1,0 +1,17 @@
+services:
+  zwave-stack:
+    build: .
+    image: zwave-stack:latest
+    container_name: zwave-stack
+    ports:
+      - "5000:5000"  # Controller 1 (Z-Wave JS FirstController)
+      - "5001:5001"  # Controller 2 (CTT SecondController)
+      - "5002:5002"  # Controller 3 (CTT ThirdController)
+      - "5003:5003"  # End Device 1 (CTT FirstEndDevice)
+      - "5004:5004"  # End Device 2 (CTT SecondEndDevice)
+    volumes:
+      - ./zwave_stack:/app/binaries
+      - zwave-storage:/tmp
+
+volumes:
+  zwave-storage:
