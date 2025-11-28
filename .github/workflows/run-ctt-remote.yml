@@ -1,0 +1,64 @@
+name: Run CTT-Remote
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-ctt-remote:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET Framework 4.8
+      shell: powershell
+      run: |
+        # Check if .NET Framework 4.8 is already installed
+        $dotNetVersion = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\' | Get-ItemPropertyValue -Name Release -ErrorAction SilentlyContinue
+
+        if ($dotNetVersion -ge 528040) {
+          Write-Host ".NET Framework 4.8 or later is already installed"
+        } else {
+          Write-Host "Installing .NET Framework 4.8..."
+          # Download .NET Framework 4.8 installer
+          $installerUrl = "https://download.visualstudio.microsoft.com/download/pr/2d6bb6b2-226a-4baa-bdec-798822606ff1/8494001c276a4b96804cde7829c04d7f/ndp48-x86-x64-allos-enu.exe"
+          $installerPath = "$env:TEMP\ndp48-installer.exe"
+
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+
+          # Install silently
+          Start-Process -FilePath $installerPath -ArgumentList "/q", "/norestart" -Wait -NoNewWindow
+
+          Write-Host ".NET Framework 4.8 installation completed"
+        }
+
+    - name: Verify .NET Framework installation
+      shell: powershell
+      run: |
+        $dotNetVersion = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\' | Get-ItemPropertyValue -Name Release -ErrorAction SilentlyContinue
+        Write-Host ".NET Framework version: $dotNetVersion"
+
+        if ($dotNetVersion -ge 528040) {
+          Write-Host ".NET Framework 4.8 or later is installed"
+        } else {
+          Write-Error ".NET Framework 4.8 is not installed"
+          exit 1
+        }
+
+    - name: Run CTT-Remote.exe
+      shell: powershell
+      run: |
+        $exePath = "CTT-Remote/CTT-Remote.exe"
+
+        if (Test-Path $exePath) {
+          Write-Host "Running $exePath..."
+          & $exePath
+        } else {
+          Write-Error "Executable not found at: $exePath"
+          exit 1
+        }
