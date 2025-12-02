@@ -31,13 +31,13 @@ jobs:
       shell: wsl-bash {0}
       run: chmod +x zwave_stack/*.elf
 
-    - name: Start Z-Wave stack and verify output
+    - name: Start Z-Wave stack with nohup
       shell: wsl-bash {0}
       run: |
-        # Start the Z-Wave stack and capture output
-        bash ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
+        # Start the Z-Wave stack with nohup so processes survive shell exit
+        nohup bash ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
 
-        # Wait for services to start
+        # Wait for services to start and bind ports
         sleep 5
 
         # Show the output
@@ -50,6 +50,10 @@ jobs:
           echo "[FAIL] Failed to find expected output"
           exit 1
         fi
+
+        # Verify ports are listening in WSL
+        echo "Checking ports in WSL..."
+        ss -tlnp | grep -E "500[0-4]" || echo "Warning: ports not showing in ss"
 
     - name: Test TCP connection from Windows
       shell: powershell
