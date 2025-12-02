@@ -15,16 +15,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup WSL with Debian
+    - name: Setup WSL with Ubuntu
       uses: Vampire/setup-wsl@v6
       with:
-        distribution: Debian
+        distribution: Ubuntu-22.04
 
     - name: Enable 32-bit architecture and install libraries
       shell: wsl-bash {0}
       run: |
-        # Remove stale backports entry from sources.list
-        sudo sed -i '/backports/d' /etc/apt/sources.list
         sudo dpkg --add-architecture i386
         sudo apt-get update
         sudo apt-get install -y libc6:i386 libstdc++6:i386
