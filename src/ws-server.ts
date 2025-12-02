@@ -1,11 +1,35 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import { EventEmitter } from 'events';
 import { getTestCases } from './ctt-client.ts';
+import { convertCttColorsToAnsi, type CttPrompt } from './ctt-output.ts';
+
+// Global event emitter for test case events
+export const testCaseEvents = new EventEmitter();
+
+export interface TestCaseResult {
+  name: string;
+  endPoint: string;
+  executionMode: string;
+  result: string;
+  isLongRange: boolean;
+  category: string;
+  group: string;
+}
+
+/**
+ * Handler for CTT prompts (like YES-NO dialogs)
+ * @param prompt - The parsed prompt information
+ * @returns Promise resolving to the button to click (e.g., "YES", "NO", or custom button text)
+ */
+export type PromptHandler = (prompt: CttPrompt) => Promise<string>;
 
 export interface WebSocketServerOptions {
   port: number;
   onFatalError?: () => void;
   onProjectLoaded?: () => void;
   fatalErrorPatterns?: string[];
+  /** Handler for user prompts. If not provided, prompts will be auto-skipped. */
+  promptHandler?: PromptHandler;
 }
 
 interface TestCaseDTO {
@@ -72,7 +96,7 @@ async function queryTestCases(): Promise<void> {
 }
 
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
-  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS } = options;
+  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, promptHandler } = options;
 
   const wss = new WebSocketServer({ port });
 
@@ -81,13 +105,18 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
   wss.on('connection', (ws: WebSocket) => {
     console.log('New client connected');
 
-    ws.on('message', (data: Buffer) => {
+    ws.on('message', async (data: Buffer) => {
       const messageStr = data.toString();
-      console.log('Received message:', messageStr);
 
       // Parse JSON-RPC message and check for fatal errors or success
       try {
         const message = JSON.parse(messageStr);
+
+        // Log received messages, except for ones we handle separately
+        const silentMethods = ['testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished'];
+        if (!silentMethods.includes(message.method)) {
+          console.log('Received message:', messageStr);
+        }
 
         // Prepare acknowledgement response (CTT expects this for every message)
         const responseData: { jsonrpc: string; result: string; id: number } = {
@@ -119,30 +148,104 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
             }
           }
         } else if (message.method === 'testCaseLogMsg') {
-          // Log test case output
+          // Log test case output with ANSI colors
           const logOutput = message.params?.logOutput || '';
-          // Strip color codes for cleaner console output
-          const cleanOutput = logOutput.replace(/\{color:[^}]+\}/g, '').trim();
-          if (cleanOutput) {
-            console.log('[Test Log]', cleanOutput);
+          // Convert CTT color format to ANSI escape codes
+          const coloredOutput = convertCttColorsToAnsi(logOutput).trim();
+          if (coloredOutput) {
+            console.log(coloredOutput);
           }
         } else if (message.method === 'testCaseFinished') {
-          // Log test case completion
+          // Print test case result
           const params = message.params || {};
-          console.log('\n=== Test Case Finished ===');
-          console.log('Test:', params.testCase?.TestCaseName || 'Unknown');
-          console.log('Result:', params.result || 'Unknown');
-          console.log('========================\n');
+          const name = params.Name || 'Unknown';
+          const result = params.Result || 'Unknown';
+          const icon = result === 'PASSED' ? '✓' : '✗';
+          console.log(`\n${icon} ${name}: ${result}`);
+
+          // Emit event for test case completion tracking
+          const testCaseResult: TestCaseResult = {
+            name,
+            endPoint: params.EndPoint || '0',
+            executionMode: params.IsLongRange ? 'LongRangeStar' : 'Classic',
+            result,
+            isLongRange: params.IsLongRange || false,
+            category: params.Category || '',
+            group: params.Group || '',
+          };
+          testCaseEvents.emit('testCaseFinished', testCaseResult);
         } else if (message.method === 'testCaseMsgBox') {
-          // Handle message box - auto-respond with appropriate action
+          // Handle message box based on documented TestCaseMsgBoxTypes:
+          // OkCancel, Ok, YesNo, UrlOpenCancel, Skip, WaitForDutResponse,
+          // CloseCurrentMsgBox, Yes, No
           const msgType = message.params?.type || '';
-          if (msgType === 'WaitForDutResponse') {
-            responseData.result = '';
-            console.log('[MsgBox] Waiting for DUT Response:', message.params?.content);
-          } else {
-            // Auto-skip message boxes in automated mode
-            responseData.result = 'Skip';
-            console.log('[MsgBox] Auto-skipping:', message.params?.content);
+          const content = message.params?.content || '';
+          const coloredContent = convertCttColorsToAnsi(content).trim();
+
+          // Build prompt based on message type
+          let prompt: CttPrompt | null = null;
+
+          switch (msgType) {
+            case 'WaitForDutResponse':
+              // Must be confirmed by TestCaseConfirmation.Ok, cannot be skipped
+              responseData.result = '';
+              console.log('[MsgBox] Waiting for DUT Response:', coloredContent);
+              break;
+
+            case 'CloseCurrentMsgBox':
+              // Just closes the current message box
+              responseData.result = '';
+              console.log('[MsgBox] Closing current message box');
+              break;
+
+            case 'YesNo':
+              prompt = { type: 'YES_NO', rawText: coloredContent, buttons: ['Yes', 'No'] };
+              break;
+
+            case 'OkCancel':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Ok', 'Cancel'] };
+              break;
+
+            case 'Ok':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Ok'] };
+              break;
+
+            case 'Yes':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Yes'] };
+              break;
+
+            case 'No':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['No'] };
+              break;
+
+            case 'Skip':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Skip'] };
+              break;
+
+            case 'UrlOpenCancel':
+              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Open', 'Cancel'] };
+              break;
+
+            default:
+              // Unknown type - auto-skip
+              responseData.result = 'Skip';
+              console.log('[MsgBox] Unknown type, auto-skipping:', msgType, coloredContent);
+              break;
+          }
+
+          // Handle prompt if we built one
+          if (prompt && promptHandler) {
+            try {
+              const response = await promptHandler(prompt);
+              responseData.result = response;
+            } catch (error) {
+              console.error('[MsgBox] Prompt handler error:', error);
+              responseData.result = 'Skip';
+            }
+          } else if (prompt) {
+            // No prompt handler (CI mode) - auto-respond
+            responseData.result = prompt.buttons[0]; // Default to first button
+            console.log('[MsgBox] Auto-responding:', prompt.buttons[0], '-', coloredContent);
           }
         }
 

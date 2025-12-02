@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { testCaseEvents, type TestCaseResult } from './ws-server.ts';
 
 const CTT_HOST = '127.0.0.1';
 const CTT_PORT = 4711;
@@ -85,12 +86,44 @@ export async function getTestCases(options: Partial<TestCaseRequestDTO> = {}): P
   return response.result;
 }
 
-export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): Promise<unknown> {
+/**
+ * Runs test cases and waits for all of them to complete.
+ * Returns an array of test case results.
+ */
+export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): Promise<TestCaseResult[]> {
+  const testCaseNames = options.testCaseNames ?? [];
+
+  if (testCaseNames.length === 0) {
+    throw new Error('At least one test case name must be provided');
+  }
+
+  // Set up listener before starting tests
+  const results: TestCaseResult[] = [];
+  const pendingTests = new Set(testCaseNames);
+
+  const completionPromise = new Promise<TestCaseResult[]>((resolve) => {
+    const onTestCaseFinished = (result: TestCaseResult) => {
+      // Check if this is one of the tests we're waiting for
+      if (pendingTests.has(result.name)) {
+        results.push(result);
+        pendingTests.delete(result.name);
+
+        if (pendingTests.size === 0) {
+          testCaseEvents.removeListener('testCaseFinished', onTestCaseFinished);
+          resolve(results);
+        }
+      }
+    };
+
+    testCaseEvents.on('testCaseFinished', onTestCaseFinished);
+  });
+
+  // Start the test cases via RPC
   const testCaseRequestDTO: TestCaseRequestDTO = {
     groups: options.groups ?? [],
     results: options.results ?? [],
     endPointIds: options.endPointIds ?? [],
-    testCaseNames: options.testCaseNames ?? [],
+    testCaseNames,
     ZWaveExecutionModes: options.ZWaveExecutionModes ?? [],
   };
 
@@ -101,7 +134,12 @@ export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): P
     throw new Error(`RPC Error: ${response.error.message}`);
   }
 
-  return response.result;
+  if (response.result !== 'Completed') {
+    throw new Error(`Failed to start test cases: ${response.result}`);
+  }
+
+  // Wait for all test cases to complete
+  return completionPromise;
 }
 
 export async function resetController(): Promise<unknown> {

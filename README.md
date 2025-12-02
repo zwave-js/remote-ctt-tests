@@ -1,11 +1,11 @@
-# Remote CTT Tests with Docker Z-Wave Stack
+# Remote CTT Tests with WSL Z-Wave Stack
 
-This project provides a complete setup for running Z-Wave CTT (Certified Test Tool) tests with Linux Z-Wave binaries running in Docker on a Windows CI server.
+This project provides a complete setup for running Z-Wave CTT (Certified Test Tool) tests with Linux Z-Wave binaries running in WSL (Windows Subsystem for Linux) on Windows.
 
 ## Overview
 
 The setup includes:
-- **Docker Container**: Runs 5 Z-Wave binaries (3 controllers + 2 end devices) in a single container
+- **WSL**: Runs 5 Z-Wave binaries (3 controllers + 2 end devices) using Ubuntu on WSL
 - **CTT-Remote**: Windows application for running certification tests
 - **WebSocket Server**: For remote control and automation
 - **Process Manager**: Coordinates all services with proper lifecycle management
@@ -14,10 +14,10 @@ The setup includes:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Windows CI Server                        │
+│                    Windows (Local or CI)                    │
 │                                                             │
 │  ┌────────────────────────────────────────────────────┐   │
-│  │ Docker Container (zwave-stack)                      │   │
+│  │ WSL (Ubuntu)                                        │   │
 │  │                                                      │   │
 │  │  • Controller 1 → TCP :5000 (Z-Wave JS)            │   │
 │  │  • Controller 2 → TCP :5001 (CTT SecondController) │   │
@@ -26,7 +26,7 @@ The setup includes:
 │  │  • End Device 2 → TCP :5004 (CTT SecondEndDevice)  │   │
 │  └────────────────────────────────────────────────────┘   │
 │                          ↑                                  │
-│                          │ TCP connections                  │
+│         Ports automatically forwarded to Windows            │
 │                          ↓                                  │
 │  ┌────────────────────────────────────────────────────┐   │
 │  │ CTT-Remote.exe                                      │   │
@@ -42,10 +42,10 @@ The setup includes:
 
 ## Prerequisites
 
-- **Docker Desktop for Windows** (with Linux containers enabled)
+- **Windows 10/11** or **Windows Server**
+- **WSL with Ubuntu** installed
 - **Node.js 24** or later
 - **.NET Framework 4.8** (for CTT-Remote)
-- **Windows 10/11** or **Windows Server**
 
 ## Quick Start
 
@@ -62,7 +62,23 @@ cd remote-ctt-tests
 npm install
 ```
 
-### 3. Configure CTT Project for IP Devices
+### 3. One-Time WSL Setup
+
+Run these commands in WSL (open WSL terminal with `wsl`):
+
+```bash
+sudo dpkg --add-architecture i386
+sudo apt-get update
+sudo apt-get install -y libc6:i386 libstdc++6:i386
+chmod +x zwave_stack/*.elf
+```
+
+These commands:
+- Enable 32-bit architecture support
+- Install 32-bit C/C++ libraries required by the Z-Wave binaries
+- Make the Z-Wave binaries executable
+
+### 4. Configure CTT Project for IP Devices
 
 ```bash
 node update-ctt-devices.js
@@ -73,18 +89,20 @@ This updates the CTT project ([Project/zwave-js.cttsln](Project/zwave-js.cttsln)
 - Stack version 7.23
 - IP addresses pointing to localhost with appropriate ports
 
-### 4. Start All Services
+### 5. Start All Services
 
 ```bash
 npm start
 ```
 
 This command will:
-1. Build and start the Docker container with all Z-Wave binaries
+1. Start the Z-Wave stack in WSL with all 5 binaries
 2. Start the WebSocket server for remote control
 3. Launch CTT-Remote with the configured project
 
-### 5. Access Services
+**Note**: Ports are automatically forwarded from WSL to Windows, so all services are accessible on `localhost`.
+
+### 6. Access Services
 
 - **Z-Wave Controller 1** (for Z-Wave JS): `localhost:5000`
 - **Z-Wave Controller 2** (for CTT): `localhost:5001`
@@ -140,34 +158,26 @@ To connect Z-Wave JS to the first controller:
 const serialPort = 'tcp://localhost:5000';
 ```
 
-## Docker Management
+## WSL Management
 
-### Manual Docker Commands
+### Check Running Z-Wave Processes in WSL
 
 ```bash
-# Build the Docker image
-docker-compose build
-
-# Start container in background
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop container
-docker-compose down
-
-# Restart container
-docker-compose restart
-
-# Access container shell
-docker exec -it zwave-stack bash
+wsl ps aux | grep ZW_zwave
 ```
 
-### Check Running Processes Inside Container
+### Access WSL Shell
 
 ```bash
-docker exec -it zwave-stack ps aux | grep ZW_zwave
+wsl
+```
+
+### Stop All Z-Wave Processes
+
+Stop the `npm start` process with Ctrl+C. If processes are still running in WSL:
+
+```bash
+wsl pkill -f "ZW_zwave"
 ```
 
 ## Testing
@@ -191,14 +201,14 @@ telnet localhost 5000
 
 ## CI/CD Integration
 
-The project includes a GitHub Actions workflow ([.github/workflows/run-ctt-remote.yml](.github/workflows/run-ctt-remote.yml)) that:
+The project includes a GitHub Actions workflow ([.github/workflows/run-zwave-wsl.yml](.github/workflows/run-zwave-wsl.yml)) that:
 
-1. Sets up Node.js and .NET Framework
-2. Builds the Docker container
-3. Installs dependencies
-4. Configures CTT project for IP devices
-5. Runs the complete test suite
-6. Cleans up Docker container on completion
+1. Sets up WSL with Ubuntu
+2. Installs 32-bit libraries in WSL
+3. Starts the Z-Wave stack in WSL
+4. Verifies port connectivity from Windows to WSL
+
+The local and CI environments are identical - both use WSL to run the Z-Wave binaries.
 
 ### Manual Workflow Trigger
 
@@ -210,7 +220,7 @@ The workflow can be triggered manually from the GitHub Actions tab using the `wo
 remote-ctt-tests/
 ├── .github/
 │   └── workflows/
-│       └── run-ctt-remote.yml      # CI workflow
+│       └── run-zwave-wsl.yml       # CI workflow (uses WSL)
 ├── CTT-Remote/
 │   ├── CTT-Remote.exe              # Test tool executable
 │   └── CTT-Remote.md               # Documentation
@@ -222,17 +232,32 @@ remote-ctt-tests/
 ├── zwave_stack/
 │   ├── ZW_zwave_ncp_serial_api_controller_*.elf  # Controller binaries
 │   └── ZW_zwave_ncp_serial_api_end_device_*.elf  # End device binaries
-├── docker-compose.yml              # Docker orchestration
-├── Dockerfile                      # Container definition
-├── start-zwave-stack.sh           # Binary startup script
-├── update-ctt-devices.js          # CTT config updater
-├── DOCKER_SETUP.md                # Detailed Docker docs
-└── README.md                      # This file
+├── start-zwave-stack.sh            # Binary startup script (runs in WSL)
+├── update-ctt-devices.js           # CTT config updater
+└── README.md                       # This file
 ```
 
 ## Troubleshooting
 
-### Docker Container Won't Start
+### WSL Z-Wave Stack Won't Start
+
+1. Verify WSL is running:
+   ```cmd
+   wsl --status
+   ```
+
+2. Check if 32-bit libraries are installed in WSL:
+   ```bash
+   wsl dpkg --print-foreign-architectures
+   ```
+   Should output: `i386`
+
+3. Verify binaries are executable:
+   ```bash
+   wsl ls -la zwave_stack/*.elf
+   ```
+
+### Ports Already in Use
 
 Check if ports are already in use:
 
@@ -244,21 +269,26 @@ netstat -ano | findstr :5003
 netstat -ano | findstr :5004
 ```
 
+If processes are running, stop them:
+```bash
+wsl pkill -f "ZW_zwave"
+```
+
 ### Can't Connect to Devices
 
-1. Verify container is running:
+1. Verify Z-Wave processes are running in WSL:
    ```bash
-   docker ps
+   wsl ps aux | grep ZW_zwave
    ```
 
-2. Check container logs:
+2. Check if ports are listening in WSL:
    ```bash
-   docker-compose logs
+   wsl ss -tlnp | grep -E "500[0-4]"
    ```
 
-3. Verify processes inside container:
-   ```bash
-   docker exec -it zwave-stack ps aux | grep ZW_zwave
+3. Test connectivity from Windows:
+   ```powershell
+   Test-NetConnection -ComputerName localhost -Port 5000
    ```
 
 ### CTT-Remote Connection Issues
@@ -273,21 +303,16 @@ node update-ctt-devices.js
 
 ### Custom Ports
 
-Edit [docker-compose.yml](docker-compose.yml) to change port mappings:
-
-```yaml
-ports:
-  - "YOUR_PORT:5000"
-```
+Edit [start-zwave-stack.sh](start-zwave-stack.sh) to change the ports used by the Z-Wave binaries.
 
 ### RF Region
 
-The default RF region is EU. To change it, edit the CTT project or modify the Docker startup script.
+The default RF region is EU. To change it, edit the CTT project configuration.
 
 ## Documentation
 
-- **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Comprehensive Docker setup guide
 - **[CTT-Remote/CTT-Remote.md](CTT-Remote/CTT-Remote.md)** - CTT-Remote API documentation
+- **[.github/workflows/run-zwave-wsl.yml](.github/workflows/run-zwave-wsl.yml)** - CI workflow configuration
 
 ## License
 
