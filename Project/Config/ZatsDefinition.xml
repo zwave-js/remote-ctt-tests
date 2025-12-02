@@ -1,0 +1,12 @@
+﻿<ZatsDefinition>
+  <Profiles>
+    <Profile Name="X1" Reports="X:\Project\Log" ZName="127.0.0.1" CommanderAppPath="" PCControllerAppPath="">
+      <DeviceHosts>
+        <DeviceHost Alias="Controller1" SName="127.0.0.1" SPort="5001" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
+        <DeviceHost Alias="Controller3" SName="127.0.0.1" SPort="5002" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
+        <DeviceHost Alias="EndDevice1" SName="127.0.0.1" SPort="5003" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
+        <DeviceHost Alias="EndDevice2" SName="127.0.0.1" SPort="5004" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
+      </DeviceHosts>
+    </Profile>
+  </Profiles>
+</ZatsDefinition>

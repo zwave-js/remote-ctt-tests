@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="84dd87b0-df53-4339-b5bc-63567ef3ccad">
+  <ProjectItemId>f35017b7-486a-442b-aea1-188e80372db5</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>1ac39636-6188-40d3-94dc-dd153d7b7991</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InitLifeline" Description="&quot;Initializes the lifeline with a controller node id&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>7f0077bd-ca0e-4b57-9571-ac8b5e373083</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InitialValues" Description="&quot;Verify Initial Values&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>bcbe169f-6c5d-481e-8ff3-572312001500</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SetGetSequence" Description="&quot;Verify Set/Get sequences&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>6203a482-b7d8-4201-89e0-49cce222d24c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveCommand" Description="&quot;Verify Remove Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>f9edc5e1-18f6-4ab0-894e-c6ec7ac4b380</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="DuplicateNodeIDs" Description="&quot;Verify that an already added node ID cannot be added to the same Association Group again.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>4768a1af-4679-4717-930f-ce062bfc137d</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidGroupId" Description="&quot;Check for returning report for Association Group 1 if report for an unsupported AG is requested&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>42e2da03-e70d-41b2-a5a8-500265c0304c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInSpecificGroup" Description="&quot;Clear all node IDs in a specific group&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>fdeb3098-3dc7-4216-8eb8-906fc836813a</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveSpecificNodeInAllGroups" Description="&quot;Clear specified node ID in all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>3fcff806-d004-4ef3-9a45-fdaba44b91b1</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInAllGroups" Description="&quot;Clear all node IDs in all groupings&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>1cc3feb7-e54a-4eaa-b3b5-9bcc8f2dd735</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="GetSpecificGroup" Description="&quot;Test Association Specific Group Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>1841b78c-ef45-4f6a-ac5e-86f63d49963a</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionHighestSecurityForAssociation" Description="&quot;Supervision Status Codes For Association at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>a6479b35-e279-4712-b7a4-909063f0605c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionLowerSecurityForAssociation" Description="&quot;Supervision Status Codes for Association at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>901824db-3556-4f3c-97b0-23658091aebc</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>AssociationCmdClassV4_Rev0100_Orig</Name>
+</TestCase>

@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCaseStaticController SocketConnectionString="127.0.0.1:5001" NodeId="0">
+  <IncludedNodes />
+  <PreKitting>
+    <ProvisioningList />
+  </PreKitting>
+</TestCaseStaticController>

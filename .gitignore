@@ -3,5 +3,7 @@ node_modules/
 # CTT lock file
 Project/lock
 
+Project/Log
+
 # AppData folder (extracted from appdata.tgz)
 appdata/

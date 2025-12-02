@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="2c762237-35f0-4b0e-9aa3-4607418f225c">
+  <ProjectItemId>e5ee7011-e7c8-4907-b0b9-7ce1407d8d36</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>5fb3d56e-5e6b-4be4-9684-58494b57f67d</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="CheckAssociationCC" Description="&quot;Checks the support of Association CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>e56085c9-01a8-474c-83a0-1b4680f78ac6</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SetGetSequence" Description="&quot;Verify Set/Get sequences&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>616a3556-ca56-4a1a-a9bf-822f7a00519c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveCommand" Description="&quot;Verify Multi Channel Remove Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>9d45380a-3f11-4c0f-a638-ae08e54f4ef6</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="DuplicateNodeIDs" Description="&quot;Verify that an already added Node ID cannot be added to the same Multi Channel Association Group again.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>fabb73df-f3b0-468c-ac4d-0ac281fd4c26</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidGroupId" Description="&quot;Check for returning report for Association Group 1 if report for an unsupported AG is requested&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>74d1cdb1-d310-48d7-be4e-4d256ae93b36</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInSpecificGroup" Description="&quot;Clear all Node IDs in a specific Association Group&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>c998bf6a-9d16-4439-aeb3-9d2dbadd2798</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveSpecificNodeInAllGroups" Description="&quot;Clear specified Node ID in all Multi Channel Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>7e803ec7-4da3-4ad0-85de-f0dfd59569cb</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInAllGroups" Description="&quot;Clear all Node IDs in all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>f6bcfc59-047a-41f4-9ebb-3976897d87f9</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInAllGroupsLegacy" Description="&quot;Clear all Node IDs in all Association Groups (legacy)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>7bdbf512-95b6-4ba5-9f95-d1bbaf5c0b82</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesInSpecificGroupLegacy" Description="&quot;Clear all Node IDs in one Association Group (legacy)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>984df826-5169-41a4-93c3-459347abfc3c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="LegacySupport" Description="&quot;Checks legacy Association Command Class support&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>77663a6f-3e8d-4fac-af3d-3511a4915603</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="Overflow" Description="&quot;Checks Association Group overflow behavior (MaxNodesSupported)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>496de2dc-81dc-48c6-8605-ae83d814da48</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="BasicAddRemoveTests" Description="&quot;Basic Add/Remove Tests&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>65676bdf-e114-4c0d-b3d9-0ceb405de04d</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveSingleNodeFromAllGroups" Description="&quot;Remove single node from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>ff4a6837-bc93-420c-809b-8c4b1d1fad20</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveNodeWithEndpointFromAllGroups" Description="&quot;Remove node with End Point from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>6316cfa0-a8b9-458c-9baa-2c2659cbd72a</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="RemoveAllNodesFromAllGroups" Description="&quot;Remove all nodes from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>e4ddb723-e74d-4a33-bdbe-971bc7331e03</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="Endpoint0" Description="&quot;Check behavior if End Point is 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>76dae3ee-87e8-42e0-b605-aecb7b5e24f3</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionHighestSecurity" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>3ac8a93d-b326-4ab3-9b4e-9720c7797b44</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="SupervisionLowerSecurity" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>479c3344-4d41-451e-ac65-225eec7d3d4c</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>MultiChannelAssociationCmdClassV5_Rev0100_Orig</Name>
+</TestCase>

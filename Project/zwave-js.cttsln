@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project IdGuid="c7f1a0ae-42da-4fed-acee-e7172cfebc94" Location="C:\Repositories\remote-ctt-tests\Project\zwave-js.cttsln" Name="Z-Wave JS with HA">
+<Project IdGuid="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" Location="X:\Project\zwave-js-headless.cttsln" Name="zwave-js-headless">
   <PortalAlias>Z-Wave Alliance ZCP</PortalAlias>
   <PortalId>6f4a3fce-ab7a-4ccc-9133-274b43403192</PortalId>
   <ProjectConstants>
@@ -57,7 +57,7 @@
     </ProjectConstant>
   </ProjectConstants>
   <ProjectItems>
-    <ProjectItem IdGuid="89589f00-79e5-4d9d-ae39-14ae03bc490c" Location="ZWave_CTT_CommandClasses.cttxml" Name="ZWave_CTT_CommandClasses" ParentId="c7f1a0ae-42da-4fed-acee-e7172cfebc94" EndPointId="c7f1a0ae-42da-4fed-acee-e7172cfebc94" Active="false" Rev="0" SubRev="0" Original="false" Custom="false" Expanded="false" ItemType="CommandClassesDefinition" IsHidden="false">
+    <ProjectItem IdGuid="005990f6-6e4e-41a0-b1ac-6bda0abb4a78" Location="ZWave_CTT_CommandClasses.cttxml" Name="ZWave_CTT_CommandClasses" ParentId="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" EndPointId="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" Active="false" Rev="0" SubRev="0" Original="false" Custom="false" Expanded="false" ItemType="CommandClassesDefinition" IsHidden="false">
       <Items />
       <LastExecutionDateTime>0001-01-01T00:00:00</LastExecutionDateTime>
       <IsAborted>false</IsAborted>
@@ -68,13 +68,13 @@
     </ProjectItem>
   </ProjectItems>
   <EndPointLinks>
-    <EndPointLink IdGuid="c7f3be10-0d6a-47c5-9340-e818808932f5" Location="Root Device\Root Device.cttproj" Name="Root Device" Included="true" />
+    <EndPointLink IdGuid="63e99c25-71e5-4d9a-bb58-15d713d3ef78" Location="Root Device\Root Device.cttproj" Name="Root Device" Included="true" />
   </EndPointLinks>
   <ProjectSystemVersion>4</ProjectSystemVersion>
   <MinimumCTTVersion>3.10.4.0</MinimumCTTVersion>
   <CTTVersion>3.10.10.0</CTTVersion>
   <ScriptVersion>42</ScriptVersion>
-  <ZcpCert Id="1201" FormName="Z-Wave Plus v2 Certification" FormVersion="17" Number="Pre-Cert" UpdatedAt="2025-02-18 12:37:30" Phase="Initial Selection" State="Pre-Certification" ProductName="Z-Wave JS / Home Assistant" ProductLine="" ModelNumber="Z-Wave JS / Home Assistant" BrandName="" CustomerName="Nabu Casa, Inc." OwnerEmail="dominic.griesel@nabucasa.com" TesthouseName="Trident IoT Test Lab" ProductDescription="" Checksum="6b612e3e47843b6c3763ab76b86c7df3">
+  <ZcpCert Id="1201" FormName="Z-Wave Plus v2 Certification" FormVersion="17" Number="Pre-Cert" UpdatedAt="2025-02-18 12:37:30" Phase="Initial Selection" State="Pre-Certification" ProductName="Z-Wave JS / Home Assistant" ProductLine="" ModelNumber="Z-Wave JS / Home Assistant" BrandName="" CustomerName="Nabu Casa, Inc." OwnerEmail="dominic.griesel@openhomefoundation.org" TesthouseName="Trident IoT Test Lab" ProductDescription="" Checksum="6b612e3e47843b6c3763ab76b86c7df3">
     <Sections Id="50240" Number="PI" Title="Product Information">
       <Items Id="664775" SectionId="50240" Number="PI.1" Title="Certification Data" Description="The information provided on the &quot;Certification Data&quot; overview page MUST match the product." Level="0" ItemType="checkbox" Selfcert="-" SelfcertType="select" VerificationType="select" AdhocType="select" Select="true" Support="false" Control="false" HoldsPortalResult="false" UploadResult="false">
         <ZatsTests Name="PI_CertificationData_Rev01">
@@ -10432,23 +10432,25 @@
       <Zniffer>
         <Alias>Zniffer1</Alias>
         <DevType>Zniffer</DevType>
-        <SName>COM9</SName>
-        <SPort p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-        <SType>COM</SType>
-        <Library>ZnifferNCP</Library>
-        <ZnifferChipType>5</ZnifferChipType>
-        <SnifferVersion>2</SnifferVersion>
-        <SnifferRevision>55</SnifferRevision>
+        <SName>127.0.0.1</SName>
+        <SPort>4905</SPort>
+        <SType>TCP</SType>
+        <ChipSeries />
+        <Library>ZnifferPTI</Library>
+        <VersionNumbers />
+        <ZnifferChipType>0</ZnifferChipType>
+        <SnifferVersion>0</SnifferVersion>
+        <SnifferRevision>0</SnifferRevision>
       </Zniffer>
       <FirstController>
         <Alias>Controller1</Alias>
         <DevType>Controller</DevType>
-        <SName>localhost</SName>
+        <SName>127.0.0.1</SName>
         <SPort>5001</SPort>
         <SType>TCP</SType>
         <ChipSeries>ZW070x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.24</VersionNumbers>
+        <VersionNumbers>0.00</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10456,12 +10458,12 @@
       <ThirdController>
         <Alias>Controller3</Alias>
         <DevType>Controller</DevType>
-        <SName>localhost</SName>
+        <SName>127.0.0.1</SName>
         <SPort>5002</SPort>
         <SType>TCP</SType>
         <ChipSeries>ZW070x</ChipSeries>
         <Library>ControllerBridgeLib</Library>
-        <VersionNumbers>7.24</VersionNumbers>
+        <VersionNumbers>0.00</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10469,12 +10471,12 @@
       <FirstEndDevice>
         <Alias>EndDevice1</Alias>
         <DevType>EndDevice</DevType>
-        <SName>localhost</SName>
+        <SName>127.0.0.1</SName>
         <SPort>5003</SPort>
         <SType>TCP</SType>
         <ChipSeries>ZW070x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.24</VersionNumbers>
+        <VersionNumbers>0.00</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
@@ -10482,22 +10484,22 @@
       <SecondEndDevice>
         <Alias>EndDevice2</Alias>
         <DevType>EndDevice</DevType>
-        <SName>localhost</SName>
+        <SName>127.0.0.1</SName>
         <SPort>5004</SPort>
         <SType>TCP</SType>
         <ChipSeries>ZW070x</ChipSeries>
         <Library>EndDeviceLib</Library>
-        <VersionNumbers>7.24</VersionNumbers>
+        <VersionNumbers>0.00</VersionNumbers>
         <ZnifferChipType>0</ZnifferChipType>
         <SnifferVersion>0</SnifferVersion>
         <SnifferRevision>0</SnifferRevision>
       </SecondEndDevice>
-      <RfRegion>EU</RfRegion>
-      <LRChannel>Undefined</LRChannel>
+      <RfRegion>EU_LR</RfRegion>
+      <LRChannel>ChannelA</LRChannel>
     </Devices>
   </DeviceConfiguration>
   <PreviousDUTTestCases />
-  <ExternalZatsFilePath>C:\Repositories\remote-ctt-tests\Project</ExternalZatsFilePath>
+  <ExternalZatsFilePath>X:\Project</ExternalZatsFilePath>
   <UploadItemIds />
   <IsLongRange>false</IsLongRange>
 </Project>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="c775cb36-4c75-499b-97e4-ea7b6edcd298">
+  <ProjectItemId>e1f31d2e-5e70-4063-a133-1b0316464aa7</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>75629e15-bcf9-4bee-9d92-41310ceed8d7</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InitialValues" Description="&quot;Check initial values&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>8d2c3869-6741-4983-8f64-569138a4e824</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="TimeoutTest" Description="&quot;Tests the timeout functionality&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>891dc7a5-ba2e-4a8f-8263-5da0283f71f0</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="TimeoutIgnore" Description="&quot;Check that timeout is ignored with powerlevel = 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>6d3abc8f-2706-4d34-ab75-763950725781</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidPowerlevel" Description="&quot;Check invalid powerlevel&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>e161b27d-2aca-405d-94de-6c1ca55ad41c</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InitialTestReport" Description="&quot;Check initial Test Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>3ac53df0-2fc5-45a4-9182-3a6cc4371b56</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>PowerlevelCmdClassV1_Rev1200_Orig</Name>
+</TestCase>

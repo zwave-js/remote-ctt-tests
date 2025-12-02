@@ -102,8 +102,8 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               message.params.output.includes('Project loaded successfully')) {
             console.log('Project loaded successfully detected!');
 
-            // Query and display available test cases
-            queryTestCases();
+            // // Query and display available test cases
+            // queryTestCases();
 
             if (onProjectLoaded) {
               onProjectLoaded();
