@@ -19,11 +19,12 @@ jobs:
       uses: Vampire/setup-wsl@v6
       with:
         distribution: Debian
-        update: true
 
     - name: Enable 32-bit architecture and install libraries
       shell: wsl-bash {0}
       run: |
+        # Remove stale backports repo that causes apt-get update to fail
+        sudo rm -f /etc/apt/sources.list.d/backports.list
         sudo dpkg --add-architecture i386
         sudo apt-get update
         sudo apt-get install -y libc6:i386 libstdc++6:i386
