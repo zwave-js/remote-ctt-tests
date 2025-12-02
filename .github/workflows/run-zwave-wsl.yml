@@ -1,0 +1,65 @@
+name: Run Z-Wave Stack (Windows + WSL)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-zwave-wsl:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup WSL with Ubuntu
+      uses: Vampire/setup-wsl@v6
+      with:
+        distribution: Ubuntu-24.04
+        update: true
+
+    - name: Enable 32-bit architecture and install libraries
+      shell: wsl-bash {0}
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y libc6:i386 libstdc++6:i386
+
+    - name: Make Z-Wave binaries executable
+      shell: wsl-bash {0}
+      run: chmod +x zwave_stack/*.elf
+
+    - name: Start Z-Wave stack and verify output
+      shell: wsl-bash {0}
+      run: |
+        # Start the Z-Wave stack and capture output
+        ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
+
+        # Wait for services to start
+        sleep 5
+
+        # Show the output
+        cat /tmp/zwave-output.log
+
+        # Verify expected output
+        if grep -q "All Z-Wave binaries started!" /tmp/zwave-output.log; then
+          echo "✓ Z-Wave stack started successfully"
+        else
+          echo "✗ Failed to find expected output"
+          exit 1
+        fi
+
+    - name: Test TCP connection from Windows
+      shell: powershell
+      run: |
+        Write-Host "Testing TCP connectivity to WSL Z-Wave stack on port 5000..."
+        $connection = Test-NetConnection -ComputerName localhost -Port 5000 -WarningAction SilentlyContinue
+        if ($connection.TcpTestSucceeded) {
+          Write-Host "✓ Port 5000 is accessible from Windows"
+        } else {
+          Write-Host "✗ Port 5000 is NOT accessible from Windows"
+          exit 1
+        }
