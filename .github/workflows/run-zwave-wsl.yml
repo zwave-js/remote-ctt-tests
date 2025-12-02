@@ -37,7 +37,6 @@ jobs:
       shell: wsl-bash {0}
       run: |
         # Start the Z-Wave stack and capture output
-        # Use 'bash' explicitly to avoid CRLF line ending issues with shebang
         bash ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
 
         # Wait for services to start
@@ -48,9 +47,9 @@ jobs:
 
         # Verify expected output
         if grep -q "All Z-Wave binaries started!" /tmp/zwave-output.log; then
-          echo "✓ Z-Wave stack started successfully"
+          echo "[OK] Z-Wave stack started successfully"
         else
-          echo "✗ Failed to find expected output"
+          echo "[FAIL] Failed to find expected output"
           exit 1
         fi
 
@@ -60,8 +59,8 @@ jobs:
         Write-Host "Testing TCP connectivity to WSL Z-Wave stack on port 5000..."
         $connection = Test-NetConnection -ComputerName localhost -Port 5000 -WarningAction SilentlyContinue
         if ($connection.TcpTestSucceeded) {
-          Write-Host "✓ Port 5000 is accessible from Windows"
+          Write-Host "[OK] Port 5000 is accessible from Windows"
         } else {
-          Write-Host "✗ Port 5000 is NOT accessible from Windows"
+          Write-Host "[FAIL] Port 5000 is NOT accessible from Windows"
           exit 1
         }
