@@ -203,12 +203,46 @@ telnet localhost 5000
 
 The project includes a GitHub Actions workflow ([.github/workflows/run-zwave-wsl.yml](.github/workflows/run-zwave-wsl.yml)) that:
 
-1. Sets up WSL with Ubuntu
-2. Installs 32-bit libraries in WSL
-3. Starts the Z-Wave stack in WSL
-4. Verifies port connectivity from Windows to WSL
+1. Extracts the CTT setup archive (`setup.zip`)
+2. Sets up WSL with Ubuntu
+3. Installs 32-bit libraries in WSL
+4. Starts the Z-Wave stack in WSL
+5. Verifies port connectivity from Windows to WSL
 
 The local and CI environments are identical - both use WSL to run the Z-Wave binaries.
+
+### CTT Setup Archive
+
+The `setup.zip` archive contains files needed for CTT tests that are user/machine-specific and shouldn't be tracked directly in git:
+
+| Archive Path | Extracted To | Description |
+|--------------|--------------|-------------|
+| `storage/` | `zwave_stack/storage/` | NVM storage for Z-Wave binaries |
+| `zwave-js-cache/` | `.zwave-js-cache/` | Z-Wave JS network cache |
+| `appdata/` | `%APPDATA%\Z-Wave Alliance\Z-Wave CTT 3\` | CTT application data |
+| `keys/` | `%USERPROFILE%\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys\` | Security keys for test networks |
+
+#### Regenerating the Archive
+
+If you need to update the setup files (e.g., after creating new test networks):
+
+```powershell
+.\scripts\create-setup-archive.ps1
+```
+
+This will package the current state of:
+- `zwave_stack/storage/`
+- `.zwave-js-cache/`
+- CTT AppData folder (from your local machine)
+- CTT Keys folder (from your local machine)
+
+#### Manual Extraction
+
+To manually extract the setup files (normally done automatically on CI):
+
+```powershell
+.\scripts\extract-setup-archive.ps1
+```
 
 ### Manual Workflow Trigger
 
@@ -226,12 +260,18 @@ remote-ctt-tests/
 │   └── CTT-Remote.md               # Documentation
 ├── Project/
 │   └── zwave-js.cttsln             # CTT project file
+├── scripts/
+│   ├── create-setup-archive.ps1    # Creates setup.zip for CI
+│   └── extract-setup-archive.ps1   # Extracts setup.zip on CI
 ├── src/
 │   ├── start.ts                    # Process manager
 │   └── ws-server.ts                # WebSocket server
 ├── zwave_stack/
+│   ├── storage/                    # NVM storage (extracted from setup.zip)
 │   ├── ZW_zwave_ncp_serial_api_controller_*.elf  # Controller binaries
 │   └── ZW_zwave_ncp_serial_api_end_device_*.elf  # End device binaries
+├── .zwave-js-cache/                # Z-Wave JS cache (extracted from setup.zip)
+├── setup.zip                       # CI setup archive
 ├── start-zwave-stack.sh            # Binary startup script (runs in WSL)
 ├── update-ctt-devices.js           # CTT config updater
 └── README.md                       # This file

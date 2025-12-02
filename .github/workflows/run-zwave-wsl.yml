@@ -15,6 +15,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Extract CTT setup files
+      shell: powershell
+      run: |
+        Write-Host "Extracting CTT setup archive..."
+        .\scripts\extract-setup-archive.ps1
+
     - name: Setup WSL with Ubuntu
       uses: Vampire/setup-wsl@v6
       with:

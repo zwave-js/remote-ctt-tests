@@ -17,6 +17,13 @@
       <Category>Association Group Data</Category>
       <DateLastModified>2025-08-21T14:47:58.9040296+02:00</DateLastModified>
       <Checksum>9lxQq0iS86QcnKIPtf9xKQ==</Checksum>
+      <ExecutionResult Name="AGD_AssociationGroupData_Rev01" Result="Pass" TestRunFolder="251202_144846" TimeStamp="2025-12-02T14:48:46.9777865+01:00">
+        <KeyResult Key="ASSOCIATION_GROUP_1_GROUPING_ID" Result="Pass" />
+        <KeyResult Key="ASSOCIATION_GROUP_1_MAX_NODES" Result="Pass" />
+        <KeyResult Key="ASSOCIATION_GROUP_1_NAME" Result="Pass" />
+        <KeyResult Key="ASSOCIATION_GROUP_1_PROFILE" Result="Pass" />
+        <KeyResult Key="ASSOCIATION_GROUP_1_COMMAND" Result="Pass" />
+      </ExecutionResult>
       <InputKeys>
         <InputKey>
           <Key>ASSOCIATION_GROUP_$1$_GROUPING_ID</Key>
@@ -51,7 +58,7 @@
         <string>ASSOCIATION_GROUP_$1$_PROFILE</string>
         <string>ASSOCIATION_GROUP_$1$_COMMAND</string>
       </ResultKeys>
-      <LastExecutionDateTime>0001-01-01T00:00:00</LastExecutionDateTime>
+      <LastExecutionDateTime>2025-12-02T14:48:46.9777865+01:00</LastExecutionDateTime>
       <Description>'Association Grouping Data' in the ZCP Form MUST match the data reported by the DUT.</Description>
       <RequirementNo>
         <string />
@@ -75,7 +82,26 @@
       </ExternalFileRequired>
       <ZWaveExecutionMode>Classic</ZWaveExecutionMode>
       <IsLongRange>false</IsLongRange>
-      <TestCaseLogs />
+      <TestCaseLogs>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T14:29:30.0813371+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_142930\AGD_AssociationGroupData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_142930\AGD_AssociationGroupData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T14:30:44.6753525+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_143044\AGD_AssociationGroupData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_143044\AGD_AssociationGroupData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T14:48:46.9777865+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_144846\AGD_AssociationGroupData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_144846\AGD_AssociationGroupData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+      </TestCaseLogs>
     </ZatsTest>
     <ZatsTest IdGuid="bbb0d172-8702-49a7-a378-073bdd8f6a4c" Location="CCM_VersionCmdClassCCVersions_Rev01.dll" Name="CCM_VersionCmdClassCCVersions_Rev01" ParentId="63e99c25-71e5-4d9a-bb58-15d713d3ef78" EndPointId="63e99c25-71e5-4d9a-bb58-15d713d3ef78" Active="true" ItemType="ZATSTestCase">
       <Group>Automatic</Group>
@@ -2818,7 +2844,14 @@ The Root Device of a node MUST support the Indicator Command Class, version 3 an
       <Category>Device Data</Category>
       <DateLastModified>2025-08-21T14:49:58.0510027+02:00</DateLastModified>
       <Checksum>4dpb+QwBfTNGhHTy1spavA==</Checksum>
-      <ExecutionResult Name="DD_VersionCCData_Rev01" Result="Fail" TestRunFolder="251202_112320" TimeStamp="2025-12-02T11:23:20.7959992+01:00" />
+      <ExecutionResult Name="DD_VersionCCData_Rev01" Result="Fail" TestRunFolder="251202_142011" TimeStamp="2025-12-02T14:20:11.1137779+01:00">
+        <KeyResult Key="DD_HARDWARE_VERSION" Result="Pass" />
+        <KeyResult Key="DD_FIRMWARE_0_VERSION" Result="Fail" />
+        <KeyResult Key="DD_FIRMWARE_0_SUB_VERSION" Result="Fail" />
+        <KeyResult Key="DD_NUMBER_OF_ADDITIONAL_FW_TARGETS" Result="Pass" />
+        <KeyResult Key="DD_FIRMWARE_1_VERSION" Result="Fail" />
+        <KeyResult Key="DD_FIRMWARE_1_SUB_VERSION" Result="Fail" />
+      </ExecutionResult>
       <InputKeys>
         <InputKey>
           <Key>DD_HARDWARE_VERSION</Key>
@@ -2877,7 +2910,7 @@ The Root Device of a node MUST support the Indicator Command Class, version 3 an
         <string>DD_FIRMWARE_3_VERSION</string>
         <string>DD_FIRMWARE_3_SUB_VERSION</string>
       </ResultKeys>
-      <LastExecutionDateTime>2025-12-02T11:23:20.7959992+01:00</LastExecutionDateTime>
+      <LastExecutionDateTime>2025-12-02T14:20:11.1137779+01:00</LastExecutionDateTime>
       <Description>'Version Data' in the ZCP Form MUST match the data reported by the DUT.</Description>
       <RequirementNo>
         <string />
@@ -2906,6 +2939,24 @@ The Root Device of a node MUST support the Indicator Command Class, version 3 an
           <ExecutionTime>2025-12-02T11:23:20.7959992+01:00</ExecutionTime>
           <Path>X:\Project\Log\251202_112320\DD_VersionCCData_Rev01-EU_LR.txt</Path>
           <ZnifferLink>X:\Project\Log\251202_112320\DD_VersionCCData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.2</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T13:22:38.6301275+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_132238\DD_VersionCCData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_132238\DD_VersionCCData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.2</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T13:25:45.8036925+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_132545\DD_VersionCCData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_132545\DD_VersionCCData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.2</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-02T14:20:11.1137779+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\Project\Log\251202_142011\DD_VersionCCData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\Project\Log\251202_142011\DD_VersionCCData_Rev01-EU_LR.zlf</ZnifferLink>
           <VersionInfo>1.2</VersionInfo>
         </LogHistoryItem>
       </TestCaseLogs>

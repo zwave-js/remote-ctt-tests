@@ -2,8 +2,11 @@ node_modules/
 
 # CTT lock file
 Project/lock
-
 Project/Log
 
-# AppData folder (extracted from appdata.tgz)
-appdata/
+# Directories extracted from setup.zip on CI
+zwave_stack/storage/
+.zwave-js-cache/
+
+zwavejs_*.log
+zwavejs_logrotate.json

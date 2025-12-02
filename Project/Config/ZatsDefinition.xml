@@ -1,6 +1,6 @@
 ﻿<ZatsDefinition>
   <Profiles>
-    <Profile Name="X1" Reports="X:\Project\Log" ZName="127.0.0.1" CommanderAppPath="" PCControllerAppPath="">
+    <Profile Name="DOMIPC" Reports="C:\Repositories\remote-ctt-tests\Project\Log" ZName="127.0.0.1" CommanderAppPath="C:\SiliconLabs\SimplicityStudio\v5\developer\adapter_packs\commander\commander.exe" PCControllerAppPath="">
       <DeviceHosts>
         <DeviceHost Alias="Controller1" SName="127.0.0.1" SPort="5001" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
         <DeviceHost Alias="Controller3" SName="127.0.0.1" SPort="5002" SType="TCP" IsVirtual="true" ChipSeries="ZW070x" />
