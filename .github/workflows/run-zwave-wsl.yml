@@ -23,8 +23,8 @@ jobs:
     - name: Enable 32-bit architecture and install libraries
       shell: wsl-bash {0}
       run: |
-        # Remove stale backports repo that causes apt-get update to fail
-        sudo rm -f /etc/apt/sources.list.d/backports.list
+        # Remove stale backports entry from sources.list
+        sudo sed -i '/backports/d' /etc/apt/sources.list
         sudo dpkg --add-architecture i386
         sudo apt-get update
         sudo apt-get install -y libc6:i386 libstdc++6:i386
