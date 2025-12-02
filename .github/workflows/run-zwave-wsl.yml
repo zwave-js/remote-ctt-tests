@@ -15,10 +15,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup WSL with Ubuntu
+    - name: Setup WSL with Debian
       uses: Vampire/setup-wsl@v6
       with:
-        distribution: Ubuntu-24.04
+        distribution: Debian
         update: true
 
     - name: Enable 32-bit architecture and install libraries
@@ -36,7 +36,8 @@ jobs:
       shell: wsl-bash {0}
       run: |
         # Start the Z-Wave stack and capture output
-        ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
+        # Use 'bash' explicitly to avoid CRLF line ending issues with shebang
+        bash ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
 
         # Wait for services to start
         sleep 5
