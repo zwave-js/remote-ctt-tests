@@ -21,6 +21,14 @@ jobs:
         Write-Host "Extracting CTT setup archive..."
         .\scripts\extract-setup-archive.ps1
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      run: npm ci
+
     - name: Setup WSL with Ubuntu
       uses: Vampire/setup-wsl@v6
       with:
@@ -37,38 +45,7 @@ jobs:
       shell: wsl-bash {0}
       run: chmod +x zwave_stack/*.elf
 
-    - name: Start Z-Wave stack with nohup
-      shell: wsl-bash {0}
-      run: |
-        # Start the Z-Wave stack with nohup so processes survive shell exit
-        nohup bash ./start-zwave-stack.sh > /tmp/zwave-output.log 2>&1 &
-
-        # Wait for services to start and bind ports
-        sleep 5
-
-        # Show the output
-        cat /tmp/zwave-output.log
-
-        # Verify expected output
-        if grep -q "All Z-Wave binaries started!" /tmp/zwave-output.log; then
-          echo "[OK] Z-Wave stack started successfully"
-        else
-          echo "[FAIL] Failed to find expected output"
-          exit 1
-        fi
-
-        # Verify ports are listening in WSL
-        echo "Checking ports in WSL..."
-        ss -tlnp | grep -E "500[0-4]" || echo "Warning: ports not showing in ss"
-
-    - name: Test TCP connection from Windows
-      shell: powershell
-      run: |
-        Write-Host "Testing TCP connectivity to WSL Z-Wave stack on port 5000..."
-        $connection = Test-NetConnection -ComputerName localhost -Port 5000 -WarningAction SilentlyContinue
-        if ($connection.TcpTestSucceeded) {
-          Write-Host "[OK] Port 5000 is accessible from Windows"
-        } else {
-          Write-Host "[FAIL] Port 5000 is NOT accessible from Windows"
-          exit 1
-        }
+    - name: Run CTT tests
+      run: npm start
+      env:
+        CI: true
