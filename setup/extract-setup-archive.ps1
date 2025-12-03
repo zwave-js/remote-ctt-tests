@@ -59,10 +59,11 @@ if (-not (Test-Path $archiveFile)) {
     exit 1
 }
 
-# Clean up any existing temp directory
+# Clean up any existing temp directory and create fresh one
 if (Test-Path $tempDir) {
     Remove-Item -Recurse -Force $tempDir
 }
+New-Item -ItemType Directory -Path $tempDir | Out-Null
 
 # Extract archive using tar.exe (much faster than Expand-Archive)
 Write-Host "Extracting $archiveFile..." -ForegroundColor Green
