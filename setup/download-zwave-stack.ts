@@ -32,7 +32,7 @@ try {
 	}
 
 	console.log(`Extracting ${tarball}...`);
-	execSync(`tar --force-local -xzf "${join(tempDir, tarball)}" -C "${tempDir}"`, {
+	execSync(`tar.exe --force-local -xzf "${join(tempDir, tarball)}" -C "${tempDir}"`, {
 		stdio: "inherit",
 	});
 
