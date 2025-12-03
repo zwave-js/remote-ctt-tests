@@ -107,9 +107,16 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         const message = JSON.parse(messageStr);
 
         // Log received messages, except for ones we handle separately
-        const silentMethods = ['testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished'];
+        const silentMethods = ['testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished', 'closeProjectDone'];
         if (!silentMethods.includes(message.method)) {
           console.log('Received message:', messageStr);
+        }
+
+        // Handle closeProjectDone event
+        if (message.method === 'closeProjectDone') {
+          const result = message.params?.result || 'Unknown';
+          console.log(`Project close: ${result}`);
+          testCaseEvents.emit('closeProjectDone', { result });
         }
 
         // Prepare acknowledgement response (CTT expects this for every message)
@@ -120,6 +127,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         };
 
         if (message.method === 'generalLogMsg' && message.params?.output) {
+          // Emit event for external listeners
+          testCaseEvents.emit('generalLogMsg', { output: message.params.output, errorType: message.params.errorType });
+
           // Check for project loaded success
           if (message.params.errorType === 'None' &&
               message.params.output.includes('Project loaded successfully')) {
@@ -174,7 +184,11 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           // CloseCurrentMsgBox, Yes, No
           const msgType = message.params?.type || '';
           const content = message.params?.content || '';
+          const testCase = message.params?.testCase || {};
           const coloredContent = convertCttColorsToAnsi(content).trim();
+
+          // Emit event for external listeners (e.g., discovery script)
+          testCaseEvents.emit('testCaseMsgBox', { testCase, type: msgType, content: coloredContent });
 
           // Determine available buttons based on message type
           let buttons: string[] = [];

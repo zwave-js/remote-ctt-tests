@@ -142,6 +142,15 @@ export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): P
   return completionPromise;
 }
 
+export async function cancelTestRun(): Promise<void> {
+  const request = createRequest('cancelTestRun', {});
+  const response = await sendRequest(request);
+
+  if (response.error) {
+    throw new Error(`RPC Error: ${response.error.message}`);
+  }
+}
+
 export async function resetController(): Promise<unknown> {
   const request = createRequest('resetController', {});
   const response = await sendRequest(request);
@@ -167,15 +176,47 @@ export async function setupSerialDevices(
   return response.result;
 }
 
-export async function closeCTT(): Promise<unknown> {
-  const request = createRequest('closeCTT', {});
-  const response = await sendRequest(request);
+export async function closeCTT(): Promise<void> {
+  const maxRetries = 5;
+  const retryDelay = 3000; // 3 seconds between retries
 
-  if (response.error) {
-    throw new Error(`RPC Error: ${response.error.message}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    // Set up listener for closeProjectDone
+    const closeResult = await new Promise<{ success: boolean }>((resolve) => {
+      const timeout = setTimeout(() => {
+        testCaseEvents.removeListener('closeProjectDone', onClose);
+        resolve({ success: false });
+      }, 10000);
+
+      const onClose = (data: { result?: string }) => {
+        clearTimeout(timeout);
+        testCaseEvents.removeListener('closeProjectDone', onClose);
+        resolve({ success: data.result === 'Completed' });
+      };
+
+      testCaseEvents.on('closeProjectDone', onClose);
+
+      // Send the close request
+      const request = createRequest('closeCTT', {});
+      sendRequest(request).catch(() => {
+        clearTimeout(timeout);
+        testCaseEvents.removeListener('closeProjectDone', onClose);
+        resolve({ success: false });
+      });
+    });
+
+    if (closeResult.success) {
+      console.log('[CTT Client] Project closed successfully');
+      return;
+    }
+
+    if (attempt < maxRetries) {
+      console.log(`[CTT Client] Close failed (attempt ${attempt}/${maxRetries}), retrying in ${retryDelay / 1000}s...`);
+      await new Promise((r) => setTimeout(r, retryDelay));
+    }
   }
 
-  return response.result;
+  console.log('[CTT Client] Failed to close project gracefully after all retries');
 }
 
 export function isCTTAvailable(): Promise<boolean> {

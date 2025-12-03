@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { createWebSocketServer } from "./ws-server.ts";
 import type { ManagedWebSocketServer } from "./ws-server.ts";
-import { runTestCases, closeCTT } from "./ctt-client.ts";
+import { runTestCases, closeCTT, getTestCases } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
@@ -28,6 +28,17 @@ interface PidFileData {
 const args = process.argv.slice(2);
 const DEVICES_ONLY = args.includes("--devices-only");
 const VERBOSE = args.includes("--verbose");
+const DISCOVER_MODE = args.includes("--discover");
+// Support multiple --test= arguments or comma-separated names
+const testArgs = args.filter((arg) => arg.startsWith("--test="));
+const TEST_NAMES: string[] = testArgs.flatMap((arg) =>
+  arg.split("=")[1].split(",")
+);
+// Support multiple --category= arguments or comma-separated categories
+const categoryArgs = args.filter((arg) => arg.startsWith("--category="));
+const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
+  arg.split("=")[1].split(",")
+);
 
 // Load config.json
 interface Config {
@@ -93,7 +104,9 @@ class ProcessManager {
       .map((p) => ({
         name: p.name,
         pid: p.pid!,
-        platform: p.name.includes("WSL") ? "wsl" as const : "windows" as const,
+        platform: p.name.includes("WSL")
+          ? ("wsl" as const)
+          : ("windows" as const),
       }));
 
     // Add runner PID if available
@@ -301,6 +314,123 @@ class ProcessManager {
     return managedProcess;
   }
 
+  /**
+   * Run specific tests by name
+   */
+  async runTests(testNames: string[]): Promise<void> {
+    console.log(`Running ${testNames.length} test(s)...\n`);
+
+    const startTime = Date.now();
+
+    const results = await runTestCases({
+      testCaseNames: testNames,
+      endPointIds: [],
+      ZWaveExecutionModes: [],
+    });
+
+    const elapsed = Date.now() - startTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = ((elapsed % 60000) / 1000).toFixed(1);
+
+    // Print summary
+    const passed = results.filter((r) => r.result === "PASSED");
+    const failed = results.filter((r) => r.result !== "PASSED");
+
+    console.log("\n" + "=".repeat(50));
+    console.log("Test Results Summary");
+    console.log("=".repeat(50));
+    console.log(c.green(`✅ Passed: ${passed.length}/${results.length}`));
+    if (failed.length > 0) {
+      console.log(c.red(`❌ Failed: ${failed.length}/${results.length}`));
+      for (const test of failed) {
+        console.log(c.red(`   - ${test.name} (${test.result})`));
+      }
+    }
+    console.log(c.dim(`⏱  Total time: ${minutes}m ${seconds}s`));
+    console.log("=".repeat(50));
+  }
+
+  /**
+   * Run all tests in the specified categories
+   */
+  async runTestsByCategory(categories: string[]): Promise<void> {
+    // Get all tests
+    const allTests = (await getTestCases({})) as Array<{
+      Name: string;
+      Category: string;
+      Group: string;
+    }>;
+
+    // Filter by categories (case-insensitive partial match)
+    const matchingTests = allTests.filter((tc) =>
+      categories.some((cat) =>
+        tc.Category.toLowerCase().includes(cat.toLowerCase())
+      )
+    );
+
+    if (matchingTests.length === 0) {
+      console.log(
+        c.yellow(`No tests found matching categories: ${categories.join(", ")}`)
+      );
+      console.log("\nAvailable categories:");
+      const cats = new Set(allTests.map((tc) => tc.Category));
+      for (const cat of cats) {
+        console.log(`  - ${cat}`);
+      }
+      return;
+    }
+
+    const testNames = matchingTests.map((tc) => tc.Name);
+    console.log(
+      `Found ${testNames.length} tests in categories: ${categories.join(
+        ", "
+      )}\n`
+    );
+
+    await this.runTests(testNames);
+  }
+
+  /**
+   * List all test cases grouped by category
+   */
+  async listTestCases(): Promise<void> {
+    const allTests = (await getTestCases({})) as Array<{
+      Name: string;
+      Category: string;
+      Group: string;
+      EndPoint: string;
+      IsLongRange: boolean;
+      Result: string;
+    }>;
+
+    // Group by category
+    const byCategory = new Map<string, typeof allTests>();
+    for (const tc of allTests) {
+      const category = tc.Category || "Uncategorized";
+      if (!byCategory.has(category)) {
+        byCategory.set(category, []);
+      }
+      byCategory.get(category)!.push(tc);
+    }
+
+    console.log(
+      `\nFound ${allTests.length} test cases in ${byCategory.size} categories:\n`
+    );
+
+    for (const [category, tests] of byCategory) {
+      console.log(c.bold(`[${category}]`) + c.dim(` (${tests.length} tests)`));
+      for (const tc of tests) {
+        const mode = tc.IsLongRange ? c.cyan("LR") : c.dim("Classic");
+        const group =
+          tc.Group === "Automatic" ? c.green(tc.Group) : c.yellow(tc.Group);
+        console.log(
+          `  ${tc.Name} ${c.dim(`EP${tc.EndPoint}`)} ${mode} ${group}`
+        );
+      }
+      console.log();
+    }
+  }
+
   startWebSocketServer(): void {
     this.wsServer = createWebSocketServer({
       port: PORT,
@@ -308,42 +438,50 @@ class ProcessManager {
       onFatalError: () => this.cleanup(),
       onProjectLoaded: async () => {
         console.log("\n✓ Project loaded successfully!");
-
         await setTimeout(1000);
 
         try {
-          const results = await runTestCases({
-            testCaseNames: ["AGD_AssociationGroupData_Rev01"],
-            endPointIds: [0],
-            ZWaveExecutionModes: ["Classic"],
-          });
-
-          // Print user-friendly summary
-          const passed = results.filter((r) => r.result === "PASSED");
-          const failed = results.filter((r) => r.result !== "PASSED");
-          const total = results.length;
-
-          console.log("\n" + "=".repeat(50));
-          console.log("Test Results Summary");
-          console.log("=".repeat(50));
-          console.log(c.green(`✅ Passing tests: ${passed.length}/${total}`));
-          if (failed.length > 0) {
-            console.log(c.red(`❌ Failing tests: ${failed.length}/${total}`));
-            for (const test of failed) {
-              console.log(c.red(`   - ${test.name} (${test.result})`));
-            }
+          if (DISCOVER_MODE) {
+            await this.listTestCases();
+          } else if (CATEGORIES.length > 0) {
+            await this.runTestsByCategory(CATEGORIES);
+          } else if (TEST_NAMES.length > 0) {
+            await this.runTests(TEST_NAMES);
+          } else {
+            // Default: show usage
+            console.log("\nUsage:");
+            console.log(
+              "  npm start -- --discover                List all test cases by category"
+            );
+            console.log(
+              "  npm start -- --test=<name>             Run a specific test by name"
+            );
+            console.log(
+              "  npm start -- --test=<n1>,<n2>          Run multiple tests (comma-separated)"
+            );
+            console.log(
+              "  npm start -- --category=<cat>          Run all tests in a category"
+            );
+            console.log(
+              "  npm start -- --category=<c1>,<c2>      Run tests from multiple categories"
+            );
+            console.log(
+              "  npm start -- --devices-only            Only start emulated devices"
+            );
+            console.log(
+              "  npm start -- --verbose                 Show CTT log output"
+            );
           }
-          console.log("=".repeat(50) + "\n");
         } catch (error) {
-          console.error("Failed to run test case:", error);
+          console.error("Operation failed:", error);
         }
 
-        // Quit after test cases complete
-        console.log("\nTest cases completed. Shutting down...");
+        // Shutdown
+        // Wait before first attempt to let CTT finish processing
+        await setTimeout(3000);
+        console.log("\nShutting down...");
         try {
-          console.log("Closing CTT...");
           await closeCTT();
-          console.log("CTT closed successfully.");
         } catch (error) {
           console.warn("Failed to close CTT gracefully:", error);
         }
@@ -456,6 +594,7 @@ async function main() {
       console.log("  Controller 3: localhost:5002");
       console.log("  End Device 1: localhost:5003");
       console.log("  End Device 2: localhost:5004");
+      console.log("  Zniffer:      localhost:4905");
       console.log("\nPress Ctrl+C to stop.");
       return;
     }
@@ -477,6 +616,7 @@ async function main() {
     console.log("  Controller 3 (CTT):       localhost:5002");
     console.log("  End Device 1 (CTT):       localhost:5003");
     console.log("  End Device 2 (CTT):       localhost:5004");
+    console.log("  Zniffer (CTT):            localhost:4905");
     console.log(`  ${config.dut.name} Server:         ws://localhost:3000`);
   } catch (error) {
     console.error("Failed to start services:", error);
