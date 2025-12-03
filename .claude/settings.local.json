@@ -1,13 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(npm start)",
-      "Bash(docker build:*)",
-      "Bash(docker run:*)",
-      "Bash(docker-compose down:*)",
-      "Bash(docker-compose up:*)",
-      "Bash(docker-compose logs:*)"
-    ],
+    "allow": ["Bash(npm start)"],
     "deny": [],
     "ask": []
   }

@@ -1,0 +1,21 @@
+{
+  "dut": {
+    // Display name for logs
+    "name": "Z-Wave JS",
+
+    // Path to the DUT runner script (relative to repo root)
+    "runnerPath": "zwave-js/run.ts",
+
+    // Z-Wave network home ID (used for storage file filtering)
+    "homeId": "e6d68af7",
+
+    // Directory containing DUT storage/cache files
+    "storageDir": "zwave-js/storage",
+
+    // Glob patterns to match storage files (supports %HOME_ID_LOWER% and %HOME_ID_UPPER% placeholders)
+    "storageFileFilter": [
+      "%HOME_ID_LOWER%.jsonl",
+      "%HOME_ID_LOWER%.*.jsonl"
+    ]
+  }
+}

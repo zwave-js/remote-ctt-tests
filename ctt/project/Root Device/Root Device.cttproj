@@ -17,7 +17,7 @@
       <Category>Association Group Data</Category>
       <DateLastModified>2025-08-21T14:47:58.9040296+02:00</DateLastModified>
       <Checksum>9lxQq0iS86QcnKIPtf9xKQ==</Checksum>
-      <ExecutionResult Name="AGD_AssociationGroupData_Rev01" Result="Pass" TestRunFolder="251203_094707" TimeStamp="2025-12-03T09:47:07.1900909+01:00">
+      <ExecutionResult Name="AGD_AssociationGroupData_Rev01" Result="Pass" TestRunFolder="251203_105710" TimeStamp="2025-12-03T10:57:10.5870352+01:00">
         <KeyResult Key="ASSOCIATION_GROUP_1_GROUPING_ID" Result="Pass" />
         <KeyResult Key="ASSOCIATION_GROUP_1_MAX_NODES" Result="Pass" />
         <KeyResult Key="ASSOCIATION_GROUP_1_NAME" Result="Pass" />
@@ -58,7 +58,7 @@
         <string>ASSOCIATION_GROUP_$1$_PROFILE</string>
         <string>ASSOCIATION_GROUP_$1$_COMMAND</string>
       </ResultKeys>
-      <LastExecutionDateTime>2025-12-03T09:47:07.1900909+01:00</LastExecutionDateTime>
+      <LastExecutionDateTime>2025-12-03T10:57:10.5870352+01:00</LastExecutionDateTime>
       <Description>'Association Grouping Data' in the ZCP Form MUST match the data reported by the DUT.</Description>
       <RequirementNo>
         <string />
@@ -105,6 +105,12 @@
           <ExecutionTime>2025-12-03T09:47:07.1900909+01:00</ExecutionTime>
           <Path>C:\Repositories\remote-ctt-tests\ctt\project\Log\251203_094707\AGD_AssociationGroupData_Rev01-EU_LR.txt</Path>
           <ZnifferLink>C:\Repositories\remote-ctt-tests\ctt\project\Log\251203_094707\AGD_AssociationGroupData_Rev01-EU_LR.zlf</ZnifferLink>
+          <VersionInfo>1.5</VersionInfo>
+        </LogHistoryItem>
+        <LogHistoryItem>
+          <ExecutionTime>2025-12-03T10:57:10.5870352+01:00</ExecutionTime>
+          <Path>C:\Repositories\remote-ctt-tests\ctt\project\Log\251203_105710\AGD_AssociationGroupData_Rev01-EU_LR.txt</Path>
+          <ZnifferLink>C:\Repositories\remote-ctt-tests\ctt\project\Log\251203_105710\AGD_AssociationGroupData_Rev01-EU_LR.zlf</ZnifferLink>
           <VersionInfo>1.5</VersionInfo>
         </LogHistoryItem>
       </TestCaseLogs>

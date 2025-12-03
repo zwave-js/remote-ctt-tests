@@ -5,9 +5,9 @@
 .DESCRIPTION
     This script packages the following into setup/setup.zip:
     - zwave_stack/storage/ -> storage/
-    - zwave-js/storage/ -> zwave-js-storage/
+    - DUT storage files (from config.json glob patterns) -> dut-storage/
     - CTT AppData folder -> appdata/
-    - CTT Keys folder -> keys/
+    - CTT Keys file (homeId-specific) -> keys/
 
 .EXAMPLE
     .\create-setup-archive.ps1
@@ -19,14 +19,39 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $tempDir = Join-Path $env:TEMP "ctt-setup-staging"
 $outputFile = Join-Path $repoRoot "setup\setup.zip"
 
+# Helper function to parse JSON with comments (JSON5-style)
+function ConvertFrom-Json5 {
+    param(
+        [Parameter(ValueFromPipeline=$true)]
+        [string]$Content
+    )
+    # Remove single-line comments (// ...)
+    $Content = $Content -replace '(?m)^\s*//.*$', ''
+    $Content = $Content -replace '//[^"]*$', ''
+    # Remove multi-line comments (/* ... */)
+    $Content = $Content -replace '/\*[\s\S]*?\*/', ''
+    # Remove trailing commas before } or ]
+    $Content = $Content -replace ',(\s*[}\]])', '$1'
+    return $Content | ConvertFrom-Json
+}
+
+# Load config.json for DUT paths (supports comments)
+$configPath = Join-Path $repoRoot "config.json"
+$config = Get-Content $configPath -Raw | ConvertFrom-Json5
+
+# DUT configuration
+$homeId = $config.dut.homeId
+$homeIdLower = $homeId.ToLower()
+$homeIdUpper = $homeId.ToUpper()
+$dutStorageDir = Join-Path $repoRoot $config.dut.storageDir
+$dutStorageArchiveName = "dut-storage"
+
 # Source paths
 $zwaveStorage = Join-Path $repoRoot "zwave_stack\storage"
-$zwaveJsStorage = Join-Path $repoRoot "zwave-js\storage"
 $cttAppData = "C:\Users\$env:USERNAME\AppData\Roaming\Z-Wave Alliance\Z-Wave CTT 3"
 $cttKeys = "C:\Users\$env:USERNAME\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys"
 
-Write-Host "Creating CTT setup archive..." -ForegroundColor Cyan
-Write-Host ""
+Write-Host "Creating setup archive..." -ForegroundColor Cyan
 
 # Clean up any existing temp directory
 if (Test-Path $tempDir) {
@@ -38,34 +63,42 @@ New-Item -ItemType Directory -Path $tempDir | Out-Null
 
 # Copy zwave_stack/storage
 if (Test-Path $zwaveStorage) {
-    Write-Host "Copying zwave_stack/storage -> storage/" -ForegroundColor Green
     Copy-Item -Recurse $zwaveStorage (Join-Path $tempDir "storage")
-} else {
-    Write-Host "WARNING: $zwaveStorage not found, skipping" -ForegroundColor Yellow
 }
 
-# Copy zwave-js/storage
-if (Test-Path $zwaveJsStorage) {
-    Write-Host "Copying zwave-js/storage -> zwave-js-storage/" -ForegroundColor Green
-    Copy-Item -Recurse $zwaveJsStorage (Join-Path $tempDir "zwave-js-storage")
-} else {
-    Write-Host "WARNING: $zwaveJsStorage not found, skipping" -ForegroundColor Yellow
+# Copy DUT storage files using glob patterns from config
+$dutStagingDir = Join-Path $tempDir $dutStorageArchiveName
+New-Item -ItemType Directory -Path $dutStagingDir | Out-Null
+
+if (Test-Path $dutStorageDir) {
+    foreach ($pattern in $config.dut.storageFileFilter) {
+        # Replace placeholders
+        $resolvedPattern = $pattern -replace '%HOME_ID_LOWER%', $homeIdLower
+        $resolvedPattern = $resolvedPattern -replace '%HOME_ID_UPPER%', $homeIdUpper
+
+        $fullPattern = Join-Path $dutStorageDir $resolvedPattern
+        $matchedFiles = Get-Item -Path $fullPattern -ErrorAction SilentlyContinue
+
+        foreach ($file in $matchedFiles) {
+            Copy-Item $file.FullName $dutStagingDir
+        }
+    }
 }
 
 # Copy CTT AppData
 if (Test-Path $cttAppData) {
-    Write-Host "Copying CTT AppData -> appdata/" -ForegroundColor Green
     Copy-Item -Recurse $cttAppData (Join-Path $tempDir "appdata")
-} else {
-    Write-Host "WARNING: $cttAppData not found, skipping" -ForegroundColor Yellow
 }
 
-# Copy CTT Keys
+# Copy CTT Keys - only the homeId-specific key file
+$keysStagingDir = Join-Path $tempDir "keys"
+New-Item -ItemType Directory -Path $keysStagingDir | Out-Null
+
 if (Test-Path $cttKeys) {
-    Write-Host "Copying CTT Keys -> keys/" -ForegroundColor Green
-    Copy-Item -Recurse $cttKeys (Join-Path $tempDir "keys")
-} else {
-    Write-Host "WARNING: $cttKeys not found, skipping" -ForegroundColor Yellow
+    $keyFile = Join-Path $cttKeys "$homeIdUpper.txt"
+    if (Test-Path $keyFile) {
+        Copy-Item $keyFile $keysStagingDir
+    }
 }
 
 # Remove old archive if it exists
@@ -73,22 +106,10 @@ if (Test-Path $outputFile) {
     Remove-Item $outputFile
 }
 
-# Create the zip archive
-Write-Host ""
-Write-Host "Creating $outputFile..." -ForegroundColor Cyan
-Compress-Archive -Path "$tempDir\*" -DestinationPath $outputFile -CompressionLevel Optimal
+# Create the zip archive using tar.exe (much faster than Compress-Archive)
+& "$env:SystemRoot\System32\tar.exe" -a -cf $outputFile -C $tempDir *
 
 # Clean up temp directory
 Remove-Item -Recurse -Force $tempDir
 
-Write-Host ""
-Write-Host "Archive created successfully: $outputFile" -ForegroundColor Green
-
-# Show archive contents
-Write-Host ""
-Write-Host "Archive contents:" -ForegroundColor Cyan
-$shell = New-Object -ComObject Shell.Application
-$zip = $shell.NameSpace($outputFile)
-foreach ($item in $zip.Items()) {
-    Write-Host "  - $($item.Name)/" -ForegroundColor White
-}
+Write-Host "Created $outputFile" -ForegroundColor Green

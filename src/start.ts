@@ -8,6 +8,7 @@ import { runTestCases, closeCTT } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
+import JSON5 from "json5";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,11 +29,32 @@ const args = process.argv.slice(2);
 const DEVICES_ONLY = args.includes("--devices-only");
 const VERBOSE = args.includes("--verbose");
 
-// Parse --dut argument (default to zwave-js runner)
+// Load config.json
+interface Config {
+  dut: {
+    name: string;
+    runnerPath: string;
+  };
+}
+
+function loadConfig(): Config {
+  const configPath = path.join(__dirname, "..", "config.json");
+  try {
+    const content = fs.readFileSync(configPath, "utf-8");
+    return JSON5.parse(content) as Config;
+  } catch (error) {
+    console.error("Failed to load config.json:", error);
+    process.exit(1);
+  }
+}
+
+const config = loadConfig();
+
+// Parse --dut argument (default to config runner path)
 const dutArg = args.find((arg) => arg.startsWith("--dut="));
 const DUT_PATH = dutArg
   ? dutArg.split("=")[1]
-  : path.join(__dirname, "..", "zwave-js", "run.ts");
+  : path.join(__dirname, "..", config.dut.runnerPath);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
 
@@ -78,7 +100,7 @@ class ProcessManager {
     const runnerPid = this.runnerHost?.getRunnerPid();
     if (runnerPid) {
       pids.push({
-        name: "DUT Runner",
+        name: `${config.dut.name} Runner`,
         pid: runnerPid,
         platform: "windows",
       });
@@ -196,7 +218,7 @@ class ProcessManager {
   }
 
   async startRunner(): Promise<void> {
-    console.log(`Starting DUT runner: ${DUT_PATH}`);
+    console.log(`Starting ${config.dut.name} runner: ${DUT_PATH}`);
 
     this.runnerHost = new RunnerHost({
       runnerPath: DUT_PATH,
@@ -205,7 +227,7 @@ class ProcessManager {
     // Initialize the runner (spawns process, waits for ready)
     await this.runnerHost.initialize();
 
-    // Start the Z-Wave driver/server in the runner
+    // Start the DUT
     await this.runnerHost.start({
       controllerUrl: "tcp://127.0.0.1:5000",
       securityKeys: {
@@ -350,7 +372,7 @@ class ProcessManager {
   async cleanup(): Promise<void> {
     console.log("Shutting down...");
 
-    // Stop runner (Z-Wave JS server and driver)
+    // Stop DUT runner
     await this.stopRunner();
 
     // Kill all managed processes
@@ -438,7 +460,7 @@ async function main() {
       return;
     }
 
-    // Start DUT runner (Z-Wave JS driver and server via IPC)
+    // Start DUT runner (via IPC)
     await manager.startRunner();
 
     // Start WebSocket server for CTT communication
@@ -450,12 +472,12 @@ async function main() {
 
     console.log("\nAll services started successfully!");
     console.log("Z-Wave devices available at:");
-    console.log("  Controller 1 (Z-Wave JS): localhost:5000");
+    console.log(`  Controller 1 (${config.dut.name}): localhost:5000`);
     console.log("  Controller 2 (CTT):       localhost:5001");
     console.log("  Controller 3 (CTT):       localhost:5002");
     console.log("  End Device 1 (CTT):       localhost:5003");
     console.log("  End Device 2 (CTT):       localhost:5004");
-    console.log("  Z-Wave JS Server:         ws://localhost:3000");
+    console.log(`  ${config.dut.name} Server:         ws://localhost:3000`);
   } catch (error) {
     console.error("Failed to start services:", error);
     await manager.cleanup();

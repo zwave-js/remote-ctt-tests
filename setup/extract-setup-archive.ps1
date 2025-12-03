@@ -5,9 +5,11 @@
 .DESCRIPTION
     This script extracts setup/setup.zip and places files in the correct locations:
     - storage/ -> zwave_stack/storage/
-    - zwave-js-storage/ -> zwave-js/storage/
+    - dut-storage/ -> DUT storage directory (from config.json)
     - appdata/ -> %APPDATA%/Z-Wave Alliance/Z-Wave CTT 3/
     - keys/ -> %USERPROFILE%/Documents/Z-Wave Alliance/Z-Wave CTT 3/Keys/
+
+    It also updates ctt/project/Config/ZatsSettings.json to point to the correct keys directory.
 
 .EXAMPLE
     .\extract-setup-archive.ps1
@@ -19,11 +21,35 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $archiveFile = Join-Path $repoRoot "setup\setup.zip"
 $tempDir = Join-Path $env:TEMP "ctt-setup-extract"
 
+# Helper function to parse JSON with comments (JSON5-style)
+function ConvertFrom-Json5 {
+    param(
+        [Parameter(ValueFromPipeline=$true)]
+        [string]$Content
+    )
+    # Remove single-line comments (// ...)
+    $Content = $Content -replace '(?m)^\s*//.*$', ''
+    $Content = $Content -replace '//[^"]*$', ''
+    # Remove multi-line comments (/* ... */)
+    $Content = $Content -replace '/\*[\s\S]*?\*/', ''
+    # Remove trailing commas before } or ]
+    $Content = $Content -replace ',(\s*[}\]])', '$1'
+    return $Content | ConvertFrom-Json
+}
+
+# Load config.json for DUT paths (supports comments)
+$configPath = Join-Path $repoRoot "config.json"
+$config = Get-Content $configPath -Raw | ConvertFrom-Json5
+
 # Destination paths
 $zwaveStorage = Join-Path $repoRoot "zwave_stack\storage"
-$zwaveJsStorage = Join-Path $repoRoot "zwave-js\storage"
+$dutStorageDir = Join-Path $repoRoot $config.dut.storageDir
+$dutStorageArchiveName = "dut-storage"
 $cttAppData = "$env:APPDATA\Z-Wave Alliance\Z-Wave CTT 3"
 $cttKeys = "$env:USERPROFILE\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys"
+
+# CTT settings file
+$zatsSettingsPath = Join-Path $repoRoot "ctt\project\Config\ZatsSettings.json"
 
 Write-Host "Extracting CTT setup archive..." -ForegroundColor Cyan
 Write-Host ""
@@ -38,9 +64,9 @@ if (Test-Path $tempDir) {
     Remove-Item -Recurse -Force $tempDir
 }
 
-# Extract archive
+# Extract archive using tar.exe (much faster than Expand-Archive)
 Write-Host "Extracting $archiveFile..." -ForegroundColor Green
-Expand-Archive -Path $archiveFile -DestinationPath $tempDir -Force
+& "$env:SystemRoot\System32\tar.exe" -xf $archiveFile -C $tempDir
 
 # Copy storage -> zwave_stack/storage
 $sourceStorage = Join-Path $tempDir "storage"
@@ -54,16 +80,21 @@ if (Test-Path $sourceStorage) {
     Write-Host "WARNING: storage/ not found in archive" -ForegroundColor Yellow
 }
 
-# Copy zwave-js-storage -> zwave-js/storage
-$sourceJsStorage = Join-Path $tempDir "zwave-js-storage"
-if (Test-Path $sourceJsStorage) {
-    Write-Host "Copying zwave-js-storage -> zwave-js/storage/" -ForegroundColor Green
-    if (Test-Path $zwaveJsStorage) {
-        Remove-Item -Recurse -Force $zwaveJsStorage
+# Copy DUT storage files to storageDir
+$sourceDutStorage = Join-Path $tempDir $dutStorageArchiveName
+if (Test-Path $sourceDutStorage) {
+    Write-Host "Copying $dutStorageArchiveName -> $($config.dut.storageDir)" -ForegroundColor Green
+    # Create destination directory if it doesn't exist
+    if (-not (Test-Path $dutStorageDir)) {
+        New-Item -ItemType Directory -Path $dutStorageDir -Force | Out-Null
     }
-    Copy-Item -Recurse $sourceJsStorage $zwaveJsStorage
+    # Copy individual files (not the folder itself)
+    Get-ChildItem $sourceDutStorage | ForEach-Object {
+        Write-Host "  Copying $($_.Name)" -ForegroundColor Green
+        Copy-Item $_.FullName $dutStorageDir -Force
+    }
 } else {
-    Write-Host "WARNING: zwave-js-storage/ not found in archive" -ForegroundColor Yellow
+    Write-Host "WARNING: $dutStorageArchiveName/ not found in archive" -ForegroundColor Yellow
 }
 
 # Copy appdata -> CTT AppData location
@@ -100,6 +131,17 @@ if (Test-Path $sourceKeys) {
     Write-Host "WARNING: keys/ not found in archive" -ForegroundColor Yellow
 }
 
+# Update ZatsSettings.json with correct KeysStoragePath
+if (Test-Path $zatsSettingsPath) {
+    Write-Host "Updating ZatsSettings.json with KeysStoragePath..." -ForegroundColor Green
+    $zatsSettings = Get-Content $zatsSettingsPath -Raw | ConvertFrom-Json
+    $zatsSettings.KeysStoragePath = $cttKeys
+    $zatsSettings | ConvertTo-Json -Depth 10 | Set-Content $zatsSettingsPath -Encoding UTF8
+    Write-Host "  KeysStoragePath set to: $cttKeys" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: ZatsSettings.json not found at $zatsSettingsPath" -ForegroundColor Yellow
+}
+
 # Clean up temp directory
 Remove-Item -Recurse -Force $tempDir
 
@@ -108,6 +150,6 @@ Write-Host "Setup files extracted successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Extracted to:" -ForegroundColor Cyan
 Write-Host "  - $zwaveStorage" -ForegroundColor White
-Write-Host "  - $zwaveJsStorage" -ForegroundColor White
+Write-Host "  - $dutStorageDir" -ForegroundColor White
 Write-Host "  - $cttAppData" -ForegroundColor White
 Write-Host "  - $cttKeys" -ForegroundColor White
