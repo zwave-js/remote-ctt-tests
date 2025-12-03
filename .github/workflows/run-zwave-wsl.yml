@@ -45,6 +45,31 @@ jobs:
       shell: wsl-bash {0}
       run: chmod +x zwave_stack/bin/*.elf
 
+    - name: Copy Z-Wave storage to WSL native filesystem
+      shell: wsl-bash {0}
+      run: |
+        # Create storage in WSL native filesystem
+        rm -rf ~/zwave_storage
+        mkdir -p ~/zwave_storage
+
+        # Copy extracted storage files to WSL native filesystem
+        if [ -d "./zwave_stack/storage" ]; then
+          cp -r ./zwave_stack/storage/* ~/zwave_storage/ 2>/dev/null || true
+        fi
+
+        # Get list of storage subdirectories, then replace with symlinks
+        if [ -d "./zwave_stack/storage" ]; then
+          STORAGE_DIRS=$(find ./zwave_stack/storage -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+          rm -rf ./zwave_stack/storage
+          mkdir -p ./zwave_stack/storage
+          for dir in $STORAGE_DIRS; do
+            ln -sf ~/zwave_storage/$dir ./zwave_stack/storage/$dir
+          done
+        fi
+
+        echo "Storage symlinks created:"
+        ls -la ./zwave_stack/storage/
+
     - name: Run CTT tests
       run: npm start
       env:
