@@ -39,6 +39,11 @@ const categoryArgs = args.filter((arg) => arg.startsWith("--category="));
 const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
   arg.split("=")[1].split(",")
 );
+// Support multiple --group= arguments or comma-separated groups (e.g., Automatic, Interactive)
+const groupArgs = args.filter((arg) => arg.startsWith("--group="));
+const GROUPS: string[] = groupArgs.flatMap((arg) =>
+  arg.split("=")[1].split(",")
+);
 
 // Load config.json
 interface Config {
@@ -351,9 +356,9 @@ class ProcessManager {
   }
 
   /**
-   * Run all tests in the specified categories
+   * Run all tests matching the specified categories and/or groups
    */
-  async runTestsByCategory(categories: string[]): Promise<void> {
+  async runTestsByFilter(categories: string[], groups: string[]): Promise<void> {
     // Get all tests
     const allTests = (await getTestCases({})) as Array<{
       Name: string;
@@ -361,31 +366,49 @@ class ProcessManager {
       Group: string;
     }>;
 
-    // Filter by categories (case-insensitive partial match)
-    const matchingTests = allTests.filter((tc) =>
-      categories.some((cat) =>
-        tc.Category.toLowerCase().includes(cat.toLowerCase())
-      )
-    );
+    // Filter by categories and/or groups (case-insensitive partial match)
+    let matchingTests = allTests;
+
+    if (categories.length > 0) {
+      matchingTests = matchingTests.filter((tc) =>
+        categories.some((cat) =>
+          tc.Category.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
+    }
+
+    if (groups.length > 0) {
+      matchingTests = matchingTests.filter((tc) =>
+        groups.some((grp) =>
+          tc.Group.toLowerCase().includes(grp.toLowerCase())
+        )
+      );
+    }
 
     if (matchingTests.length === 0) {
-      console.log(
-        c.yellow(`No tests found matching categories: ${categories.join(", ")}`)
-      );
+      const filters: string[] = [];
+      if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+      if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
+      console.log(c.yellow(`No tests found matching ${filters.join(" and ")}`));
+
       console.log("\nAvailable categories:");
       const cats = new Set(allTests.map((tc) => tc.Category));
       for (const cat of cats) {
         console.log(`  - ${cat}`);
       }
+      console.log("\nAvailable groups:");
+      const grps = new Set(allTests.map((tc) => tc.Group));
+      for (const grp of grps) {
+        console.log(`  - ${grp}`);
+      }
       return;
     }
 
     const testNames = matchingTests.map((tc) => tc.Name);
-    console.log(
-      `Found ${testNames.length} tests in categories: ${categories.join(
-        ", "
-      )}\n`
-    );
+    const filters: string[] = [];
+    if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+    if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
+    console.log(`Found ${testNames.length} tests matching ${filters.join(" and ")}\n`);
 
     await this.runTests(testNames);
   }
@@ -443,8 +466,8 @@ class ProcessManager {
         try {
           if (DISCOVER_MODE) {
             await this.listTestCases();
-          } else if (CATEGORIES.length > 0) {
-            await this.runTestsByCategory(CATEGORIES);
+          } else if (CATEGORIES.length > 0 || GROUPS.length > 0) {
+            await this.runTestsByFilter(CATEGORIES, GROUPS);
           } else if (TEST_NAMES.length > 0) {
             await this.runTests(TEST_NAMES);
           } else {
@@ -464,6 +487,12 @@ class ProcessManager {
             );
             console.log(
               "  npm start -- --category=<c1>,<c2>      Run tests from multiple categories"
+            );
+            console.log(
+              "  npm start -- --group=<grp>             Run tests in a group (Automatic, Interactive)"
+            );
+            console.log(
+              "  npm start -- --group=<g1>,<g2>         Run tests from multiple groups"
             );
             console.log(
               "  npm start -- --devices-only            Only start emulated devices"

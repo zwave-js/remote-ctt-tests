@@ -71,9 +71,50 @@ jobs:
         ls -la ./zwave_stack/storage/
 
     - name: Run CTT tests
-      run: npm start
+      run: npm start -- --group=Automatic
       env:
         CI: true
+
+    - name: Package CTT test logs
+      if: always()
+      shell: powershell
+      run: |
+        $logPath = "ctt/project/Log"
+        $outputPath = "ctt-test-logs"
+
+        if (Test-Path $logPath) {
+          New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
+
+          Get-ChildItem -Path $logPath -Directory | ForEach-Object {
+            $testResultFile = Join-Path $_.FullName "TestResult.xml"
+            if (Test-Path $testResultFile) {
+              [xml]$xml = Get-Content $testResultFile
+              $suiteName = $xml.testsuites.testsuite.name
+              if ($suiteName) {
+                $zipName = "$suiteName.zip"
+                $zipPath = Join-Path $outputPath $zipName
+                Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force
+                Write-Host "Created: $zipName"
+              }
+            }
+          }
+        }
+
+    - name: Upload CTT test logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ctt-test-logs
+        path: ctt-test-logs/
+        if-no-files-found: ignore
+
+    - name: Upload CTT project file
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: "Root Device.cttproj"
+        path: ctt/project/Root Device/Root Device.cttproj
+        if-no-files-found: ignore
 
     - name: Upload Z-Wave JS logs
       uses: actions/upload-artifact@v4
