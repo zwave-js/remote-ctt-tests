@@ -32,7 +32,8 @@ try {
 	}
 
 	console.log(`Extracting ${tarball}...`);
-	execSync(`tar.exe --force-local -xzf "${join(tempDir, tarball)}" -C "${tempDir}"`, {
+	const tarCmd = process.platform === "win32" ? "tar.exe --force-local" : "tar";
+	execSync(`${tarCmd} -xzf "${join(tempDir, tarball)}" -C "${tempDir}"`, {
 		stdio: "inherit",
 	});
 
