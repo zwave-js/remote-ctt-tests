@@ -21,12 +21,17 @@ echo "Starting End Device 1 on port 5003..."
 echo "Starting End Device 2 on port 5004..."
 ./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device_25_9_0_x86_REALTIME_DEBUG.elf --port 5004 --storage ./zwave_stack/storage/enddevice2 &
 
+# Start the Zniffer simulator
+echo "Starting Zniffer on port 4905..."
+python3 ./zwave_stack/bin/zniffer.py 1234 &
+
 echo "All Z-Wave binaries started!"
 echo "Controller 1: localhost:5000 (Z-Wave JS FirstController)"
 echo "Controller 2: localhost:5001 (CTT SecondController)"
 echo "Controller 3: localhost:5002 (CTT ThirdController)"
 echo "End Device 1: localhost:5003 (CTT FirstEndDevice)"
 echo "End Device 2: localhost:5004 (CTT SecondEndDevice)"
+echo "Zniffer:      localhost:4905"
 
 # Wait for all background processes
 wait

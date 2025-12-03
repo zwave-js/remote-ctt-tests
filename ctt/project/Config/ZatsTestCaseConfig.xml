@@ -6,7 +6,7 @@
   <CertId>1201</CertId>
   <DUT_NodeId>1</DUT_NodeId>
   <EndPoint>0</EndPoint>
-  <InitS2SeqNo>98</InitS2SeqNo>
+  <InitS2SeqNo>1</InitS2SeqNo>
   <RfRegion>EU_LR</RfRegion>
   <LRChannel>ChannelA</LRChannel>
   <IsTestingLongRange>false</IsTestingLongRange>
