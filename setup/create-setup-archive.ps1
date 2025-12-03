@@ -8,9 +8,14 @@
     - DUT storage files (from config.json glob patterns) -> dut-storage/
     - CTT AppData folder -> appdata/
     - CTT Keys file (homeId-specific) -> keys/
+    - CTT binaries (from CTT_PATH or default location) -> ctt-bin/
 
 .EXAMPLE
     .\create-setup-archive.ps1
+
+.NOTES
+    Set CTT_PATH environment variable to override the default CTT installation path.
+    Default: C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3
 #>
 
 $ErrorActionPreference = "Stop"
@@ -50,6 +55,7 @@ $dutStorageArchiveName = "dut-storage"
 $zwaveStorage = Join-Path $repoRoot "zwave_stack\storage"
 $cttAppData = "C:\Users\$env:USERNAME\AppData\Roaming\Z-Wave Alliance\Z-Wave CTT 3"
 $cttKeys = "C:\Users\$env:USERNAME\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys"
+$cttPath = if ($env:CTT_PATH) { $env:CTT_PATH } else { "C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3" }
 
 Write-Host "Creating setup archive..." -ForegroundColor Cyan
 
@@ -99,6 +105,11 @@ if (Test-Path $cttKeys) {
     if (Test-Path $keyFile) {
         Copy-Item $keyFile $keysStagingDir
     }
+}
+
+# Copy CTT binaries
+if (Test-Path $cttPath) {
+    Copy-Item -Recurse $cttPath (Join-Path $tempDir "ctt-bin")
 }
 
 # Remove old archive if it exists

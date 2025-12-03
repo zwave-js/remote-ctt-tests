@@ -73,6 +73,7 @@ const DUT_PATH = dutArg
   : path.join(__dirname, "..", config.dut.runnerPath);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
+const CTT_PATH = process.env.CTT_PATH || "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
 
 interface ManagedProcess {
   name: string;
@@ -272,13 +273,7 @@ class ProcessManager {
   }
 
   startCTTRemote(verbose: boolean = false): ManagedProcess {
-    const cttRemotePath = path.join(
-      __dirname,
-      "..",
-      "ctt",
-      "bin",
-      "CTT-Remote.exe"
-    );
+    const cttRemotePath = path.join(CTT_PATH, "CTT-Remote.exe");
     const solutionPath = path.join(
       __dirname,
       "..",
@@ -292,7 +287,7 @@ class ProcessManager {
     // On Windows, run directly
     // Hide console output unless verbose mode is enabled
     const cttProcess = spawn(cttRemotePath, [solutionPath], {
-      cwd: path.join(__dirname, "..", "ctt", "bin"),
+      cwd: CTT_PATH,
       stdio: verbose ? "inherit" : "ignore",
       windowsHide: true,
     });

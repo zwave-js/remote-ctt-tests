@@ -8,6 +8,7 @@
     - dut-storage/ -> DUT storage directory (from config.json)
     - appdata/ -> %APPDATA%/Z-Wave Alliance/Z-Wave CTT 3/
     - keys/ -> %USERPROFILE%/Documents/Z-Wave Alliance/Z-Wave CTT 3/Keys/
+    - ctt-bin/ -> C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3/
 
     It also updates ctt/project/Config/ZatsSettings.json to point to the correct keys directory.
 
@@ -47,6 +48,7 @@ $dutStorageDir = Join-Path $repoRoot $config.dut.storageDir
 $dutStorageArchiveName = "dut-storage"
 $cttAppData = "$env:APPDATA\Z-Wave Alliance\Z-Wave CTT 3"
 $cttKeys = "$env:USERPROFILE\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys"
+$cttPath = "C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3"
 
 # CTT settings file
 $zatsSettingsPath = Join-Path $repoRoot "ctt\project\Config\ZatsSettings.json"
@@ -131,6 +133,23 @@ if (Test-Path $sourceKeys) {
     Write-Host "WARNING: keys/ not found in archive" -ForegroundColor Yellow
 }
 
+# Copy ctt-bin -> CTT installation location
+$sourceCttBin = Join-Path $tempDir "ctt-bin"
+if (Test-Path $sourceCttBin) {
+    Write-Host "Copying ctt-bin -> $cttPath" -ForegroundColor Green
+    # Create parent directories if needed
+    $parentDir = Split-Path -Parent $cttPath
+    if (-not (Test-Path $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+    }
+    if (Test-Path $cttPath) {
+        Remove-Item -Recurse -Force $cttPath
+    }
+    Copy-Item -Recurse $sourceCttBin $cttPath
+} else {
+    Write-Host "WARNING: ctt-bin/ not found in archive" -ForegroundColor Yellow
+}
+
 # Update ZatsSettings.json with correct KeysStoragePath
 if (Test-Path $zatsSettingsPath) {
     Write-Host "Updating ZatsSettings.json with KeysStoragePath..." -ForegroundColor Green
@@ -153,6 +172,7 @@ Write-Host "  - $zwaveStorage" -ForegroundColor White
 Write-Host "  - $dutStorageDir" -ForegroundColor White
 Write-Host "  - $cttAppData" -ForegroundColor White
 Write-Host "  - $cttKeys" -ForegroundColor White
+Write-Host "  - $cttPath" -ForegroundColor White
 
 # Debug: Print directory structures
 Write-Host ""

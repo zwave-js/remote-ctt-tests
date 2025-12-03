@@ -8,7 +8,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --experimental-transform-types src/start.ts",
     "devices": "node --experimental-transform-types src/start.ts --devices-only",
-    "ctt": "ctt/bin/CTT-Remote.exe ctt/project/zwave-js.cttsln",
     "create-setup-archive": "powershell -ExecutionPolicy Bypass -File setup/create-setup-archive.ps1",
     "setup": "powershell -ExecutionPolicy Bypass -File setup/download-zwave-stack.ps1"
   },
