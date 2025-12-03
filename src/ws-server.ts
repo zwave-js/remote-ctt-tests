@@ -1,7 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { getTestCases } from './ctt-client.ts';
-import { convertCttColorsToAnsi, type CttPrompt } from './ctt-output.ts';
+import { convertCttColorsToAnsi } from './ctt-output.ts';
+import type { RunnerHost } from './runner-host.ts';
 
 // Global event emitter for test case events
 export const testCaseEvents = new EventEmitter();
@@ -16,20 +17,13 @@ export interface TestCaseResult {
   group: string;
 }
 
-/**
- * Handler for CTT prompts (like YES-NO dialogs)
- * @param prompt - The parsed prompt information
- * @returns Promise resolving to the button to click (e.g., "YES", "NO", or custom button text)
- */
-export type PromptHandler = (prompt: CttPrompt) => Promise<string>;
-
 export interface WebSocketServerOptions {
   port: number;
   onFatalError?: () => void;
   onProjectLoaded?: () => void;
   fatalErrorPatterns?: string[];
-  /** Handler for user prompts. If not provided, prompts will be auto-skipped. */
-  promptHandler?: PromptHandler;
+  /** Runner host for handling CTT prompts via IPC */
+  runnerHost?: RunnerHost;
 }
 
 interface TestCaseDTO {
@@ -96,7 +90,7 @@ async function queryTestCases(): Promise<void> {
 }
 
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
-  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, promptHandler } = options;
+  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, runnerHost } = options;
 
   const wss = new WebSocketServer({ port });
 
@@ -182,14 +176,12 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           const content = message.params?.content || '';
           const coloredContent = convertCttColorsToAnsi(content).trim();
 
-          // Build prompt based on message type
-          let prompt: CttPrompt | null = null;
+          // Determine available buttons based on message type
+          let buttons: string[] = [];
 
           switch (msgType) {
             case 'WaitForDutResponse':
-              // Must be confirmed by TestCaseConfirmation.Ok, cannot be skipped
-              responseData.result = '';
-              console.log('[MsgBox] Waiting for DUT Response:', coloredContent);
+              buttons = ['Ok'];
               break;
 
             case 'CloseCurrentMsgBox':
@@ -199,31 +191,31 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               break;
 
             case 'YesNo':
-              prompt = { type: 'YES_NO', rawText: coloredContent, buttons: ['Yes', 'No'] };
+              buttons = ['Yes', 'No'];
               break;
 
             case 'OkCancel':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Ok', 'Cancel'] };
+              buttons = ['Ok', 'Cancel'];
               break;
 
             case 'Ok':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Ok'] };
+              buttons = ['Ok'];
               break;
 
             case 'Yes':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Yes'] };
+              buttons = ['Yes'];
               break;
 
             case 'No':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['No'] };
+              buttons = ['No'];
               break;
 
             case 'Skip':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Skip'] };
+              buttons = ['Skip'];
               break;
 
             case 'UrlOpenCancel':
-              prompt = { type: 'BUTTON_LIST', rawText: coloredContent, buttons: ['Open', 'Cancel'] };
+              buttons = ['Open', 'Cancel'];
               break;
 
             default:
@@ -233,19 +225,23 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               break;
           }
 
-          // Handle prompt if we built one
-          if (prompt && promptHandler) {
+          // Forward prompt to runner via IPC if we have buttons to show
+          if (buttons.length > 0 && runnerHost) {
             try {
-              const response = await promptHandler(prompt);
+              const response = await runnerHost.handleCttPrompt({
+                type: msgType,
+                rawText: coloredContent,
+                buttons,
+              });
               responseData.result = response;
             } catch (error) {
-              console.error('[MsgBox] Prompt handler error:', error);
-              responseData.result = 'Skip';
+              console.error('[MsgBox] Runner prompt handler error:', error);
+              responseData.result = buttons[0]; // Fallback to first button
             }
-          } else if (prompt) {
-            // No prompt handler (CI mode) - auto-respond
-            responseData.result = prompt.buttons[0]; // Default to first button
-            console.log('[MsgBox] Auto-responding:', prompt.buttons[0], '-', coloredContent);
+          } else if (buttons.length > 0) {
+            // No runner host - auto-respond with first button
+            responseData.result = buttons[0];
+            console.log('[MsgBox] Auto-responding:', buttons[0], '-', coloredContent);
           }
         }
 

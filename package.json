@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --experimental-transform-types src/start.ts",
     "devices": "node --experimental-transform-types src/start.ts --devices-only",
-    "ctt": "CTT-Remote/CTT-Remote.exe Project/zwave-js.cttsln"
+    "ctt": "ctt/bin/CTT-Remote.exe ctt/project/zwave-js.cttsln"
   },
   "keywords": [],
   "author": "",

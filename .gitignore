@@ -1,12 +1,10 @@
 node_modules/
 
-# CTT lock file
-Project/lock
-Project/Log
+# CTT lock file and logs
+ctt/project/lock
+ctt/project/Log
 
 # Directories extracted from setup.zip on CI
 zwave_stack/storage/
-.zwave-js-cache/
-
-zwavejs_*.log
-zwavejs_logrotate.json
+zwave-js/storage/
+zwave-js/log/

@@ -19,7 +19,7 @@ jobs:
       shell: powershell
       run: |
         Write-Host "Extracting CTT setup archive..."
-        .\scripts\extract-setup-archive.ps1
+        .\setup\extract-setup-archive.ps1
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -43,7 +43,7 @@ jobs:
 
     - name: Make Z-Wave binaries executable
       shell: wsl-bash {0}
-      run: chmod +x zwave_stack/*.elf
+      run: chmod +x zwave_stack/bin/*.elf
 
     - name: Run CTT tests
       run: npm start

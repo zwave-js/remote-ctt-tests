@@ -1,18 +1,11 @@
 import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
-import * as readline from "readline";
 import { fileURLToPath } from "url";
 import { createWebSocketServer } from "./ws-server.ts";
-import type { ManagedWebSocketServer, PromptHandler } from "./ws-server.ts";
+import type { ManagedWebSocketServer } from "./ws-server.ts";
 import { runTestCases, closeCTT } from "./ctt-client.ts";
-import { Driver } from "zwave-js";
-import { ZwavejsServer } from "@zwave-js/server";
-import {
-  formatPromptForCli,
-  parseUserResponse,
-  type CttPrompt,
-} from "./ctt-output.ts";
+import { RunnerHost } from "./runner-host.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 
@@ -35,44 +28,13 @@ const args = process.argv.slice(2);
 const DEVICES_ONLY = args.includes("--devices-only");
 const VERBOSE = args.includes("--verbose");
 
+// Parse --dut argument (default to zwave-js runner)
+const dutArg = args.find((arg) => arg.startsWith("--dut="));
+const DUT_PATH = dutArg
+  ? dutArg.split("=")[1]
+  : path.join(__dirname, "..", "zwave-js", "run.ts");
+
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
-const ZWAVE_JS_SERVER_PORT = 3000;
-const IS_CI = !!(process.env.CI || process.env.GITHUB_ACTIONS);
-
-/**
- * Create a CLI prompt handler that asks the user for input
- * This is used for local development; CI should use automated handlers
- */
-function createCliPromptHandler(): PromptHandler {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return async (prompt: CttPrompt): Promise<string> => {
-    // Display the prompt content
-    console.log();
-    console.log(prompt.rawText);
-    console.log();
-
-    const question = formatPromptForCli(prompt);
-
-    return new Promise((resolve) => {
-      const askQuestion = () => {
-        rl.question(c.yellow(question), (answer) => {
-          const response = parseUserResponse(answer, prompt);
-          if (response) {
-            resolve(response);
-          } else {
-            console.log(c.red("Invalid input. Please try again."));
-            askQuestion();
-          }
-        });
-      };
-      askQuestion();
-    });
-  };
-}
 
 interface ManagedProcess {
   name: string;
@@ -83,8 +45,7 @@ interface ManagedProcess {
 class ProcessManager {
   private processes: ManagedProcess[] = [];
   private wsServer?: ManagedWebSocketServer;
-  private zwaveDriver?: Driver;
-  private zwaveServer?: ZwavejsServer;
+  private runnerHost?: RunnerHost;
 
   /**
    * Load PID file data if it exists
@@ -105,15 +66,27 @@ class ProcessManager {
    * Save current PIDs to file
    */
   private savePidFile(): void {
+    const pids: PidFileData["pids"] = this.processes
+      .filter((p) => p.pid !== undefined)
+      .map((p) => ({
+        name: p.name,
+        pid: p.pid!,
+        platform: p.name.includes("WSL") ? "wsl" as const : "windows" as const,
+      }));
+
+    // Add runner PID if available
+    const runnerPid = this.runnerHost?.getRunnerPid();
+    if (runnerPid) {
+      pids.push({
+        name: "DUT Runner",
+        pid: runnerPid,
+        platform: "windows",
+      });
+    }
+
     const data: PidFileData = {
       startTime: new Date().toISOString(),
-      pids: this.processes
-        .filter((p) => p.pid !== undefined)
-        .map((p) => ({
-          name: p.name,
-          pid: p.pid!,
-          platform: p.name.includes("WSL") ? "wsl" : "windows",
-        })),
+      pids,
     };
 
     try {
@@ -189,7 +162,7 @@ class ProcessManager {
   startZWaveStackWSL(): void {
     console.log("Starting Z-Wave stack in WSL...");
 
-    const proc = spawn("wsl", ["bash", "./start-zwave-stack.sh"], {
+    const proc = spawn("wsl", ["bash", "./zwave_stack/run.sh"], {
       cwd: path.join(__dirname, ".."),
       stdio: "pipe",
     });
@@ -222,82 +195,39 @@ class ProcessManager {
     console.log("Z-Wave stack started in WSL");
   }
 
-  async startZWaveJSServer(): Promise<void> {
-    console.log("Starting Z-Wave JS driver and server...");
+  async startRunner(): Promise<void> {
+    console.log(`Starting DUT runner: ${DUT_PATH}`);
 
-    const cacheDir = path.join(__dirname, "..", ".zwave-js-cache");
-    fs.mkdirSync(cacheDir, { recursive: true });
+    this.runnerHost = new RunnerHost({
+      runnerPath: DUT_PATH,
+    });
 
-    // Connect to the simulated controller via TCP
-    this.zwaveDriver = new Driver("tcp://127.0.0.1:5000", {
-      storage: {
-        cacheDir,
-      },
-      logConfig: {
-        // enabled: true,
-        // level: "warn",
-        logToFile: true,
-        level: "debug",
-      },
+    // Initialize the runner (spawns process, waits for ready)
+    await this.runnerHost.initialize();
+
+    // Start the Z-Wave driver/server in the runner
+    await this.runnerHost.start({
+      controllerUrl: "tcp://127.0.0.1:5000",
       securityKeys: {
-        S2_Unauthenticated: Buffer.from(
-          "CE07372267DCB354DB216761B6E9C378",
-          "hex"
-        ),
-        S2_Authenticated: Buffer.from(
-          "30B5CCF3F482A92E2F63A5C5E218149A",
-          "hex"
-        ),
-        S2_AccessControl: Buffer.from(
-          "21A29A69145E38C1601DFF55E2658521",
-          "hex"
-        ),
-        S0_Legacy: Buffer.from("C6D90542DE4E66BBE66FBFCB84E9FF67", "hex"),
+        S2_Unauthenticated: "CE07372267DCB354DB216761B6E9C378",
+        S2_Authenticated: "30B5CCF3F482A92E2F63A5C5E218149A",
+        S2_AccessControl: "21A29A69145E38C1601DFF55E2658521",
+        S0_Legacy: "C6D90542DE4E66BBE66FBFCB84E9FF67",
       },
       securityKeysLongRange: {
-        S2_Authenticated: Buffer.from(
-          "0F4F7E178A4207A0BBEFBF991C66F814",
-          "hex"
-        ),
-        S2_AccessControl: Buffer.from(
-          "72D42391F7ECE63BE1B38B25D085ECD4",
-          "hex"
-        ),
+        S2_Authenticated: "0F4F7E178A4207A0BBEFBF991C66F814",
+        S2_AccessControl: "72D42391F7ECE63BE1B38B25D085ECD4",
       },
     });
 
-    // Wait for driver to be ready
-    await new Promise<void>((resolve, reject) => {
-      this.zwaveDriver!.once("driver ready", () => {
-        console.log("Z-Wave JS driver is ready");
-        resolve();
-      });
-
-      this.zwaveDriver!.once("error", (error) => {
-        console.error("Z-Wave JS driver error:", error);
-        reject(error);
-      });
-
-      this.zwaveDriver!.start().catch(reject);
-    });
-
-    // Start the Z-Wave JS WebSocket server
-    this.zwaveServer = new ZwavejsServer(this.zwaveDriver!, {
-      port: ZWAVE_JS_SERVER_PORT,
-    });
-
-    await this.zwaveServer.start();
-    console.log(`Z-Wave JS server listening on port ${ZWAVE_JS_SERVER_PORT}`);
+    // Update PID file with runner PID
+    this.savePidFile();
   }
 
-  async stopZWaveJSServer(): Promise<void> {
-    if (this.zwaveServer) {
-      console.log("Stopping Z-Wave JS server...");
-      await this.zwaveServer.destroy();
-    }
-    if (this.zwaveDriver) {
-      console.log("Stopping Z-Wave JS driver...");
-      await this.zwaveDriver.destroy();
+  async stopRunner(): Promise<void> {
+    if (this.runnerHost) {
+      await this.runnerHost.cleanup();
+      this.runnerHost = undefined;
     }
   }
 
@@ -305,13 +235,15 @@ class ProcessManager {
     const cttRemotePath = path.join(
       __dirname,
       "..",
-      "CTT-Remote",
+      "ctt",
+      "bin",
       "CTT-Remote.exe"
     );
     const solutionPath = path.join(
       __dirname,
       "..",
-      "Project",
+      "ctt",
+      "project",
       "zwave-js.cttsln"
     );
 
@@ -320,7 +252,7 @@ class ProcessManager {
     // On Windows, run directly
     // Hide console output unless verbose mode is enabled
     const cttProcess = spawn(cttRemotePath, [solutionPath], {
-      cwd: path.join(__dirname, "..", "CTT-Remote"),
+      cwd: path.join(__dirname, "..", "ctt", "bin"),
       stdio: verbose ? "inherit" : "ignore",
       windowsHide: true,
     });
@@ -347,9 +279,10 @@ class ProcessManager {
     return managedProcess;
   }
 
-  startWebSocketServer(promptHandler?: PromptHandler): void {
+  startWebSocketServer(): void {
     this.wsServer = createWebSocketServer({
       port: PORT,
+      runnerHost: this.runnerHost,
       onFatalError: () => this.cleanup(),
       onProjectLoaded: async () => {
         console.log("\n✓ Project loaded successfully!");
@@ -364,8 +297,8 @@ class ProcessManager {
           });
 
           // Print user-friendly summary
-          const passed = results.filter(r => r.result === "PASSED");
-          const failed = results.filter(r => r.result !== "PASSED");
+          const passed = results.filter((r) => r.result === "PASSED");
+          const failed = results.filter((r) => r.result !== "PASSED");
           const total = results.length;
 
           console.log("\n" + "=".repeat(50));
@@ -394,7 +327,6 @@ class ProcessManager {
         }
         await this.cleanup();
       },
-      promptHandler,
     });
   }
 
@@ -418,8 +350,8 @@ class ProcessManager {
   async cleanup(): Promise<void> {
     console.log("Shutting down...");
 
-    // Stop Z-Wave JS server and driver
-    await this.stopZWaveJSServer();
+    // Stop runner (Z-Wave JS server and driver)
+    await this.stopRunner();
 
     // Kill all managed processes
     for (const managedProcess of this.processes) {
@@ -492,7 +424,7 @@ async function main() {
     manager.startZWaveStackWSL();
 
     // Give Z-Wave devices a moment to fully initialize
-    await setTimeout(2000)
+    await setTimeout(2000);
 
     if (DEVICES_ONLY) {
       console.log("\n--devices-only mode: Only emulated devices are running.");
@@ -506,13 +438,12 @@ async function main() {
       return;
     }
 
-    // Start Z-Wave JS driver and server (connects to simulated controller on port 5000)
-    await manager.startZWaveJSServer();
+    // Start DUT runner (Z-Wave JS driver and server via IPC)
+    await manager.startRunner();
 
     // Start WebSocket server for CTT communication
-    // Use CLI prompt handler for local development, no handler for CI (auto-skip)
-    const promptHandler = IS_CI ? undefined : createCliPromptHandler();
-    manager.startWebSocketServer(promptHandler);
+    // The runner handles CTT prompts via IPC
+    manager.startWebSocketServer();
 
     // Start CTT-Remote
     manager.startCTTRemote(VERBOSE);
@@ -524,9 +455,7 @@ async function main() {
     console.log("  Controller 3 (CTT):       localhost:5002");
     console.log("  End Device 1 (CTT):       localhost:5003");
     console.log("  End Device 2 (CTT):       localhost:5004");
-    console.log(
-      `  Z-Wave JS Server:         ws://localhost:${ZWAVE_JS_SERVER_PORT}`
-    );
+    console.log("  Z-Wave JS Server:         ws://localhost:3000");
   } catch (error) {
     console.error("Failed to start services:", error);
     await manager.cleanup();
