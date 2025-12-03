@@ -9,7 +9,8 @@
     "start": "node --experimental-transform-types src/start.ts",
     "devices": "node --experimental-transform-types src/start.ts --devices-only",
     "ctt": "ctt/bin/CTT-Remote.exe ctt/project/zwave-js.cttsln",
-    "create-setup-archive": "powershell -ExecutionPolicy Bypass -File setup/create-setup-archive.ps1"
+    "create-setup-archive": "powershell -ExecutionPolicy Bypass -File setup/create-setup-archive.ps1",
+    "setup": "node --experimental-transform-types setup/download-zwave-stack.ts"
   },
   "keywords": [],
   "author": "",

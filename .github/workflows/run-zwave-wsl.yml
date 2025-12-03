@@ -15,12 +15,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Extract CTT setup files
-      shell: powershell
-      run: |
-        Write-Host "Extracting CTT setup archive..."
-        .\setup\extract-setup-archive.ps1
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -41,9 +35,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libc6:i386 libstdc++6:i386
 
+    - name: Download Z-Wave stack binaries
+      env:
+        GH_TOKEN: ${{ secrets.ZW_STACK_TOKEN }}
+      run: npm run setup
+
     - name: Make Z-Wave binaries executable
       shell: wsl-bash {0}
       run: chmod +x zwave_stack/bin/*.elf
+
+    - name: Extract CTT setup files
+      shell: powershell
+      run: |
+        Write-Host "Extracting CTT setup archive..."
+        .\setup\extract-setup-archive.ps1
 
     - name: Copy Z-Wave storage to WSL native filesystem
       shell: wsl-bash {0}

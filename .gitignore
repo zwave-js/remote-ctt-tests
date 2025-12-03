@@ -8,3 +8,6 @@ ctt/project/Log
 zwave_stack/storage/
 zwave-js/storage/
 zwave-js/log/
+
+# Z-Wave stack binaries (downloaded via setup script)
+zwave_stack/bin/*.elf
