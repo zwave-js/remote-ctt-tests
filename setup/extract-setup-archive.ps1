@@ -59,15 +59,14 @@ if (-not (Test-Path $archiveFile)) {
     exit 1
 }
 
-# Clean up any existing temp directory and create fresh one
+# Clean up any existing temp directory
 if (Test-Path $tempDir) {
     Remove-Item -Recurse -Force $tempDir
 }
-New-Item -ItemType Directory -Path $tempDir | Out-Null
 
-# Extract archive using tar.exe (much faster than Expand-Archive)
+# Extract archive
 Write-Host "Extracting $archiveFile..." -ForegroundColor Green
-& "$env:SystemRoot\System32\tar.exe" -xf $archiveFile -C $tempDir
+Expand-Archive -Path $archiveFile -DestinationPath $tempDir -Force
 
 # Copy storage -> zwave_stack/storage
 $sourceStorage = Join-Path $tempDir "storage"
@@ -154,3 +153,25 @@ Write-Host "  - $zwaveStorage" -ForegroundColor White
 Write-Host "  - $dutStorageDir" -ForegroundColor White
 Write-Host "  - $cttAppData" -ForegroundColor White
 Write-Host "  - $cttKeys" -ForegroundColor White
+
+# Debug: Print directory structures
+Write-Host ""
+Write-Host "=== Debug: Directory Structures ===" -ForegroundColor Magenta
+Write-Host ""
+Write-Host "zwave_stack/storage:" -ForegroundColor Yellow
+if (Test-Path $zwaveStorage) {
+    Get-ChildItem $zwaveStorage -Recurse | ForEach-Object {
+        Write-Host "  $($_.FullName.Replace($repoRoot, '.'))" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "  (directory not found)" -ForegroundColor Red
+}
+Write-Host ""
+Write-Host "DUT storage ($($config.dut.storageDir)):" -ForegroundColor Yellow
+if (Test-Path $dutStorageDir) {
+    Get-ChildItem $dutStorageDir -Recurse | ForEach-Object {
+        Write-Host "  $($_.FullName.Replace($repoRoot, '.'))" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "  (directory not found)" -ForegroundColor Red
+}
