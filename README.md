@@ -82,7 +82,6 @@ Run these commands in WSL (open WSL terminal with `wsl`):
 sudo dpkg --add-architecture i386
 sudo apt-get update
 sudo apt-get install -y libc6:i386 libstdc++6:i386
-chmod +x zwave_stack/*.elf
 ```
 
 These commands:
