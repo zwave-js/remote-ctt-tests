@@ -1,4 +1,4 @@
-# Remote CTT Tests with WSL Z-Wave Stack
+# Automation of Z-Wave Certification Tests
 
 This project provides a complete framework for running Z-Wave CTT certification tests against a Controller DUT with device emulation based on the "Open Source" Z-Wave stack.
 
