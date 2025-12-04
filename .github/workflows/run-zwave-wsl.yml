@@ -15,14 +15,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24'
-
-    - name: Install dependencies
-      run: npm ci
-
+    ## Set up operating system
     - name: Setup WSL with Ubuntu
       uses: Vampire/setup-wsl@v6
       with:
@@ -35,20 +28,35 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libc6:i386 libstdc++6:i386
 
+    ## Set up repo scripts etc.
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      run: npm ci
+
+    ## Set up CTT
+    - name: Extract CTT setup files
+      shell: powershell
+      run: .\setup\unpack-ctt-archive.ps1
+
+    ## Set up Z-Wave stack
     - name: Download Z-Wave stack binaries
+      shell: powershell
       env:
         GH_TOKEN: ${{ secrets.ZW_STACK_TOKEN }}
-      run: npm run setup
+      run: .\setup\download-zwave-stack.ps1
 
     - name: Make Z-Wave binaries executable
       shell: wsl-bash {0}
       run: chmod +x zwave_stack/bin/*.elf
 
-    - name: Extract CTT setup files
+    ## Restore network state for CTT project
+    - name: Extract network state
       shell: powershell
-      run: |
-        Write-Host "Extracting CTT setup archive..."
-        .\setup\extract-setup-archive.ps1
+      run: .\setup\unpack-network-state-archive.ps1
 
     - name: Copy Z-Wave storage to WSL native filesystem
       shell: wsl-bash {0}
@@ -75,6 +83,7 @@ jobs:
         echo "Storage symlinks created:"
         ls -la ./zwave_stack/storage/
 
+    ## Do the testing stuff
     - name: Run CTT tests
       run: npm start -- --group=Automatic
       env:

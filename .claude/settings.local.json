@@ -5,7 +5,8 @@
       "Bash(gh run view:*)",
       "Bash(Select-String -Pattern \"WATCHDOG|ZWave|Controller|started|error\")",
       "Bash(Select-Object -First 50)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
