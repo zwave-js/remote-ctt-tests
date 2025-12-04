@@ -1,53 +1,65 @@
 # Remote CTT Tests with WSL Z-Wave Stack
 
-This project provides a complete setup for running Z-Wave CTT (Certified Test Tool) tests with Linux Z-Wave binaries running in WSL (Windows Subsystem for Linux) on Windows.
+This project provides a complete framework for running Z-Wave CTT certification tests against a Controller DUT with device emulation based on the "Open Source" Z-Wave stack.
 
-## Overview
+## Prerequisites
 
-The setup includes:
-- **WSL**: Runs 5 Z-Wave binaries (3 controllers + 2 end devices) using Ubuntu on WSL
-- **CTT-Remote**: Windows application for running certification tests
-- **WebSocket Server**: For remote control and automation
-- **Process Manager**: Coordinates all services with proper lifecycle management
+As long as CTT-Remote does not run on Linux, we use WSL (Windows Subsystem for Linux) to run the Z-Wave stack binaries in a Linux environment while controlling them from Windows.
+
+- **Windows 10/11** or **Windows Server**
+- **WSL with Ubuntu** installed
+- **.NET Framework 4.8** (for CTT-Remote)
+
+In addition, the test orchestrator requires:
+
+- **Node.js 24** or later
+
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Windows (Local or CI)                    │
-│                                                             │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ WSL (Ubuntu)                                        │   │
-│  │                                                      │   │
-│  │  • Controller 1 → TCP :5000 (Z-Wave JS)            │   │
-│  │  • Controller 2 → TCP :5001 (CTT SecondController) │   │
-│  │  • Controller 3 → TCP :5002 (CTT ThirdController)  │   │
-│  │  • End Device 1 → TCP :5003 (CTT FirstEndDevice)   │   │
-│  │  • End Device 2 → TCP :5004 (CTT SecondEndDevice)  │   │
-│  └────────────────────────────────────────────────────┘   │
-│                          ↑                                  │
-│         Ports automatically forwarded to Windows            │
-│                          ↓                                  │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ CTT-Remote.exe                                      │   │
-│  │ Connects to controllers/devices on ports 5001-5004 │   │
-│  └────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ WebSocket Server (:4712)                            │   │
-│  │ Provides remote control interface                   │   │
-│  └────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  Windows (Local or CI)                   │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ WSL (Ubuntu) - CTT Devices                         │  │
+│  │                                                    │  │
+│  │  • Controller 2 → TCP :5001 (CTT Controller1)      │  │
+│  │  • Controller 3 → TCP :5002 (CTT Controller3)      │  │
+│  │  • End Device 1 → TCP :5003 (CTT EndDevice1)       │  │
+│  │  • End Device 2 → TCP :5004 (CTT EndDevice2)       │  │
+│  │  • Zniffer      → TCP :4905 (CTT Zniffer)          │  │
+│  └────────────────────────────────────────────────────┘  │
+│                          ↑                               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ CTT-Remote.exe                                     │  │
+│  │ Connects to controllers/devices on ports 5001-5004 │  │
+│  └────────────────────────────────────────────────────┘  │
+│                          ↑                               │
+│                    WebSocket :4712                       │
+│                          ↓                               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ Orchestrator                                       │  │
+│  │ Controls test execution and coordinates components │  │
+│  └────────────────────────────────────────────────────┘  │
+│                          ↑                               │
+│                    WebSocket :4713                       │
+│                          ↓                               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ DUT Runner                                         │  │
+│  │ Manages DUT lifecycle and handles CTT prompts      │  │
+│  │ Controls DUT device                                │  │
+│  └────────────────────────────────────────────────────┘  │
+│                          ↓                               │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ WSL (Ubuntu) - DUT Device                          │  │
+│  │                                                    │  │
+│  │  • Controller 1 → TCP :5000 (DUT)                  │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
 ```
 
-## Prerequisites
-
-- **Windows 10/11** or **Windows Server**
-- **WSL with Ubuntu** installed
-- **Node.js 24** or later
-- **.NET Framework 4.8** (for CTT-Remote)
-
-## Quick Start
+## Installation
 
 ### 1. Clone the Repository
 
@@ -78,279 +90,197 @@ These commands:
 - Install 32-bit C/C++ libraries required by the Z-Wave binaries
 - Make the Z-Wave binaries executable
 
-### 4. Configure CTT Project for IP Devices
+
+## Getting Started
+
+### Step 1: Install CTT
+
+CTT is not included in this repository. You need to install it separately. It will later be bundled so it can be used in CI.
+If the location differs from the default install location, set the `CTT_PATH` environment variable.
+
+### Step 2: Download Z-Wave Stack
 
 ```bash
-node update-ctt-devices.js
+powershell .\setup\download-zwave-stack.ps1
 ```
 
-This updates the CTT project ([Project/zwave-js.cttsln](Project/zwave-js.cttsln)) to use TCP/IP devices:
-- 800 series (ZW080x) chips
-- Stack version 7.23
-- IP addresses pointing to localhost with appropriate ports
+Requires a fine-grained GitHub PAT with **Contents: read** permission for the Z-Wave-Alliance/z-wave-stack repository. Downloads ELF binaries to `zwave_stack/bin/`.
 
-### 5. Start All Services
+> **Note:** This setup assumes the DUT is a **controller**, which connects to the emulated controller on port 5000. Testing sample applications (end devices) should also be possible but requires copying additional files from the stack binaries, and updating the `zwave_stack/run.sh` script accordingly.
+
+### Step 3: Run Emulated Devices
 
 ```bash
-npm start
+npm run devices
 ```
 
-This command will:
-1. Start the Z-Wave stack in WSL with all 5 binaries
-2. Start the WebSocket server for remote control
-3. Launch CTT-Remote with the configured project
+Starts 6 Z-Wave binaries in WSL:
 
-**Note**: Ports are automatically forwarded from WSL to Windows, so all services are accessible on `localhost`.
+| Device | Port | Purpose |
+|--------|------|---------|
+| Controller 1 | 5000 | **Your DUT connects here** |
+| Controller 2 | 5001 | CTT |
+| Controller 3 | 5002 | CTT |
+| End Device 1 | 5003 | CTT |
+| End Device 2 | 5004 | CTT |
+| Zniffer | 4905 | CTT packet capture |
 
-### 6. Access Services
+These can now be used to set up the CTT project.
 
-- **Z-Wave Controller 1** (for Z-Wave JS): `localhost:5000`
-- **Z-Wave Controller 2** (for CTT): `localhost:5001`
-- **Z-Wave Controller 3** (for CTT): `localhost:5002`
-- **End Device 1** (for CTT): `localhost:5003`
-- **End Device 2** (for CTT): `localhost:5004`
-- **WebSocket Server**: `ws://localhost:4712`
+### Step 4: Configure CTT Project
 
-## Device Configuration
+1. Create a new project in CTT GUI
+2. Set up 5 IP-based devices:
+   - 2x Controller: `127.0.0.1:5001` and `:5002`
+   - 2x End Device: `127.0.0.1:5003` and `:5004`
+   - 1x Zniffer: `127.0.0.1:4905`
 
-### CTT Configuration
+### Step 5: Set Up CTT Network with DUT
 
-The CTT project is configured with:
+Configure DUT to connect to `tcp://127.0.0.1:5000`, then establish the test network:
+
+- **Option A:** DUT includes CTT devices into its network
+- **Option B:** CTT includes DUT into its network
+
+To test both scenarios, you'll need separate CTT projects.
+
+Make sure to finish creation of the network, including the query for DUT capabilities.
+
+### Step 6: Copy CTT Project Files
+
+Copy from CTT's project folder to `ctt/project/`:
+
+```
+ctt/project/
+├── Config/                            # All config files
+├── json/                              # JSON configurations
+├── <your-project>.cttsln                    # Project file
+└── ZWave_CTT_CommandClasses.cttxml    # Command classes definition
+```
+
+### Step 7: Create DUT Runner Script
+
+Implement the IPC protocol (JSON-RPC 2.0 over WebSocket):
+
+- Connect to port 4713 (or `RUNNER_IPC_PORT` env var)
+- Required methods:
+  - `ready` notification (on connect)
+  - `start` (initialize DUT with controllerUrl and security keys)
+  - `stop` (shutdown DUT)
+  - `handleCttPrompt` (respond to CTT prompts)
+
+See [zwave-js/run.ts](zwave-js/run.ts) for a reference implementation and [docs/ipc-protocol.md](docs/ipc-protocol.md) for the full protocol specification.
+
+### Step 8: Update config.json
 
 ```json
 {
-  "FirstController": {
-    "SName": "localhost",
-    "SPort": 5001,
-    "SType": "TCP",
-    "ChipSeries": "ZW080x",
-    "VersionNumbers": "7.23"
-  },
-  "ThirdController": {
-    "SName": "localhost",
-    "SPort": 5002,
-    "SType": "TCP",
-    "ChipSeries": "ZW080x",
-    "VersionNumbers": "7.23"
-  },
-  "FirstEndDevice": {
-    "SName": "localhost",
-    "SPort": 5003,
-    "SType": "TCP",
-    "ChipSeries": "ZW080x",
-    "VersionNumbers": "7.23"
-  },
-  "SecondEndDevice": {
-    "SName": "localhost",
-    "SPort": 5004,
-    "SType": "TCP",
-    "ChipSeries": "ZW080x",
-    "VersionNumbers": "7.23"
+  "dut": {
+    "name": "Your DUT Name",
+    "runnerPath": "your-dut/run.ts",
+    "homeId": "e6d68af7",
+    "storageDir": "your-dut/storage",
+    "storageFileFilter": ["%HOME_ID_LOWER%.jsonl"]
   }
 }
 ```
 
-### Z-Wave JS Configuration
+**Field explanations:**
 
-To connect Z-Wave JS to the first controller:
+- `runnerPath`: Path to your DUT runner script. Supports Node.js (TypeScript/JavaScript), Python, or any executable that your system can handle running directly, e.g. with a shebang.
+- `homeId`: Must match the Home ID of your test network (from CTT setup)
+- `storageDir` / `storageFileFilter`: Used to transfer DUT network state to GitHub for automated CI testing. The filter patterns support placeholders:
+  - `%HOME_ID_LOWER%` - homeId in lowercase
+  - `%HOME_ID_UPPER%` - homeId in uppercase
 
-```typescript
-const serialPort = 'tcp://localhost:5000';
-```
-
-## WSL Management
-
-### Check Running Z-Wave Processes in WSL
+### Step 9: Pack Archives
 
 ```bash
-wsl ps aux | grep ZW_zwave
+powershell .\setup\pack-ctt-archive.ps1
+powershell .\setup\pack-network-state-archive.ps1
 ```
 
-### Access WSL Shell
+Both archives are required for CI/automated testing. They will need to be regenerated if the CTT setup or project changes.
+
+- **ctt-setup.zip**: Contains CTT (closed-source, vendored) keys, appdata, and configuration
+- **network-state.zip**: Contains network state for emulated Z-Wave devices and DUT storage
+
+### Step 10: Git Commit
+
+**Check in:**
+
+- `config.json`
+- DUT runner script (`your-dut/run.ts`)
+- CTT project files (`ctt/project/`)
+- Setup archives (`setup/ctt-setup.zip`, `setup/network-state.zip`)
+
+**Update .gitignore:**
+
+The default `.gitignore` excludes common paths, but may need modifications depending on how your DUT stores state. 
+Add exclusions for your DUT's storage directory (e.g., `your-dut/storage/`). This should be included in the `network-state.zip` archive instead.
+
+## Testing and CI/CD
+
+To test locally, run:
 
 ```bash
-wsl
+npm run start -- [options]
 ```
 
-### Stop All Z-Wave Processes
+### Options
 
-Stop the `npm start` process with Ctrl+C. If processes are still running in WSL:
+| Option | Description |
+|--------|-------------|
+| `--discover` | List all available test cases grouped by category |
+| `--test=<name>` | Run a specific test by name |
+| `--test=<n1>,<n2>` | Run multiple tests (comma-separated) |
+| `--category=<cat>` | Run all tests in a category (partial match, case-insensitive) |
+| `--category=<c1>,<c2>` | Run tests from multiple categories |
+| `--group=<grp>` | Run tests in a group (`Automatic` or `Interactive`) |
+| `--group=<g1>,<g2>` | Run tests from multiple groups |
+| `--dut=<path>` | Path to DUT runner (defaults to `config.json` runner path) |
+| `--devices-only` | Only start emulated Z-Wave devices, without CTT or the DUT runner |
+| `--verbose` | Show CTT-Remote log output |
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CTT_PATH` | `C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3` | Path to CTT installation |
+
+### Examples
 
 ```bash
-wsl pkill -f "ZW_zwave"
+# List all available tests
+npm run start -- --discover
+
+# Run a single test
+npm run start -- --test=CC_Binary_Switch_Set
+
+# Run multiple specific tests
+npm run start -- --test=CC_Binary_Switch_Set,CC_Binary_Switch_Get
+
+# Run all automatic tests (for CI)
+npm run start -- --group=Automatic
+
+# Run all tests in a category
+npm run start -- --category=Binary
+
+# Combine filters (category AND group)
+npm run start -- --category=Binary --group=Automatic
+
+# Start only the emulated devices (for manual testing)
+npm run start -- --devices-only
+
+# Run with verbose CTT output
+npm run start -- --test=CC_Binary_Switch_Set --verbose
 ```
 
-## Testing
-
-### Test TCP Connections
-
-```powershell
-# Test each port
-Test-NetConnection -ComputerName localhost -Port 5000
-Test-NetConnection -ComputerName localhost -Port 5001
-Test-NetConnection -ComputerName localhost -Port 5002
-Test-NetConnection -ComputerName localhost -Port 5003
-Test-NetConnection -ComputerName localhost -Port 5004
-```
-
-### Test with Telnet
-
-```cmd
-telnet localhost 5000
-```
-
-## CI/CD Integration
-
-The project includes a GitHub Actions workflow ([.github/workflows/run-zwave-wsl.yml](.github/workflows/run-zwave-wsl.yml)) that:
-
-1. Extracts the CTT setup archive (`setup.zip`)
-2. Sets up WSL with Ubuntu
-3. Installs 32-bit libraries in WSL
-4. Starts the Z-Wave stack in WSL
-5. Verifies port connectivity from Windows to WSL
-
-The local and CI environments are identical - both use WSL to run the Z-Wave binaries.
-
-### CTT Setup Archive
-
-The `setup.zip` archive contains files needed for CTT tests that are user/machine-specific and shouldn't be tracked directly in git:
-
-| Archive Path | Extracted To | Description |
-|--------------|--------------|-------------|
-| `storage/` | `zwave_stack/storage/` | NVM storage for Z-Wave binaries |
-| `zwave-js-cache/` | `.zwave-js-cache/` | Z-Wave JS network cache |
-| `appdata/` | `%APPDATA%\Z-Wave Alliance\Z-Wave CTT 3\` | CTT application data |
-| `keys/` | `%USERPROFILE%\Documents\Z-Wave Alliance\Z-Wave CTT 3\Keys\` | Security keys for test networks |
-
-#### Regenerating the Archive
-
-If you need to update the setup files (e.g., after creating new test networks):
-
-```powershell
-.\scripts\create-setup-archive.ps1
-```
-
-This will package the current state of:
-- `zwave_stack/storage/`
-- `.zwave-js-cache/`
-- CTT AppData folder (from your local machine)
-- CTT Keys folder (from your local machine)
-
-#### Manual Extraction
-
-To manually extract the setup files (normally done automatically on CI):
-
-```powershell
-.\scripts\extract-setup-archive.ps1
-```
-
-### Manual Workflow Trigger
-
-The workflow can be triggered manually from the GitHub Actions tab using the `workflow_dispatch` event.
-
-## File Structure
-
-```
-remote-ctt-tests/
-├── .github/
-│   └── workflows/
-│       └── run-zwave-wsl.yml       # CI workflow (uses WSL)
-├── CTT-Remote/
-│   ├── CTT-Remote.exe              # Test tool executable
-│   └── CTT-Remote.md               # Documentation
-├── Project/
-│   └── zwave-js.cttsln             # CTT project file
-├── scripts/
-│   ├── create-setup-archive.ps1    # Creates setup.zip for CI
-│   └── extract-setup-archive.ps1   # Extracts setup.zip on CI
-├── src/
-│   ├── start.ts                    # Process manager
-│   └── ws-server.ts                # WebSocket server
-├── zwave_stack/
-│   ├── storage/                    # NVM storage (extracted from setup.zip)
-│   ├── ZW_zwave_ncp_serial_api_controller_*.elf  # Controller binaries
-│   └── ZW_zwave_ncp_serial_api_end_device_*.elf  # End device binaries
-├── .zwave-js-cache/                # Z-Wave JS cache (extracted from setup.zip)
-├── setup.zip                       # CI setup archive
-├── start-zwave-stack.sh            # Binary startup script (runs in WSL)
-├── update-ctt-devices.js           # CTT config updater
-└── README.md                       # This file
-```
-
-## Troubleshooting
-
-### WSL Z-Wave Stack Won't Start
-
-1. Verify WSL is running:
-   ```cmd
-   wsl --status
-   ```
-
-2. Check if 32-bit libraries are installed in WSL:
-   ```bash
-   wsl dpkg --print-foreign-architectures
-   ```
-   Should output: `i386`
-
-3. Verify binaries are executable:
-   ```bash
-   wsl ls -la zwave_stack/*.elf
-   ```
-
-### Ports Already in Use
-
-Check if ports are already in use:
-
-```cmd
-netstat -ano | findstr :5000
-netstat -ano | findstr :5001
-netstat -ano | findstr :5002
-netstat -ano | findstr :5003
-netstat -ano | findstr :5004
-```
-
-If processes are running, stop them:
-```bash
-wsl pkill -f "ZW_zwave"
-```
-
-### Can't Connect to Devices
-
-1. Verify Z-Wave processes are running in WSL:
-   ```bash
-   wsl ps aux | grep ZW_zwave
-   ```
-
-2. Check if ports are listening in WSL:
-   ```bash
-   wsl ss -tlnp | grep -E "500[0-4]"
-   ```
-
-3. Test connectivity from Windows:
-   ```powershell
-   Test-NetConnection -ComputerName localhost -Port 5000
-   ```
-
-### CTT-Remote Connection Issues
-
-Ensure the CTT project is configured for IP devices by running:
-
-```bash
-node update-ctt-devices.js
-```
-
-## Advanced Configuration
-
-### Custom Ports
-
-Edit [start-zwave-stack.sh](start-zwave-stack.sh) to change the ports used by the Z-Wave binaries.
-
-### RF Region
-
-The default RF region is EU. To change it, edit the CTT project configuration.
+The project comes with a ready-to-use GitHub Actions workflow for running CTT tests in CI using WSL. For now, only tests from the "Automatic" group are supported, because they don't require manual interaction.
 
 ## Documentation
 
+- **[docs/ipc-protocol.md](docs/ipc-protocol.md)** - DUT Runner IPC protocol specification
 - **[CTT-Remote/CTT-Remote.md](CTT-Remote/CTT-Remote.md)** - CTT-Remote API documentation
 - **[.github/workflows/run-zwave-wsl.yml](.github/workflows/run-zwave-wsl.yml)** - CI workflow configuration
 

@@ -72,7 +72,6 @@ const DUT_PATH = dutArg
   ? dutArg.split("=")[1]
   : path.join(__dirname, "..", config.dut.runnerPath);
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4712;
 const CTT_PATH = process.env.CTT_PATH || "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
 
 interface ManagedProcess {
@@ -451,7 +450,7 @@ class ProcessManager {
 
   startWebSocketServer(): void {
     this.wsServer = createWebSocketServer({
-      port: PORT,
+      port: 4712,
       runnerHost: this.runnerHost,
       onFatalError: () => this.cleanup(),
       onProjectLoaded: async () => {
