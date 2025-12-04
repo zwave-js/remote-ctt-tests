@@ -37,6 +37,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Install Z-Wave JS dependencies
+      run: npm ci
+      working-directory: dut/zwave-js
+
     ## Set up CTT
     - name: Extract CTT setup files
       shell: powershell
@@ -135,5 +139,5 @@ jobs:
       if: always()
       with:
         name: zwave-js-logs
-        path: zwave-js/log/
+        path: dut/zwave-js/log/
         if-no-files-found: ignore

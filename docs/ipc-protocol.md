@@ -224,4 +224,4 @@ interface CttPromptParams {
 
 ## Reference Implementation
 
-See [zwave-js/run.ts](../zwave-js/run.ts) for a complete working implementation of a DUT runner.
+See [dut/zwave-js/run.ts](../dut/zwave-js/run.ts) for a complete working implementation of a DUT runner.

@@ -1,0 +1,22 @@
+{
+  "name": "remote-ctt-zwave-js",
+  "version": "1.0.0",
+  "description": "Z-Wave JS DUT runner for CTT",
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-transform-types run.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@zwave-js/server": "^3.5.0",
+    "ws": "^8.18.0",
+    "zwave-js": "^15.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.9.3"
+  }
+}

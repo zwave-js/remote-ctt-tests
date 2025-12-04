@@ -20,7 +20,7 @@ import type {
   SuccessResponse,
   ErrorResponse,
   ReadyNotification,
-} from "../src/runner-ipc.ts";
+} from "../../src/runner-ipc.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -13,11 +13,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@zwave-js/server": "^3.5.0",
     "ansi-colors": "^4.1.3",
     "json5": "^2.2.3",
-    "ws": "^8.18.0",
-    "zwave-js": "^15.17.1"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

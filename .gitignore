@@ -6,8 +6,9 @@ ctt/project/Log
 
 # Directories extracted from setup.zip on CI
 zwave_stack/storage/
-zwave-js/storage/
-zwave-js/log/
+dut/zwave-js/storage/
+dut/zwave-js/log/
+dut/zwave-js/node_modules/
 
 # Z-Wave stack binaries (downloaded via setup script)
 zwave_stack/bin/*.elf

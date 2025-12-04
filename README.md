@@ -168,7 +168,7 @@ Implement the IPC protocol (JSON-RPC 2.0 over WebSocket):
   - `stop` (shutdown DUT)
   - `handleCttPrompt` (respond to CTT prompts)
 
-See [zwave-js/run.ts](zwave-js/run.ts) for a reference implementation and [docs/ipc-protocol.md](docs/ipc-protocol.md) for the full protocol specification.
+See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation and [docs/ipc-protocol.md](docs/ipc-protocol.md) for the full protocol specification.
 
 ### Step 8: Update config.json
 
