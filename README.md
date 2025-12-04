@@ -13,6 +13,7 @@ As long as CTT-Remote does not run on Linux, we use WSL (Windows Subsystem for L
 In addition, the test orchestrator requires:
 
 - **Node.js 24** or later
+- The `gh` CLI tool for downloading the Z-Wave stack binaries from GitHub and authentication
 
 
 ## Architecture
@@ -102,8 +103,6 @@ If the location differs from the default install location, set the `CTT_PATH` en
 ```bash
 powershell .\setup\download-zwave-stack.ps1
 ```
-
-Requires a fine-grained GitHub PAT with **Contents: read** permission for the Z-Wave-Alliance/z-wave-stack repository. Downloads ELF binaries to `zwave_stack/bin/`.
 
 > **Note:** This setup assumes the DUT is a **controller**, which connects to the emulated controller on port 5000. Testing sample applications (end devices) should also be possible but requires copying additional files from the stack binaries, and updating the `zwave_stack/run.sh` script accordingly.
 
@@ -276,6 +275,8 @@ npm run start -- --test=CC_Binary_Switch_Set --verbose
 ```
 
 The project comes with a ready-to-use GitHub Actions workflow for running CTT tests in CI using WSL. For now, only tests from the "Automatic" group are supported, because they don't require manual interaction.
+
+To use the workflow, configure a repository secret named `ZW_STACK_TOKEN` with a GitHub PAT that has **Contents: read** permission for the [Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries) repository.
 
 ## Documentation
 
