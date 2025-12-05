@@ -10,17 +10,26 @@
 import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
+import * as readline from "readline";
 import { fileURLToPath } from "url";
 import { Driver } from "zwave-js";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
   StartParams,
   CttPromptParams,
+  TestCaseStartedParams,
   IpcRequest,
   SuccessResponse,
   ErrorResponse,
   ReadyNotification,
 } from "../../src/runner-ipc.ts";
+import {
+  getHandlersForTest,
+  type PromptContext,
+} from "./prompt-handlers.ts";
+
+// Load all registered handlers
+import "./handlers/index.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +50,10 @@ const SERVER_PORT = 3000;
 let driver: Driver | undefined;
 let server: ZwavejsServer | undefined;
 let ws: WebSocket | undefined;
+
+// Test case state for prompt handlers
+let currentTestName: string | null = null;
+let testContext: Map<string, unknown> = new Map();
 
 // === IPC Communication ===
 
@@ -162,44 +175,110 @@ async function handleStop(id: number): Promise<void> {
   }
 }
 
-async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
-  console.log(`CTT Prompt [${params.type}]: ${params.rawText}`);
-  console.log(`  Buttons: ${params.buttons.join(", ")}`);
+async function handleTestCaseStarted(
+  id: number,
+  params: TestCaseStartedParams
+): Promise<void> {
+  const { testName } = params;
 
-  // Default response logic based on prompt type
-  let response: string;
+  // Clear previous test context and set new test name
+  testContext = new Map();
+  currentTestName = testName;
 
-  switch (params.type) {
-    case "YesNo":
-      // Default to "Yes" for most prompts
-      response = "Yes";
-      break;
+  console.log(`Test case started: ${testName}`);
 
-    case "OkCancel":
-      response = "Ok";
-      break;
-
-    case "Ok":
-      response = "Ok";
-      break;
-
-    case "WaitForDutResponse":
-      // This typically means CTT is waiting for the DUT to do something
-      // The Z-Wave JS driver should handle this automatically
-      response = "Ok";
-      break;
-
-    case "Skip":
-      response = "Skip";
-      break;
-
-    default:
-      // Default to first available button
-      response = params.buttons[0] || "Ok";
-      break;
+  // Get handlers for this test and call onTestStart hooks
+  if (driver) {
+    const handlers = getHandlersForTest(testName);
+    for (const handler of handlers) {
+      if (handler.onTestStart) {
+        try {
+          await handler.onTestStart({
+            testName,
+            driver,
+            state: testContext,
+          });
+        } catch (error) {
+          console.error(`[Handler] onTestStart error:`, error);
+        }
+      }
+    }
   }
 
-  console.log(`  Response: ${response}`);
+  sendResponse(id, "ok");
+}
+
+/**
+ * Prompt the user for input via CLI
+ */
+async function promptUser(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
+  const { buttons, testName, type: promptType, rawText: promptText } = params;
+
+  // Try registered handlers first
+  if (driver && testName) {
+    const handlers = getHandlersForTest(testName);
+    const context: PromptContext = {
+      testName,
+      promptType,
+      promptText,
+      buttons,
+      driver,
+      state: testContext,
+    };
+
+    for (const handler of handlers) {
+      if (handler.onPrompt) {
+        try {
+          const response = await handler.onPrompt(context);
+          if (response !== undefined) {
+            console.log(`[Handler] Auto-responded: ${response}`);
+            sendResponse(id, response);
+            return;
+          }
+        } catch (error) {
+          console.error(`[Handler] onPrompt error:`, error);
+        }
+      }
+    }
+  }
+
+  // Fall back to CLI prompt
+  if (buttons.length === 1) {
+    await promptUser(`Press Enter to select [${buttons[0]}]: `);
+    sendResponse(id, buttons[0]);
+    return;
+  }
+
+  // Multiple buttons - ask user to choose
+  const options = buttons.map((b, i) => `${i + 1}=${b}`).join(", ");
+  const input = await promptUser(`Select (${options}): `);
+
+  // Parse response - accept number or button name
+  let response: string;
+  const num = parseInt(input, 10);
+
+  if (!isNaN(num) && num >= 1 && num <= buttons.length) {
+    response = buttons[num - 1];
+  } else {
+    // Try to match button name (case-insensitive)
+    const match = buttons.find((b) => b.toLowerCase() === input.toLowerCase());
+    response = match || buttons[0];
+  }
+
   sendResponse(id, response);
 }
 
@@ -222,6 +301,10 @@ async function handleMessage(data: string): Promise<void> {
 
     case "stop":
       await handleStop(request.id);
+      break;
+
+    case "testCaseStarted":
+      await handleTestCaseStarted(request.id, request.params);
       break;
 
     case "handleCttPrompt":

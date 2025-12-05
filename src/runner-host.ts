@@ -14,6 +14,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import {
   type StartParams,
   type CttPromptParams,
+  type TestCaseStartedParams,
   type IpcRequest,
   type IpcResponse,
   type ReadyNotification,
@@ -104,6 +105,14 @@ export class RunnerHost {
    */
   async handleCttPrompt(params: CttPromptParams): Promise<string> {
     return await this.sendRequest("handleCttPrompt", params);
+  }
+
+  /**
+   * Notify the runner that a test case has started
+   */
+  async testCaseStarted(testName: string): Promise<void> {
+    const params: TestCaseStartedParams = { testName };
+    await this.sendRequest("testCaseStarted", params);
   }
 
   /**
@@ -224,14 +233,7 @@ export class RunnerHost {
         ...process.env,
         [IPC_PORT_ENV_VAR]: this.ipcPort.toString(),
       },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    this.runnerProcess.stdout?.on("data", (data) => {
-      const lines = data.toString().trim().split("\n");
-      for (const line of lines) {
-        console.log(c.cyan(`[Runner] ${line}`));
-      }
+      stdio: ["inherit", "inherit", "pipe"],
     });
 
     this.runnerProcess.stderr?.on("data", (data) => {

@@ -92,6 +92,9 @@ async function queryTestCases(): Promise<void> {
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
   const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, runnerHost } = options;
 
+  // Track current test case name for detecting test start
+  let currentTestName: string | null = null;
+
   const wss = new WebSocketServer({ port });
 
   console.log(`WebSocket server listening on port ${port}`);
@@ -159,6 +162,19 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           if (coloredOutput) {
             console.log(coloredOutput);
           }
+
+          // Detect test case start by tracking testCase.TestCaseName changes
+          const testCase = message.params?.testCase || {};
+          const testName = testCase.TestCaseName || '';
+          if (testName && testName !== currentTestName) {
+            currentTestName = testName;
+            // Notify runner that a new test case has started
+            if (runnerHost) {
+              runnerHost.testCaseStarted(testName).catch((error) => {
+                console.error('[TestCase] Failed to notify runner of test start:', error);
+              });
+            }
+          }
         } else if (message.method === 'testCaseFinished') {
           // Print test case result
           const params = message.params || {};
@@ -166,6 +182,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           const result = params.Result || 'Unknown';
           const icon = result === 'PASSED' ? '✓' : '✗';
           console.log(`\n${icon} ${name}: ${result}`);
+
+          // Clear current test name
+          currentTestName = null;
 
           // Emit event for test case completion tracking
           const testCaseResult: TestCaseResult = {
@@ -241,11 +260,15 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
           // Forward prompt to runner via IPC if we have buttons to show
           if (buttons.length > 0 && runnerHost) {
+            // Print the prompt cleanly (the runner will handle user input)
+            console.log(`\n${coloredContent}`);
+
             try {
               const response = await runnerHost.handleCttPrompt({
                 type: msgType,
                 rawText: coloredContent,
                 buttons,
+                testName: testCase.TestCaseName || currentTestName || '',
               });
               responseData.result = response;
             } catch (error) {
