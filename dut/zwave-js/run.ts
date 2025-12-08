@@ -10,13 +10,13 @@
 import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
-import * as readline from "readline";
 import { fileURLToPath } from "url";
 import { Driver } from "zwave-js";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
   StartParams,
   CttPromptParams,
+  CttLogParams,
   TestCaseStartedParams,
   IpcRequest,
   SuccessResponse,
@@ -26,6 +26,7 @@ import type {
 import {
   getHandlersForTest,
   type PromptContext,
+  type LogContext,
 } from "./prompt-handlers.ts";
 
 // Load all registered handlers
@@ -52,7 +53,6 @@ let server: ZwavejsServer | undefined;
 let ws: WebSocket | undefined;
 
 // Test case state for prompt handlers
-let currentTestName: string | null = null;
 let testContext: Map<string, unknown> = new Map();
 
 // === IPC Communication ===
@@ -106,6 +106,8 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
       S2_Authenticated: Buffer.from(params.securityKeysLongRange.S2_Authenticated, "hex"),
       S2_AccessControl: Buffer.from(params.securityKeysLongRange.S2_AccessControl, "hex"),
     };
+
+    process.env.NODE_ENV = "development";
 
     // Create driver
     driver = new Driver(params.controllerUrl, {
@@ -181,9 +183,8 @@ async function handleTestCaseStarted(
 ): Promise<void> {
   const { testName } = params;
 
-  // Clear previous test context and set new test name
+  // Clear previous test context
   testContext = new Map();
-  currentTestName = testName;
 
   console.log(`Test case started: ${testName}`);
 
@@ -208,27 +209,10 @@ async function handleTestCaseStarted(
   sendResponse(id, "ok");
 }
 
-/**
- * Prompt the user for input via CLI
- */
-async function promptUser(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
 async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
   const { buttons, testName, type: promptType, rawText: promptText } = params;
 
-  // Try registered handlers first
+  // Try registered handlers - only respond if one matches
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: PromptContext = {
@@ -245,7 +229,6 @@ async function handleCttPrompt(id: number, params: CttPromptParams): Promise<voi
         try {
           const response = await handler.onPrompt(context);
           if (response !== undefined) {
-            console.log(`[Handler] Auto-responded: ${response}`);
             sendResponse(id, response);
             return;
           }
@@ -256,30 +239,36 @@ async function handleCttPrompt(id: number, params: CttPromptParams): Promise<voi
     }
   }
 
-  // Fall back to CLI prompt
-  if (buttons.length === 1) {
-    await promptUser(`Press Enter to select [${buttons[0]}]: `);
-    sendResponse(id, buttons[0]);
-    return;
+  // No automatic handler - don't respond, let user input win the race
+}
+
+async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
+  const { logText, testName } = params;
+
+  if (driver && testName) {
+    const handlers = getHandlersForTest(testName);
+    const context: LogContext = {
+      testName,
+      logText,
+      driver,
+      state: testContext,
+    };
+
+    for (const handler of handlers) {
+      if (handler.onLog) {
+        try {
+          const stopPropagation = await handler.onLog(context);
+          if (stopPropagation === true) {
+            break;
+          }
+        } catch (error) {
+          console.error(`[Handler] onLog error:`, error);
+        }
+      }
+    }
   }
 
-  // Multiple buttons - ask user to choose
-  const options = buttons.map((b, i) => `${i + 1}=${b}`).join(", ");
-  const input = await promptUser(`Select (${options}): `);
-
-  // Parse response - accept number or button name
-  let response: string;
-  const num = parseInt(input, 10);
-
-  if (!isNaN(num) && num >= 1 && num <= buttons.length) {
-    response = buttons[num - 1];
-  } else {
-    // Try to match button name (case-insensitive)
-    const match = buttons.find((b) => b.toLowerCase() === input.toLowerCase());
-    response = match || buttons[0];
-  }
-
-  sendResponse(id, response);
+  sendResponse(id, "ok");
 }
 
 // === Message Handler ===
@@ -311,9 +300,15 @@ async function handleMessage(data: string): Promise<void> {
       await handleCttPrompt(request.id, request.params);
       break;
 
-    default:
-      console.warn("Unknown IPC method:", (request as { method: string }).method);
-      sendError(request.id, -32601, "Method not found");
+    case "handleCttLog":
+      await handleCttLog(request.id, request.params);
+      break;
+
+    default: {
+      const unknownRequest = request as { method: string; id: number };
+      console.warn("Unknown IPC method:", unknownRequest.method);
+      sendError(unknownRequest.id, -32601, "Method not found");
+    }
   }
 }
 

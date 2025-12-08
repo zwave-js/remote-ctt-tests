@@ -24,11 +24,20 @@ export interface TestStartContext {
   state: Map<string, unknown>;
 }
 
+export interface LogContext {
+  testName: string;
+  logText: string;
+  driver: Driver;
+  state: Map<string, unknown>;
+}
+
 export type PromptHandler = (ctx: PromptContext) => Promise<string | undefined>;
+export type LogHandler = (ctx: LogContext) => Promise<boolean | void>;
 
 export interface TestHandlers {
   onTestStart?: (ctx: TestStartContext) => Promise<void>;
   onPrompt?: PromptHandler;
+  onLog?: LogHandler;
 }
 
 // === Registry ===

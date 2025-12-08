@@ -1,0 +1,1 @@
+export const TEST_STATE_LAST_NODE_ID = "last node id";

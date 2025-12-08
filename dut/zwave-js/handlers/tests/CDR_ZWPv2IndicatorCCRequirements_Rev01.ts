@@ -9,11 +9,6 @@ import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
 const IDENTIFY_EMITTED = "identify event emitted";
 
 registerHandler("CDR_ZWPv2IndicatorCCRequirements_Rev01", {
-  // onTestStart: async ({ driver, state }) => {
-  //   console.log("[IndicatorCC] Test started, setting up handlers...");
-  //   // Set up any driver event listeners needed for this test
-  // },
-
   onPrompt: async (ctx: PromptContext) => {
     // Auto-click Ok for "observe the DUT" prompts
     if (ctx.promptText.includes("observe the DUT")) {

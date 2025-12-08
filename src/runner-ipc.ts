@@ -36,6 +36,13 @@ export interface CttPromptParams {
   testName: string; // Name of the test case
 }
 
+// === CTT Log Parameters ===
+
+export interface CttLogParams {
+  logText: string; // The log message content
+  testName: string; // Name of the test case
+}
+
 // === Test Case Started Parameters ===
 
 export interface TestCaseStartedParams {
@@ -72,7 +79,14 @@ export interface TestCaseStartedRequest {
   params: TestCaseStartedParams;
 }
 
-export type IpcRequest = StartRequest | StopRequest | HandleCttPromptRequest | TestCaseStartedRequest;
+export interface HandleCttLogRequest {
+  jsonrpc: "2.0";
+  id: number;
+  method: "handleCttLog";
+  params: CttLogParams;
+}
+
+export type IpcRequest = StartRequest | StopRequest | HandleCttPromptRequest | TestCaseStartedRequest | HandleCttLogRequest;
 
 // === Response Messages (Runner -> Orchestrator) ===
 

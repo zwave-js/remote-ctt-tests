@@ -31,9 +31,12 @@ const VERBOSE = args.includes("--verbose");
 const DISCOVER_MODE = args.includes("--discover");
 // Support multiple --test= arguments or comma-separated names
 const testArgs = args.filter((arg) => arg.startsWith("--test="));
-const TEST_NAMES: string[] = testArgs.flatMap((arg) =>
-  arg.split("=")[1].split(",")
-);
+// Also treat all positional arguments (not starting with --) as test names
+const positionalArgs = args.filter((arg) => !arg.startsWith("--"));
+const TEST_NAMES: string[] = [
+  ...testArgs.flatMap((arg) => arg.split("=")[1].split(",")),
+  ...positionalArgs,
+];
 // Support multiple --category= arguments or comma-separated categories
 const categoryArgs = args.filter((arg) => arg.startsWith("--category="));
 const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>

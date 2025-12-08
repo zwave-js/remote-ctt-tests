@@ -14,10 +14,9 @@ import { WebSocketServer, WebSocket } from "ws";
 import {
   type StartParams,
   type CttPromptParams,
+  type CttLogParams,
   type TestCaseStartedParams,
   type IpcRequest,
-  type IpcResponse,
-  type ReadyNotification,
   isSuccessResponse,
   isErrorResponse,
   isReadyNotification,
@@ -25,6 +24,7 @@ import {
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
 import c from "ansi-colors";
+import * as readline from "readline";
 
 export interface RunnerHostOptions {
   /** Path to the runner script */
@@ -54,10 +54,32 @@ export class RunnerHost {
     }
   >();
 
+  // Readline interface for user input prompts
+  private rl?: readline.Interface;
+  private activePrompt?: {
+    resolve: (result: { source: "runner" | "user"; value: string }) => void;
+    ipcRequestId: number;
+  };
+
   constructor(options: RunnerHostOptions) {
     this.runnerPath = path.resolve(options.runnerPath);
     this.ipcPort = options.ipcPort ?? DEFAULT_IPC_PORT;
     this.readyTimeout = options.readyTimeout ?? 30000;
+
+    // Create readline interface for user prompts
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    // Persistent listener - dispatches to active prompt if any
+    this.rl.on("line", (input) => {
+      if (this.activePrompt) {
+        this.activePrompt.resolve({ source: "user", value: input.trim() });
+        this.activePrompt = undefined;
+      }
+      // If no active prompt, input is ignored
+    });
   }
 
   /**
@@ -101,10 +123,10 @@ export class RunnerHost {
   }
 
   /**
-   * Handle a CTT prompt by forwarding to the runner
+   * Handle a CTT log message by forwarding to the runner
    */
-  async handleCttPrompt(params: CttPromptParams): Promise<string> {
-    return await this.sendRequest("handleCttPrompt", params);
+  async handleCttLog(params: CttLogParams): Promise<void> {
+    await this.sendRequest("handleCttLog", params);
   }
 
   /**
@@ -113,6 +135,44 @@ export class RunnerHost {
   async testCaseStarted(testName: string): Promise<void> {
     const params: TestCaseStartedParams = { testName };
     await this.sendRequest("testCaseStarted", params);
+  }
+
+  /**
+   * Unified prompt handling - waits for either user input or runner response
+   * Whichever resolves first wins.
+   */
+  async promptForResponse(
+    userPromptText: string,
+    params: CttPromptParams
+  ): Promise<{ source: "runner" | "user"; value: string }> {
+    // Create deferred promise
+    let resolve: (result: { source: "runner" | "user"; value: string }) => void;
+    const promise = new Promise<{ source: "runner" | "user"; value: string }>((res) => {
+      resolve = res;
+    });
+
+    // Show prompt to user
+    process.stdout.write(userPromptText);
+
+    // Send to runner (fire-and-forget, response resolves deferred if it comes)
+    const ipcRequestId = ++this.messageId;
+    this.activePrompt = { resolve: resolve!, ipcRequestId };
+
+    if (this.runnerSocket?.readyState === WebSocket.OPEN) {
+      this.runnerSocket.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: ipcRequestId,
+          method: "handleCttPrompt",
+          params,
+        })
+      );
+    }
+
+    // Wait for either user input or runner response
+    const result = await promise;
+    this.activePrompt = undefined;
+    return result;
   }
 
   /**
@@ -144,6 +204,13 @@ export class RunnerHost {
     if (this.runnerProcess && !this.runnerProcess.killed) {
       this.runnerProcess.kill();
       this.runnerProcess = undefined;
+    }
+
+    // Close readline interface
+    if (this.rl) {
+      this.activePrompt = undefined;
+      this.rl.close();
+      this.rl = undefined;
     }
 
     // Reject any pending requests
@@ -233,7 +300,7 @@ export class RunnerHost {
         ...process.env,
         [IPC_PORT_ENV_VAR]: this.ipcPort.toString(),
       },
-      stdio: ["inherit", "inherit", "pipe"],
+      stdio: ["ignore", "inherit", "pipe"],
     });
 
     this.runnerProcess.stderr?.on("data", (data) => {
@@ -304,6 +371,13 @@ export class RunnerHost {
 
     // Check for response to a pending request
     if (isSuccessResponse(msg)) {
+      // Check if this is a response to the active prompt
+      if (this.activePrompt?.ipcRequestId === msg.id) {
+        this.activePrompt.resolve({ source: "runner", value: msg.result });
+        this.activePrompt = undefined;
+        return;
+      }
+
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         pending.resolve(msg.result);

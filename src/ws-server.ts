@@ -175,6 +175,16 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               });
             }
           }
+
+          // Forward log to runner for handler processing
+          if (runnerHost && coloredOutput && (testName || currentTestName)) {
+            runnerHost.handleCttLog({
+              logText: coloredOutput,
+              testName: testName || currentTestName || '',
+            }).catch((error) => {
+              console.error('[Log] Failed to forward to runner:', error);
+            });
+          }
         } else if (message.method === 'testCaseFinished') {
           // Print test case result
           const params = message.params || {};
@@ -260,19 +270,48 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
           // Forward prompt to runner via IPC if we have buttons to show
           if (buttons.length > 0 && runnerHost) {
-            // Print the prompt cleanly (the runner will handle user input)
+            // Print the prompt cleanly
             console.log(`\n${coloredContent}`);
 
+            // Build user prompt string
+            let userPrompt: string;
+            if (buttons.length === 1) {
+              userPrompt = `\nPress Enter to select [${buttons[0]}]: `;
+            } else {
+              const options = buttons.map((b, i) => `${i + 1}=${b}`).join(', ');
+              userPrompt = `Select (${options}): `;
+            }
+
+            // Wait for either user input or runner handler response
             try {
-              const response = await runnerHost.handleCttPrompt({
+              const result = await runnerHost.promptForResponse(userPrompt, {
                 type: msgType,
                 rawText: coloredContent,
                 buttons,
                 testName: testCase.TestCaseName || currentTestName || '',
               });
-              responseData.result = response;
+
+              if (result.source === 'runner') {
+                // Auto-handler responded
+                process.stdout.write('\r\x1b[K');
+                console.log(`[Auto] ${result.value}`);
+                responseData.result = result.value;
+              } else {
+                // User responded - parse their input
+                if (buttons.length === 1) {
+                  responseData.result = buttons[0];
+                } else {
+                  const num = parseInt(result.value, 10);
+                  if (!isNaN(num) && num >= 1 && num <= buttons.length) {
+                    responseData.result = buttons[num - 1];
+                  } else {
+                    const match = buttons.find((b) => b.toLowerCase() === result.value.toLowerCase());
+                    responseData.result = match || buttons[0];
+                  }
+                }
+              }
             } catch (error) {
-              console.error('[MsgBox] Runner prompt handler error:', error);
+              console.error('[MsgBox] Prompt handler error:', error);
               responseData.result = buttons[0]; // Fallback to first button
             }
           } else if (buttons.length > 0) {

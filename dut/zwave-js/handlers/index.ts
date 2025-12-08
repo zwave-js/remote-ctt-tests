@@ -7,6 +7,12 @@
 
 // Test-specific handlers
 import "./tests/CDR_ZWPv2IndicatorCCRequirements_Rev01.ts";
+import "./tests/RT_PowerSupply_Rev02.ts";
+import "./tests/CCR_BarrierOperatorCC_Rev03.ts";
 
-// Behavior handlers (match multiple tests via RegExp)
-// import "./behaviors/inclusion.ts";
+// Behavior handlers
+import "./behaviors/simpleQuestions.ts";
+import "./behaviors/addMode.ts";
+import "./behaviors/removeMode.ts";
+import "./behaviors/interviewFinished.ts";
+import "./behaviors/triggerReInterview.ts";
