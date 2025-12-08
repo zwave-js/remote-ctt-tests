@@ -13,6 +13,14 @@ const questions: { pattern: RegExp; answer: string }[] = [
     pattern: /(current state|visualization|visualisation).+is visible/i,
     answer: "Ok",
   },
+  {
+    pattern: /icon type.+match the actual device/i,
+    answer: "Yes",
+  },
+  {
+    pattern: /Does the DUT use the identify command for any other purpose/i,
+    answer: "No",
+  }
 ];
 
 registerHandler(/.*/, {

@@ -1,6 +1,7 @@
 import { SubsystemType } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 
+// Handler for SET commands with a specific value
 registerHandler(/.*/, {
   onLog: async (ctx) => {
     // Each of those sommands is sent as a single log line:

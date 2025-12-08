@@ -1,23 +1,23 @@
 /**
  * Handler Index
  *
- * Import all handler files here to register them.
+ * Dynamically imports all handler files from tests and behaviors directories.
  * Side-effect imports cause the handlers to self-register.
  */
 
-// Test-specific handlers
-import "./tests/CDR_ZWPv2IndicatorCCRequirements_Rev01.ts";
-import "./tests/RT_PowerSupply_Rev02.ts";
-import "./tests/CCR_BarrierOperatorCC_Rev03.ts";
-import "./tests/CCR_BasicCC_Rev02.ts";
-import "./tests/CCR_BatteryCC_Rev02.ts";
-import "./tests/CCR_CentralSceneCC_Rev03.ts";
+import { readdirSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-// Behavior handlers
-import "./behaviors/capabilities.ts";
-import "./behaviors/addMode.ts";
-import "./behaviors/removeMode.ts";
-import "./behaviors/interviewFinished.ts";
-import "./behaviors/triggerReInterview.ts";
-import "./behaviors/sendSimpleCommand.ts";
-import "./behaviors/simplePrompts.ts";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const directories = ["tests", "behaviors"];
+
+for (const dir of directories) {
+	const dirPath = join(__dirname, dir);
+	const files = readdirSync(dirPath).filter((file) => file.endsWith(".ts"));
+
+	for (const file of files) {
+		await import(`./${dir}/${file}`);
+	}
+}
