@@ -5,6 +5,14 @@ const questions: { pattern: RegExp; answer: string }[] = [
     pattern: /allows the end user to establish association/i,
     answer: "No",
   },
+  {
+    pattern: /capable to display the last known state/i,
+    answer: "Yes",
+  },
+  {
+    pattern: /current state.+is visible/i,
+    answer: "Ok",
+  },
 ];
 
 registerHandler(/.*/, {

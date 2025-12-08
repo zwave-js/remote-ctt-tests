@@ -19,28 +19,18 @@ registerHandler("CCR_BasicCC_Rev02", {
 
     let match: RegExpExecArray | null;
 
+    // FIXME: Migrate this to `simplePrompts.ts`
     if (
       (match = /confirm that the state \((?<value>\d+)/i.exec(ctx.promptText))
+        ?.groups
     ) {
-      const expectedValue = parseInt(match.groups!.value);
+      const expectedValue = parseInt(match.groups.value!);
       const node = ctx.includedNodes.at(-1);
       if (!node) return;
 
       const actualValue = node.getValue(BasicCCValues.currentValue.id);
       console.log(`Basic CC current value: ${actualValue}`);
       return actualValue === expectedValue ? "Yes" : "No";
-    }
-  },
-
-  async onLog(ctx) {
-    const match = /trigger 'Basic Set to (?<targetValue>\d+)/i;
-    const result = match.exec(ctx.logText);
-    if (result?.groups) {
-      const targetValue = parseInt(result.groups["targetValue"]);
-      const node = ctx.includedNodes.at(-1);
-      if (!node) return;
-
-      node.commandClasses.Basic.set(targetValue);
     }
   },
 });

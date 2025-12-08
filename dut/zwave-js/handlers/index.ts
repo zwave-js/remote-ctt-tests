@@ -12,8 +12,10 @@ import "./tests/CCR_BarrierOperatorCC_Rev03.ts";
 import "./tests/CCR_BasicCC_Rev02.ts";
 
 // Behavior handlers
-import "./behaviors/simpleQuestions.ts";
+import "./behaviors/capabilities.ts";
 import "./behaviors/addMode.ts";
 import "./behaviors/removeMode.ts";
 import "./behaviors/interviewFinished.ts";
 import "./behaviors/triggerReInterview.ts";
+import "./behaviors/sendSimpleCommand.ts";
+import "./behaviors/simplePrompts.ts";
