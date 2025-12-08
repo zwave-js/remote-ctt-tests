@@ -7,6 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --experimental-transform-types src/start.ts",
+    "debug": "cross-env ZWAVE_JS_DEBUG=1 node --experimental-transform-types src/start.ts",
     "devices": "node --experimental-transform-types src/start.ts --devices-only"
   },
   "keywords": [],
@@ -21,6 +22,7 @@
     "@tsconfig/node24": "^24.0.3",
     "@types/node": "^22.10.2",
     "@types/ws": "^8.5.13",
+    "cross-env": "^10.1.0",
     "typescript": "^5.9.3"
   }
 }

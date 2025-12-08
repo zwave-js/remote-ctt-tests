@@ -12,6 +12,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { Driver, type ZWaveNode } from "zwave-js";
+import { CommandClasses } from "@zwave-js/core";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
   StartParams,
@@ -55,6 +56,22 @@ let ws: WebSocket | undefined;
 // Test case state for prompt handlers
 let testContext: Map<string, unknown> = new Map();
 let includedNodes: ZWaveNode[] = [];
+
+// === Debug Helpers ===
+
+function formatValueId(args: {
+  commandClass: number;
+  endpoint?: number;
+  property: string | number;
+  propertyKey?: string | number;
+}): string {
+  const ccName = CommandClasses[args.commandClass] ?? "Unknown";
+  let result = `CC=${ccName} (0x${args.commandClass.toString(16)}), EP=${args.endpoint ?? 0}, property=${args.property}`;
+  if (args.propertyKey !== undefined) {
+    result += `, propertyKey=${args.propertyKey}`;
+  }
+  return result;
+}
 
 // === IPC Communication ===
 
@@ -128,6 +145,26 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       driver!.once("driver ready", () => {
         console.log("Z-Wave JS driver is ready");
+
+        // Debug logging for value events
+        if (process.env.ZWAVE_JS_DEBUG) {
+          driver!.on("node value added", (node, args) => {
+            console.log(`[VALUE ADDED] Node ${node.id}: ${formatValueId(args)} => ${JSON.stringify(args.newValue)}`);
+          });
+
+          driver!.on("node value updated", (node, args) => {
+            console.log(`[VALUE UPDATED] Node ${node.id}: ${formatValueId(args)} | ${JSON.stringify(args.prevValue)} => ${JSON.stringify(args.newValue)}`);
+          });
+
+          driver!.on("node value removed", (node, args) => {
+            console.log(`[VALUE REMOVED] Node ${node.id}: ${formatValueId(args)}`);
+          });
+
+          driver!.on("node value notification", (node, args) => {
+            console.log(`[VALUE NOTIFICATION] Node ${node.id}: ${formatValueId(args)} => ${JSON.stringify(args.value)}`);
+          });
+        }
+
         resolve();
       });
 
@@ -213,7 +250,11 @@ async function handleTestCaseStarted(
 }
 
 async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
-  const { buttons, testName, type: promptType, rawText: promptText } = params;
+  const { buttons, testName, type: promptType, rawText } = params;
+
+  // Normalize whitespace: CTT sometimes formats prompt text with line breaks
+  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
+  const promptText = rawText.replace(/\s+/g, " ").trim();
 
   // Try registered handlers - only respond if one matches
   if (driver && testName) {
@@ -247,7 +288,11 @@ async function handleCttPrompt(id: number, params: CttPromptParams): Promise<voi
 }
 
 async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
-  const { logText, testName } = params;
+  const { logText: rawLogText, testName } = params;
+
+  // Normalize whitespace: CTT sometimes formats log messages with line breaks
+  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
+  const logText = rawLogText.replace(/\s+/g, " ").trim();
 
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
