@@ -1,6 +1,5 @@
 import { SubsystemType } from "zwave-js";
-import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
-import { TEST_STATE_LAST_NODE_ID } from "../shared/consts.ts";
+import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler("CCR_BarrierOperatorCC_Rev03", {
   async onPrompt(ctx) {
@@ -20,8 +19,7 @@ registerHandler("CCR_BarrierOperatorCC_Rev03", {
     if (result?.groups) {
       const cmd = result.groups["cmd"];
       const targetValue = parseInt(result.groups["targetValue"]);
-      const lastNodeId = ctx.state.get(TEST_STATE_LAST_NODE_ID) as number;
-      const node = ctx.driver.controller.nodes.get(lastNodeId);
+      const node = ctx.includedNodes.at(-1);
       if (!node) return;
 
       // Figure out which commands to send based on the log

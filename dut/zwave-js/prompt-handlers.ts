@@ -5,7 +5,7 @@
  * to CTT prompts based on test name patterns.
  */
 
-import type { Driver } from "zwave-js";
+import type { Driver, ZWaveNode } from "zwave-js";
 
 // === Types ===
 
@@ -16,12 +16,14 @@ export interface PromptContext {
   buttons: string[];
   driver: Driver;
   state: Map<string, unknown>; // Test-specific state storage
+  includedNodes: ZWaveNode[]; // Nodes included during this test
 }
 
 export interface TestStartContext {
   testName: string;
   driver: Driver;
   state: Map<string, unknown>;
+  includedNodes: ZWaveNode[];
 }
 
 export interface LogContext {
@@ -29,6 +31,7 @@ export interface LogContext {
   logText: string;
   driver: Driver;
   state: Map<string, unknown>;
+  includedNodes: ZWaveNode[];
 }
 
 export type PromptHandler = (ctx: PromptContext) => Promise<string | undefined>;

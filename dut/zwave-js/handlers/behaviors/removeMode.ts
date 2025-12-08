@@ -1,22 +1,24 @@
 /**
- * Handler for CDR_ZWPv2IndicatorCCRequirements_Rev01 test case
+ * Handler for remove mode prompts
  *
- * This test validates Indicator Command Class requirements.
+ * Automates Z-Wave node exclusion (removing devices from the network).
  */
 
-import {
-  createDeferredPromise,
-  type DeferredPromise,
-} from "alcalzone-shared/deferred-promise";
-import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
-import { InclusionStrategy } from "zwave-js";
-
-const PIN_PROMISE = "pin promise";
+import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
     if (ctx.promptText.toLowerCase().includes("activate the remove mode")) {
-      const { driver } = ctx;
+      const { driver, includedNodes } = ctx;
+
+      // Listen for node removal to update includedNodes
+      driver.controller.on("node removed", (node) => {
+        const index = includedNodes.indexOf(node);
+        if (index !== -1) {
+          includedNodes.splice(index, 1);
+        }
+      });
+
       await driver.controller.beginExclusion();
       return "Ok";
     }

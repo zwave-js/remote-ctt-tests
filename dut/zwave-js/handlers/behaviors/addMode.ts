@@ -8,9 +8,8 @@ import {
   createDeferredPromise,
   type DeferredPromise,
 } from "alcalzone-shared/deferred-promise";
-import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
+import { registerHandler } from "../../prompt-handlers.ts";
 import { InclusionStrategy } from "zwave-js";
-import { TEST_STATE_LAST_NODE_ID } from "../shared/consts.ts";
 
 const PIN_PROMISE = "pin promise";
 
@@ -36,9 +35,9 @@ registerHandler(/.*/, {
         },
       });
 
-      // Remember the last added node ID
+      // Remember all included nodes
       driver.controller.on("node added", (node) => {
-        state.set(TEST_STATE_LAST_NODE_ID, node.id);
+        ctx.includedNodes.push(node);
       });
 
       return "Ok";

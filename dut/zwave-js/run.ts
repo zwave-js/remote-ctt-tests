@@ -11,7 +11,7 @@ import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
-import { Driver } from "zwave-js";
+import { Driver, type ZWaveNode } from "zwave-js";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
   StartParams,
@@ -54,6 +54,7 @@ let ws: WebSocket | undefined;
 
 // Test case state for prompt handlers
 let testContext: Map<string, unknown> = new Map();
+let includedNodes: ZWaveNode[] = [];
 
 // === IPC Communication ===
 
@@ -185,6 +186,7 @@ async function handleTestCaseStarted(
 
   // Clear previous test context
   testContext = new Map();
+  includedNodes = [];
 
   console.log(`Test case started: ${testName}`);
 
@@ -198,6 +200,7 @@ async function handleTestCaseStarted(
             testName,
             driver,
             state: testContext,
+            includedNodes,
           });
         } catch (error) {
           console.error(`[Handler] onTestStart error:`, error);
@@ -222,6 +225,7 @@ async function handleCttPrompt(id: number, params: CttPromptParams): Promise<voi
       buttons,
       driver,
       state: testContext,
+      includedNodes,
     };
 
     for (const handler of handlers) {
@@ -252,6 +256,7 @@ async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
       logText,
       driver,
       state: testContext,
+      includedNodes,
     };
 
     for (const handler of handlers) {
