@@ -10,7 +10,7 @@ const questions: { pattern: RegExp; answer: string }[] = [
     answer: "Yes",
   },
   {
-    pattern: /current state.+is visible/i,
+    pattern: /(current state|visualization|visualisation).+is visible/i,
     answer: "Ok",
   },
 ];
