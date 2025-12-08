@@ -5,33 +5,32 @@
  * to CTT prompts based on test name patterns.
  */
 
-import type { Driver, ZWaveNode } from "zwave-js";
+import type { Driver, Endpoint, ZWaveNode, ZWaveNodeValueNotificationArgs, ZWaveNotificationCallback } from "zwave-js";
+import type { CommandClasses } from "@zwave-js/core";
 
 // === Types ===
 
-export interface PromptContext {
+export type NodeNotificationArgs = Parameters<ZWaveNotificationCallback>[2];
+
+export interface BaseContext {
   testName: string;
+  driver: Driver;
+  state: Map<string, unknown>;
+  includedNodes: ZWaveNode[];
+  nodeNotifications: { endpoint: Endpoint; ccId: CommandClasses; args: NodeNotificationArgs }[];
+  valueNotifications: { node: ZWaveNode; args: ZWaveNodeValueNotificationArgs }[];
+}
+
+export interface PromptContext extends BaseContext {
   promptType: string;
   promptText: string;
   buttons: string[];
-  driver: Driver;
-  state: Map<string, unknown>; // Test-specific state storage
-  includedNodes: ZWaveNode[]; // Nodes included during this test
 }
 
-export interface TestStartContext {
-  testName: string;
-  driver: Driver;
-  state: Map<string, unknown>;
-  includedNodes: ZWaveNode[];
-}
+export interface TestStartContext extends BaseContext {}
 
-export interface LogContext {
-  testName: string;
+export interface LogContext extends BaseContext {
   logText: string;
-  driver: Driver;
-  state: Map<string, unknown>;
-  includedNodes: ZWaveNode[];
 }
 
 export type PromptHandler = (ctx: PromptContext) => Promise<string | undefined>;

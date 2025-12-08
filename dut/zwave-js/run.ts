@@ -11,7 +11,13 @@ import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
-import { Driver, type ZWaveNode } from "zwave-js";
+import {
+  Driver,
+  type Endpoint,
+  type ZWaveNode,
+  type ZWaveNodeValueNotificationArgs,
+} from "zwave-js";
+import type { NodeNotificationArgs } from "./prompt-handlers.ts";
 import { CommandClasses } from "@zwave-js/core";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
@@ -56,6 +62,15 @@ let ws: WebSocket | undefined;
 // Test case state for prompt handlers
 let testContext: Map<string, unknown> = new Map();
 let includedNodes: ZWaveNode[] = [];
+let nodeNotifications: {
+  endpoint: Endpoint;
+  ccId: CommandClasses;
+  args: NodeNotificationArgs;
+}[] = [];
+let valueNotifications: {
+  node: ZWaveNode;
+  args: ZWaveNodeValueNotificationArgs;
+}[] = [];
 
 // === Debug Helpers ===
 
@@ -66,7 +81,9 @@ function formatValueId(args: {
   propertyKey?: string | number;
 }): string {
   const ccName = CommandClasses[args.commandClass] ?? "Unknown";
-  let result = `CC=${ccName} (0x${args.commandClass.toString(16)}), EP=${args.endpoint ?? 0}, property=${args.property}`;
+  let result = `CC=${ccName} (0x${args.commandClass.toString(16)}), EP=${
+    args.endpoint ?? 0
+  }, property=${args.property}`;
   if (args.propertyKey !== undefined) {
     result += `, propertyKey=${args.propertyKey}`;
   }
@@ -114,15 +131,30 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
 
     // Parse security keys from hex strings to Buffers
     const securityKeys = {
-      S2_Unauthenticated: Buffer.from(params.securityKeys.S2_Unauthenticated, "hex"),
-      S2_Authenticated: Buffer.from(params.securityKeys.S2_Authenticated, "hex"),
-      S2_AccessControl: Buffer.from(params.securityKeys.S2_AccessControl, "hex"),
+      S2_Unauthenticated: Buffer.from(
+        params.securityKeys.S2_Unauthenticated,
+        "hex"
+      ),
+      S2_Authenticated: Buffer.from(
+        params.securityKeys.S2_Authenticated,
+        "hex"
+      ),
+      S2_AccessControl: Buffer.from(
+        params.securityKeys.S2_AccessControl,
+        "hex"
+      ),
       S0_Legacy: Buffer.from(params.securityKeys.S0_Legacy, "hex"),
     };
 
     const securityKeysLongRange = {
-      S2_Authenticated: Buffer.from(params.securityKeysLongRange.S2_Authenticated, "hex"),
-      S2_AccessControl: Buffer.from(params.securityKeysLongRange.S2_AccessControl, "hex"),
+      S2_Authenticated: Buffer.from(
+        params.securityKeysLongRange.S2_Authenticated,
+        "hex"
+      ),
+      S2_AccessControl: Buffer.from(
+        params.securityKeysLongRange.S2_AccessControl,
+        "hex"
+      ),
     };
 
     process.env.NODE_ENV = "development";
@@ -149,21 +181,56 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
         // Debug logging for value events
         if (process.env.ZWAVE_JS_DEBUG) {
           driver!.on("node value added", (node, args) => {
-            console.log(`[VALUE ADDED] Node ${node.id}: ${formatValueId(args)} => ${JSON.stringify(args.newValue)}`);
+            console.log(
+              `[VALUE ADDED] Node ${node.id}: ${formatValueId(
+                args
+              )} => ${JSON.stringify(args.newValue)}`
+            );
           });
 
           driver!.on("node value updated", (node, args) => {
-            console.log(`[VALUE UPDATED] Node ${node.id}: ${formatValueId(args)} | ${JSON.stringify(args.prevValue)} => ${JSON.stringify(args.newValue)}`);
+            console.log(
+              `[VALUE UPDATED] Node ${node.id}: ${formatValueId(
+                args
+              )} | ${JSON.stringify(args.prevValue)} => ${JSON.stringify(
+                args.newValue
+              )}`
+            );
           });
 
           driver!.on("node value removed", (node, args) => {
-            console.log(`[VALUE REMOVED] Node ${node.id}: ${formatValueId(args)}`);
+            console.log(
+              `[VALUE REMOVED] Node ${node.id}: ${formatValueId(args)}`
+            );
           });
 
           driver!.on("node value notification", (node, args) => {
-            console.log(`[VALUE NOTIFICATION] Node ${node.id}: ${formatValueId(args)} => ${JSON.stringify(args.value)}`);
+            console.log(
+              `[VALUE NOTIFICATION] Node ${node.id}: ${formatValueId(
+                args
+              )} => ${JSON.stringify(args.value)}`
+            );
+          });
+
+          driver!.on("node notification", (endpoint, ccId, args) => {
+            console.log(
+              `[NOTIFICATION] Endpoint ${endpoint.nodeId}:${
+                endpoint.index
+              }, CC=${CommandClasses[ccId]} (0x${ccId.toString(
+                16
+              )}), args=${JSON.stringify(args)}`
+            );
           });
         }
+
+        // Track notification events for test handlers
+        driver!.on("node notification", (endpoint, ccId, args) => {
+          nodeNotifications.push({ endpoint, ccId, args });
+        });
+
+        driver!.on("node value notification", (node, args) => {
+          valueNotifications.push({ node, args });
+        });
 
         resolve();
       });
@@ -224,6 +291,8 @@ async function handleTestCaseStarted(
   // Clear previous test context
   testContext = new Map();
   includedNodes = [];
+  nodeNotifications = [];
+  valueNotifications = [];
 
   console.log(`Test case started: ${testName}`);
 
@@ -238,6 +307,8 @@ async function handleTestCaseStarted(
             driver,
             state: testContext,
             includedNodes,
+            nodeNotifications,
+            valueNotifications,
           });
         } catch (error) {
           console.error(`[Handler] onTestStart error:`, error);
@@ -249,7 +320,10 @@ async function handleTestCaseStarted(
   sendResponse(id, "ok");
 }
 
-async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
+async function handleCttPrompt(
+  id: number,
+  params: CttPromptParams
+): Promise<void> {
   const { buttons, testName, type: promptType, rawText } = params;
 
   // Normalize whitespace: CTT sometimes formats prompt text with line breaks
@@ -267,6 +341,8 @@ async function handleCttPrompt(id: number, params: CttPromptParams): Promise<voi
       driver,
       state: testContext,
       includedNodes,
+      nodeNotifications,
+      valueNotifications,
     };
 
     for (const handler of handlers) {
@@ -302,6 +378,8 @@ async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
       driver,
       state: testContext,
       includedNodes,
+      nodeNotifications,
+      valueNotifications,
     };
 
     for (const handler of handlers) {
