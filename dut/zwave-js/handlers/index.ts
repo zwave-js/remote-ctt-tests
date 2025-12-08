@@ -9,6 +9,7 @@
 import "./tests/CDR_ZWPv2IndicatorCCRequirements_Rev01.ts";
 import "./tests/RT_PowerSupply_Rev02.ts";
 import "./tests/CCR_BarrierOperatorCC_Rev03.ts";
+import "./tests/CCR_BasicCC_Rev02.ts";
 
 // Behavior handlers
 import "./behaviors/simpleQuestions.ts";

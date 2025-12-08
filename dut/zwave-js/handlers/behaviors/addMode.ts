@@ -10,6 +10,7 @@ import {
 } from "alcalzone-shared/deferred-promise";
 import { registerHandler } from "../../prompt-handlers.ts";
 import { InclusionStrategy } from "zwave-js";
+import { wait } from "alcalzone-shared/async";
 
 const PIN_PROMISE = "pin promise";
 
@@ -19,21 +20,33 @@ registerHandler(/.*/, {
     if (ctx.promptText.toLowerCase().includes("activate the add mode")) {
       const { driver, state } = ctx;
       state.set(PIN_PROMISE, createDeferredPromise<string>());
-      await driver.controller.beginInclusion({
-        strategy: InclusionStrategy.Default,
-        userCallbacks: {
-          abort() {},
-          async grantSecurityClasses(requested) {
-            return requested;
+
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        const inclusionStarted = await driver.controller.beginInclusion({
+          strategy: InclusionStrategy.Default,
+          userCallbacks: {
+            abort() {},
+            async grantSecurityClasses(requested) {
+              return requested;
+            },
+            async validateDSKAndEnterPIN(dsk) {
+              console.log("Validating DSK:", dsk);
+              const pin = await (state.get(PIN_PROMISE) as Promise<string>);
+              console.log("Entering PIN:", pin);
+              return pin;
+            },
           },
-          async validateDSKAndEnterPIN(dsk) {
-            console.log("Validating DSK:", dsk);
-            const pin = await (state.get(PIN_PROMISE) as Promise<string>);
-            console.log("Entering PIN:", pin);
-            return pin;
-          },
-        },
-      });
+        });
+
+        if (inclusionStarted) break;
+
+        // Backoff in case another in-/exclusion process is still busy
+        if (attempt < 5) {
+          await wait(1000 * attempt);
+        } else {
+          throw new Error("Failed to start inclusion after 5 attempts");
+        }
+      }
 
       // Remember all included nodes
       driver.controller.on("node added", (node) => {
