@@ -56,12 +56,10 @@ registerHandler("CCR_MultilevelSwitchCC_Rev02", {
               }
         );
 
-        await wait(2500);
+        await wait(1000);
 
         await node.commandClasses["Multilevel Switch"].stopLevelChange();
-      }, 1000);
-
-      await wait(500);
+      }, 250);
 
       return "Ok";
     }
