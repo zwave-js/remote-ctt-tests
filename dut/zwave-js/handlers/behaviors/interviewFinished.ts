@@ -8,8 +8,11 @@ registerHandler(/.*/, {
 
   onPrompt: async (ctx) => {
     if (
-      /wait for (the )?(node )?interview to (be )?finish(ed)?/i.test(ctx.promptText)
-      || /inclusion (process )?(has )?finish(ed)?/i.test(ctx.promptText)
+      /wait for (the )?(node )?interview to (be )?finish(ed)?/i.test(
+        ctx.promptText
+      ) ||
+      /inclusion (process )?(has )?finish(ed)?/i.test(ctx.promptText) ||
+      /inclusion to be finished.+click 'OK'/i.test(ctx.promptText)
     ) {
       const { driver } = ctx;
       return new Promise((resolve) => {
