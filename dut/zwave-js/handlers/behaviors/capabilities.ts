@@ -2,7 +2,7 @@ import { registerHandler, type PromptResponse } from "../../prompt-handlers.ts";
 
 const questions: { pattern: RegExp; answer: PromptResponse }[] = [
   { pattern: /allows the end user to establish association/i, answer: "No" },
-  { pattern: /capable to display the last known state/i, answer: "Yes" },
+  { pattern: /(capable|able) to display the last known state/i, answer: "Yes" },
   {
     pattern: /(current state|visualization|visualisation).+is visible/i,
     answer: "Ok",
