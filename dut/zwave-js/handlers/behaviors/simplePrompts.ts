@@ -1,4 +1,8 @@
-import { BinarySwitchCC, BinarySwitchCCValues } from "zwave-js";
+import {
+  BinarySwitchCC,
+  BinarySwitchCCValues,
+  MultilevelSwitchCCValues,
+} from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 const boolFalseValues = new Set(["off", "0x00"]);
@@ -13,13 +17,16 @@ registerHandler(/.*/, {
       const match =
         /last known state of (?<cc>[\w\s]+) is '(?<expected>.*?)'(?: \((?<alt>.*?)\))?/i.exec(
           ctx.promptText
+        ) ??
+        /last known state of (?<cc>[\w\s]+) is Z-Wave value = (?<expected>\d+)/i.exec(
+          ctx.promptText
         );
       if (match?.groups) {
         const node = ctx.includedNodes.at(-1);
         if (!node) return;
 
         const ccName = match.groups["cc"];
-        const expected = match.groups["expected"];
+        const expected = match.groups["expected"]!;
         const alt = match.groups["alt"];
         const allExpected = new Set([expected]);
         if (alt != undefined) allExpected.add(alt);
@@ -32,12 +39,18 @@ registerHandler(/.*/, {
             ? false
             : undefined;
 
+        const expectedNum = parseInt(expected);
+
         switch (ccName) {
           case "Binary Switch": {
             const actual = node.getValue(BinarySwitchCCValues.currentValue.id);
-            console.log(`Binary Switch current value: ${actual}`);
-            console.log("expected value: ", expectedBool);
             return actual === expectedBool ? "Yes" : "No";
+          }
+          case "Multilevel Switch": {
+            const actual = node.getValue(
+              MultilevelSwitchCCValues.currentValue.id
+            );
+            return actual === expectedNum ? "Yes" : "No";
           }
         }
       }

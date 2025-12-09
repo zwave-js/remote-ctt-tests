@@ -5,7 +5,13 @@
  * to CTT prompts based on test name patterns.
  */
 
-import type { Driver, Endpoint, ZWaveNode, ZWaveNodeValueNotificationArgs, ZWaveNotificationCallback } from "zwave-js";
+import type {
+  Driver,
+  Endpoint,
+  ZWaveNode,
+  ZWaveNodeValueNotificationArgs,
+  ZWaveNotificationCallback,
+} from "zwave-js";
 import type { CommandClasses } from "@zwave-js/core";
 
 // === Types ===
@@ -17,8 +23,15 @@ export interface BaseContext {
   driver: Driver;
   state: Map<string, unknown>;
   includedNodes: ZWaveNode[];
-  nodeNotifications: { endpoint: Endpoint; ccId: CommandClasses; args: NodeNotificationArgs }[];
-  valueNotifications: { node: ZWaveNode; args: ZWaveNodeValueNotificationArgs }[];
+  nodeNotifications: {
+    endpoint: Endpoint;
+    ccId: CommandClasses;
+    args: NodeNotificationArgs;
+  }[];
+  valueNotifications: {
+    node: ZWaveNode;
+    args: ZWaveNodeValueNotificationArgs;
+  }[];
 }
 
 export interface PromptContext extends BaseContext {
@@ -33,7 +46,11 @@ export interface LogContext extends BaseContext {
   logText: string;
 }
 
-export type PromptHandler = (ctx: PromptContext) => Promise<string | undefined>;
+export type PromptResponse = "Ok" | "Cancel" | "Yes" | "No" | "Open" | "Skip";
+
+export type PromptHandler = (
+  ctx: PromptContext
+) => Promise<PromptResponse | undefined>;
 export type LogHandler = (ctx: LogContext) => Promise<boolean | void>;
 
 export interface TestHandlers {
