@@ -1,4 +1,4 @@
-import { Duration, SubsystemType } from "zwave-js";
+import { BasicCCValues, BinarySwitchCCValues, Duration, MultilevelSwitchCCValues, SubsystemType } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 // Handler for SET commands with a value and duration
@@ -85,17 +85,17 @@ registerHandler(/.*/, {
           break;
 
         case "BASIC_SET": {
-          node.commandClasses.Basic.set(targetValue);
+          node.setValue(BasicCCValues.targetValue.id, targetValue);
           return true;
         }
 
         case "SWITCH_BINARY_SET": {
-          node.commandClasses["Binary Switch"].set(targetValue === 0xff);
+          node.setValue(BinarySwitchCCValues.targetValue.id, targetValue === 0xff);
           return true;
         }
 
         case "SWITCH_MULTILEVEL_SET": {
-          node.commandClasses["Multilevel Switch"].set(targetValue);
+          node.setValue(MultilevelSwitchCCValues.targetValue.id, targetValue);
           return true;
         }
       }
@@ -107,19 +107,20 @@ registerHandler(/.*/, {
       switch (match.groups["cmd"]) {
         case "BASIC_SET": {
           const anyValue = Math.round(Math.random() * 99);
-          node.commandClasses.Basic.set(anyValue);
+          node.setValue(BasicCCValues.targetValue.id, anyValue);
           return true;
         }
 
         case "SWITCH_BINARY_SET": {
           const anyValue = Math.random() > 0.5;
           node.commandClasses["Binary Switch"].set(anyValue);
+          node.setValue(BinarySwitchCCValues.targetValue.id, anyValue);
           return true;
         }
 
         case "SWITCH_MULTILEVEL_SET": {
           const anyValue = Math.round(Math.random() * 99);
-          node.commandClasses["Multilevel Switch"].set(anyValue);
+          node.setValue(MultilevelSwitchCCValues.targetValue.id, anyValue);
           return true;
         }
       }

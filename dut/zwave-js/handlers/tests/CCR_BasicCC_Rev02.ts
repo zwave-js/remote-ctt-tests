@@ -24,9 +24,12 @@ registerHandler("CCR_BasicCC_Rev02", {
       (match = /confirm that the state \((?<value>\d+)/i.exec(ctx.promptText))
         ?.groups
     ) {
-      const expectedValue = parseInt(match.groups.value!);
+      let expectedValue = parseInt(match.groups.value!);
       const node = ctx.includedNodes.at(-1);
       if (!node) return;
+
+      // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
+      if (expectedValue === 255) expectedValue = 99;
 
       const actualValue = node.getValue(BasicCCValues.currentValue.id);
       console.log(`Basic CC current value: ${actualValue}`);
