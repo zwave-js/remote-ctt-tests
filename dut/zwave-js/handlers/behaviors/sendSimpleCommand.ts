@@ -46,57 +46,82 @@ registerHandler(/.*/, {
 // Must come after the ones with a duration so those get parsed correctly
 registerHandler(/.*/, {
   onLog: async (ctx) => {
+    const node = ctx.includedNodes.at(-1);
+    if (!node) return;
+
     // Each of those sommands is sent as a single log line:
-    const match =
+    let match =
       /\* (?<cmd>[A-Z_]+) with value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
         ctx.logText
       ) ??
       /\* (?<cmd>[A-Z_]+).+value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
         ctx.logText
       );
-    if (!match?.groups) return;
 
-    const node = ctx.includedNodes.at(-1);
-    if (!node) return;
+    if (match?.groups?.["cmd"] && match.groups["targetValue"]) {
+      const targetValue = parseInt(match.groups["targetValue"]!);
 
-    const targetValue = parseInt(match.groups["targetValue"]!);
+      switch (match.groups["cmd"]) {
+        case "BARRIER_OPERATOR_SET":
+          node.commandClasses["Barrier Operator"].set(targetValue);
+          return true;
 
-    switch (match.groups["cmd"]) {
-      case "BARRIER_OPERATOR_SET":
-        node.commandClasses["Barrier Operator"].set(targetValue);
-        return true;
+        case "BARRIER_OPERATOR_EVENT_SIGNAL_SET":
+          if (ctx.logText.includes("AudibleNotification")) {
+            node.commandClasses["Barrier Operator"].setEventSignaling(
+              SubsystemType.Audible,
+              targetValue
+            );
+            return true;
+          }
 
-      case "BARRIER_OPERATOR_EVENT_SIGNAL_SET":
-        if (ctx.logText.includes("AudibleNotification")) {
-          node.commandClasses["Barrier Operator"].setEventSignaling(
-            SubsystemType.Audible,
-            targetValue
-          );
+          if (ctx.logText.includes("VisualNotification")) {
+            node.commandClasses["Barrier Operator"].setEventSignaling(
+              SubsystemType.Visual,
+              targetValue
+            );
+            return true;
+          }
+          break;
+
+        case "BASIC_SET": {
+          node.commandClasses.Basic.set(targetValue);
           return true;
         }
 
-        if (ctx.logText.includes("VisualNotification")) {
-          node.commandClasses["Barrier Operator"].setEventSignaling(
-            SubsystemType.Visual,
-            targetValue
-          );
+        case "SWITCH_BINARY_SET": {
+          node.commandClasses["Binary Switch"].set(targetValue === 0xff);
           return true;
         }
-        break;
 
-      case "BASIC_SET": {
-        node.commandClasses.Basic.set(targetValue);
-        return true;
+        case "SWITCH_MULTILEVEL_SET": {
+          node.commandClasses["Multilevel Switch"].set(targetValue);
+          return true;
+        }
       }
+    }
 
-      case "SWITCH_BINARY_SET": {
-        node.commandClasses["Binary Switch"].set(targetValue === 0xff);
-        return true;
-      }
+    // * SWITCH_BINARY_SET with any value
+    match = /\* (?<cmd>[A-Z_]+).+any value/.exec(ctx.logText);
+    if (match?.groups?.["cmd"]) {
+      switch (match.groups["cmd"]) {
+        case "BASIC_SET": {
+          const anyValue = Math.round(Math.random() * 99);
+          node.commandClasses.Basic.set(anyValue);
+          return true;
+        }
 
-      case "SWITCH_MULTILEVEL_SET": {
-        node.commandClasses["Multilevel Switch"].set(targetValue);
-        return true;
+        case "SWITCH_BINARY_SET": {
+          const anyValue = Math.random() > 0.5;
+          node.commandClasses["Binary Switch"].set(anyValue);
+          return true;
+        }
+
+        case "SWITCH_MULTILEVEL_SET": {
+          const anyValue = Math.round(Math.random() * 99);
+          node.commandClasses["Multilevel Switch"].set(anyValue);
+          return true;
+        }
       }
     }
 

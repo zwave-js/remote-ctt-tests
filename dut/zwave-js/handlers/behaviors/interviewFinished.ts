@@ -12,7 +12,7 @@ registerHandler(/.*/, {
         ctx.promptText
       ) ||
       /inclusion (process )?(has )?finish(ed)?/i.test(ctx.promptText) ||
-      /inclusion to be finished.+click 'OK'/i.test(ctx.promptText)
+      /inclusion.+finished.+click(ing)?.+OK/i.test(ctx.promptText)
     ) {
       const { driver } = ctx;
       return new Promise((resolve) => {
