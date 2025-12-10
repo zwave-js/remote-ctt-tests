@@ -4,7 +4,7 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
   { pattern: /allows the end user to establish association/i, answer: "No" },
   { pattern: /(capable|able) to display the last known state/i, answer: "Yes" },
   {
-    pattern: /(current state|visualization|visualisation).+is visible/i,
+    pattern: /(DUT's UI|current state|visualization|visualisation).+is visible/i,
     answer: "Ok",
   },
   { pattern: /icon type.+match the actual device/i, answer: "Yes" },
@@ -84,8 +84,12 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
   { pattern: /able to set the Keypad Mode/i, answer: "Yes" },
   { pattern: /able to (set|disable).+Admin Code/i, answer: "Yes" },
 
+  // Entry Control CC
+  { pattern: /able to configure the keypad/i, answer: "Yes" },
+
   // Generic
   { pattern: /Retry\?/i, answer: "No" },
+  { pattern: /partial control behavior documented/i, answer: "No" },
 ];
 
 registerHandler(/.*/, {

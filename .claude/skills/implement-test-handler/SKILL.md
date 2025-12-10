@@ -148,6 +148,7 @@ if (/Set Configuration:/i.test(ctx.logText)) {
 - [prompt-handlers.ts](../../../dut/zwave-js/prompt-handlers.ts) - Handler registration
 - [utils.ts](../../../dut/zwave-js/handlers/utils.ts) - Utilities like `parseDurationFromLog`
 - [capabilities.ts](../../../dut/zwave-js/handlers/behaviors/capabilities.ts) - Capability prompts
+- [zwave-js CC Documentation](https://zwave-js.github.io/zwave-js/#/api/CCs/index) - Official CC API docs
 
 ## Existing Handler Examples
 
@@ -160,7 +161,7 @@ if (/Set Configuration:/i.test(ctx.logText)) {
 
 1. **Identify the test name** (e.g., `CCR_DoorLockCC_Rev02`)
 2. **Get log/prompt patterns** from user
-3. **Find the CC API** in `node_modules/@zwave-js/cc/build/esm/cc/<CC>CC.d.ts`
+3. **Find the CC API** at https://zwave-js.github.io/zwave-js/#/api/CCs/index (preferred) or in `node_modules/@zwave-js/cc/build/esm/cc/<CC>CC.d.ts`
 4. **Find enum values** in `node_modules/@zwave-js/cc/build/esm/lib/_Types.d.ts`
 5. **Create handler** in `dut/zwave-js/handlers/tests/CCR_<Name>.ts`
 6. **Add capability questions** to `behaviors/capabilities.ts` if needed
