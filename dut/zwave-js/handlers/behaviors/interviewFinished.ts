@@ -13,7 +13,8 @@ registerHandler(/.*/, {
         ctx.promptText
       ) ||
       /inclusion (process )?(has )?finish(ed)?/i.test(ctx.promptText) ||
-      /inclusion.+finished.+click(ing)?.+OK/i.test(ctx.promptText)
+      /inclusion.+finished.+click(ing)?.+OK/i.test(ctx.promptText) ||
+      /Inclusion and interview passed.+click 'OK'/i.test(ctx.promptText)
     ) {
       const { driver } = ctx;
       if (

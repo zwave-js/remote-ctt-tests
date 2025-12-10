@@ -78,6 +78,16 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
       /allow to create rules or commands based on received notifications/i,
     answer: "Yes",
   },
+  {
+    pattern: /capability to update its Notification list/i,
+    answer: "Yes",
+  },
+
+  // Notification Report verification ready
+  {
+    pattern: /verifies if the DUT displays.+Notification Report.+click 'OK'/i,
+    answer: "Ok",
+  },
 
   // User Code CC
   { pattern: /able to (modify|erase|add).+User Code/i, answer: "Yes" },
