@@ -78,6 +78,14 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
       /allow to create rules or commands based on received notifications/i,
     answer: "Yes",
   },
+
+  // User Code CC
+  { pattern: /able to (modify|erase|add).+User Code/i, answer: "Yes" },
+  { pattern: /able to set the Keypad Mode/i, answer: "Yes" },
+  { pattern: /able to (set|disable).+Admin Code/i, answer: "Yes" },
+
+  // Generic
+  { pattern: /Retry\?/i, answer: "No" },
 ];
 
 registerHandler(/.*/, {
