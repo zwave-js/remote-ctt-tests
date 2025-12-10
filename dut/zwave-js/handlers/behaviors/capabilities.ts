@@ -87,6 +87,12 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
   // Entry Control CC
   { pattern: /able to configure the keypad/i, answer: "Yes" },
 
+  // Multilevel Sensor CC
+  {
+    pattern: /navigate to '[^']+' on DUT's UI and make '[^']+' scale visible/i,
+    answer: "Ok",
+  },
+
   // Generic
   { pattern: /Retry\?/i, answer: "No" },
   { pattern: /partial control behavior documented/i, answer: "No" },
