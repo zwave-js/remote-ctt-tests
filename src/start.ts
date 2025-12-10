@@ -194,6 +194,16 @@ class ProcessManager {
       // Ignore
     }
 
+    // Kill ZatsTestConsole.exe if it's still running
+    try {
+      console.log(c.dim("Killing any running ZatsTestConsole.exe..."));
+      spawn("taskkill", ["/IM", "ZatsTestConsole.exe", "/F"], {
+        stdio: "ignore",
+      });
+    } catch (error) {
+      // Ignore - process may not be running
+    }
+
     // Give processes a moment to die
     await setTimeout(1000);
 
