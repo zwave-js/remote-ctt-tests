@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { getTestCases } from './ctt-client.ts';
-import { convertCttColorsToAnsi } from './ctt-output.ts';
+import { convertCttColorsToAnsi, stripCttColors } from './ctt-output.ts';
 import type { RunnerHost } from './runner-host.ts';
 
 // Global event emitter for test case events
@@ -176,10 +176,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
             }
           }
 
-          // Forward log to runner for handler processing
+          // Forward log to runner for handler processing (strip colors for plain text matching)
           if (runnerHost && coloredOutput && (testName || currentTestName)) {
             runnerHost.handleCttLog({
-              logText: coloredOutput,
+              logText: stripCttColors(logOutput),
               testName: testName || currentTestName || '',
             }).catch((error) => {
               console.error('[Log] Failed to forward to runner:', error);
@@ -286,7 +286,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
             try {
               const result = await runnerHost.promptForResponse(userPrompt, {
                 type: msgType,
-                rawText: coloredContent,
+                rawText: stripCttColors(content),
                 buttons,
                 testName: testCase.TestCaseName || currentTestName || '',
               });
