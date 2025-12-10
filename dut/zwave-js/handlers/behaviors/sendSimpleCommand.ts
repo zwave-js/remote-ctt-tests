@@ -4,9 +4,9 @@ import { registerHandler } from "../../prompt-handlers.ts";
 // Handler for SET commands with a value and duration
 registerHandler(/.*/, {
   onLog: async (ctx) => {
-    // Each of those sommands is sent as a single log line:
+    // Each of those commands is sent as a single log line:
     const match =
-      /\* (?<cmd>[A-Z_]+):.+Value\s+=\s+(?<targetValue>\d+).+Duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?:.+Value\s+=\s+(?<targetValue>\d+).+Duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
         ctx.logText
       );
     if (!match?.groups) return;
@@ -18,6 +18,9 @@ registerHandler(/.*/, {
       return;
     }
 
+    const endpoint = match.groups["endpoint"]
+      ? parseInt(match.groups["endpoint"])
+      : 0;
     const targetValue = parseInt(match.groups["targetValue"]!);
     const durationRaw = parseInt(match.groups["duration"]!);
     const unit = match.groups["unit"]!;
@@ -32,7 +35,9 @@ registerHandler(/.*/, {
 
     switch (match.groups["cmd"]) {
       case "SWITCH_MULTILEVEL_SET": {
-        node.commandClasses["Multilevel Switch"].set(targetValue, duration);
+        node
+          .getEndpoint(endpoint)
+          ?.commandClasses["Multilevel Switch"].set(targetValue, duration);
         return true;
       }
     }
@@ -49,26 +54,32 @@ registerHandler(/.*/, {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Each of those sommands is sent as a single log line:
     let match =
-      /\* (?<cmd>[A-Z_]+) with value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?: \* Z-Wave Value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
         ctx.logText
       ) ??
-      /\* (?<cmd>[A-Z_]+).+value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))? with value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
+        ctx.logText
+      ) ??
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?.+value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
         ctx.logText
       );
 
     if (match?.groups?.["cmd"] && match.groups["targetValue"]) {
+      const endpoint = match.groups["endpoint"]
+        ? parseInt(match.groups["endpoint"])
+        : 0;
       const targetValue = parseInt(match.groups["targetValue"]!);
+      const ep = node.getEndpoint(endpoint);
 
       switch (match.groups["cmd"]) {
         case "BARRIER_OPERATOR_SET":
-          node.commandClasses["Barrier Operator"].set(targetValue);
+          ep?.commandClasses["Barrier Operator"].set(targetValue);
           return true;
 
         case "BARRIER_OPERATOR_EVENT_SIGNAL_SET":
           if (ctx.logText.includes("AudibleNotification")) {
-            node.commandClasses["Barrier Operator"].setEventSignaling(
+            ep?.commandClasses["Barrier Operator"].setEventSignaling(
               SubsystemType.Audible,
               targetValue
             );
@@ -76,7 +87,7 @@ registerHandler(/.*/, {
           }
 
           if (ctx.logText.includes("VisualNotification")) {
-            node.commandClasses["Barrier Operator"].setEventSignaling(
+            ep?.commandClasses["Barrier Operator"].setEventSignaling(
               SubsystemType.Visual,
               targetValue
             );
@@ -85,42 +96,62 @@ registerHandler(/.*/, {
           break;
 
         case "BASIC_SET": {
-          node.setValue(BasicCCValues.targetValue.id, targetValue);
+          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
           return true;
         }
 
         case "SWITCH_BINARY_SET": {
-          node.setValue(BinarySwitchCCValues.targetValue.id, targetValue === 0xff);
+          node.setValue(
+            BinarySwitchCCValues.targetValue.endpoint(endpoint),
+            targetValue === 0xff
+          );
           return true;
         }
 
         case "SWITCH_MULTILEVEL_SET": {
-          node.setValue(MultilevelSwitchCCValues.targetValue.id, targetValue);
+          node.setValue(
+            MultilevelSwitchCCValues.targetValue.endpoint(endpoint),
+            targetValue
+          );
           return true;
         }
       }
     }
 
     // * SWITCH_BINARY_SET with any value
-    match = /\* (?<cmd>[A-Z_]+).+any value/.exec(ctx.logText);
+    match =
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?.+any value/.exec(
+        ctx.logText
+      );
     if (match?.groups?.["cmd"]) {
+      const endpoint = match.groups["endpoint"]
+        ? parseInt(match.groups["endpoint"])
+        : 0;
+      const ep = node.getEndpoint(endpoint);
+
       switch (match.groups["cmd"]) {
         case "BASIC_SET": {
           const anyValue = Math.round(Math.random() * 99);
-          node.setValue(BasicCCValues.targetValue.id, anyValue);
+          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), anyValue);
           return true;
         }
 
         case "SWITCH_BINARY_SET": {
           const anyValue = Math.random() > 0.5;
-          node.commandClasses["Binary Switch"].set(anyValue);
-          node.setValue(BinarySwitchCCValues.targetValue.id, anyValue);
+          ep?.commandClasses["Binary Switch"].set(anyValue);
+          node.setValue(
+            BinarySwitchCCValues.targetValue.endpoint(endpoint),
+            anyValue
+          );
           return true;
         }
 
         case "SWITCH_MULTILEVEL_SET": {
           const anyValue = Math.round(Math.random() * 99);
-          node.setValue(MultilevelSwitchCCValues.targetValue.id, anyValue);
+          node.setValue(
+            MultilevelSwitchCCValues.targetValue.endpoint(endpoint),
+            anyValue
+          );
           return true;
         }
       }

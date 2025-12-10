@@ -1,3 +1,4 @@
+import { InterviewStage } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler(/.*/, {
@@ -15,6 +16,12 @@ registerHandler(/.*/, {
       /inclusion.+finished.+click(ing)?.+OK/i.test(ctx.promptText)
     ) {
       const { driver } = ctx;
+      if (
+        ctx.includedNodes.at(-1)?.interviewStage === InterviewStage.Complete
+      ) {
+        return "Ok";
+      }
+
       return new Promise((resolve) => {
         driver.once("node interview completed", () => {
           resolve("Ok");
