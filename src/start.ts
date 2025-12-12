@@ -48,6 +48,11 @@ const groupArgs = args.filter((arg) => arg.startsWith("--group="));
 const GROUPS: string[] = groupArgs.flatMap((arg) =>
   arg.split("=")[1].split(",")
 );
+// Support multiple --exclude= arguments or comma-separated test names to exclude
+const excludeArgs = args.filter((arg) => arg.startsWith("--exclude="));
+const EXCLUDE_TESTS: string[] = excludeArgs.flatMap((arg) =>
+  arg.split("=")[1].split(",")
+);
 
 // Load config.json
 interface Config {
@@ -494,6 +499,18 @@ class ProcessManager {
       );
     }
 
+    // Apply exclusions
+    if (EXCLUDE_TESTS.length > 0) {
+      const beforeCount = matchingTests.length;
+      matchingTests = matchingTests.filter(
+        (tc) => !EXCLUDE_TESTS.some((ex) => tc.Name.includes(ex))
+      );
+      const excluded = beforeCount - matchingTests.length;
+      if (excluded > 0) {
+        console.log(c.dim(`Excluded ${excluded} test(s) matching: ${EXCLUDE_TESTS.join(", ")}`));
+      }
+    }
+
     if (matchingTests.length === 0) {
       const filters: string[] = [];
       if (categories.length > 0)
@@ -606,6 +623,9 @@ class ProcessManager {
             );
             console.log(
               "  npm start -- --group=<g1>,<g2>         Run tests from multiple groups"
+            );
+            console.log(
+              "  npm start -- --exclude=<name>          Exclude tests matching name"
             );
             console.log(
               "  npm start -- --devices-only            Only start emulated devices"
