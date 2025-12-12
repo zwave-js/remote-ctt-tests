@@ -8,18 +8,18 @@ echo "Starting Z-Wave Stack..."
 echo "Starting Controller 1 (Z-Wave JS) on port 5000..."
 ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5000 --storage ./zwave_stack/storage/controller1 &
 
-echo "Starting Controller 2 (CTT) on port 5001..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5001 --storage ./zwave_stack/storage/controller2 &
+echo "Starting Controller 2 (CTT) on port 6001..."
+./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6001 --storage ./zwave_stack/storage/controller2 &
 
-echo "Starting Controller 3 (CTT) on port 5002..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5002 --storage ./zwave_stack/storage/controller3 &
+echo "Starting Controller 3 (CTT) on port 6002..."
+./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6002 --storage ./zwave_stack/storage/controller3 &
 
 # Start 2 end devices
-echo "Starting End Device 1 on port 5003..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 5003 --storage ./zwave_stack/storage/enddevice1 &
+echo "Starting End Device 1 on port 6003..."
+./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6003 --storage ./zwave_stack/storage/enddevice1 &
 
-echo "Starting End Device 2 on port 5004..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 5004 --storage ./zwave_stack/storage/enddevice2 &
+echo "Starting End Device 2 on port 6004..."
+./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6004 --storage ./zwave_stack/storage/enddevice2 &
 
 # Start the Zniffer simulator
 echo "Starting Zniffer on port 4905..."
@@ -27,10 +27,10 @@ python3 ./zwave_stack/bin/zniffer.py 1234 &
 
 echo "All Z-Wave binaries started!"
 echo "Controller 1: localhost:5000 (Z-Wave JS FirstController)"
-echo "Controller 2: localhost:5001 (CTT SecondController)"
-echo "Controller 3: localhost:5002 (CTT ThirdController)"
-echo "End Device 1: localhost:5003 (CTT FirstEndDevice)"
-echo "End Device 2: localhost:5004 (CTT SecondEndDevice)"
+echo "Controller 2: localhost:6001 (CTT SecondController, proxied via 5001)"
+echo "Controller 3: localhost:6002 (CTT ThirdController, proxied via 5002)"
+echo "End Device 1: localhost:6003 (CTT FirstEndDevice, proxied via 5003)"
+echo "End Device 2: localhost:6004 (CTT SecondEndDevice, proxied via 5004)"
 echo "Zniffer:      localhost:4905"
 
 # Wait for all background processes

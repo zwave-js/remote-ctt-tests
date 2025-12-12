@@ -6,6 +6,7 @@ import { createWebSocketServer } from "./ws-server.ts";
 import type { ManagedWebSocketServer } from "./ws-server.ts";
 import { runTestCases, closeCTT, getTestCases } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
+import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
@@ -75,7 +76,9 @@ const DUT_PATH = dutArg
   ? dutArg.split("=")[1]
   : path.join(__dirname, "..", config.dut.runnerPath);
 
-const CTT_PATH = process.env.CTT_PATH || "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
+const CTT_PATH =
+  process.env.CTT_PATH ||
+  "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
 
 interface ManagedProcess {
   name: string;
@@ -87,6 +90,7 @@ class ProcessManager {
   private processes: ManagedProcess[] = [];
   private wsServer?: ManagedWebSocketServer;
   private runnerHost?: RunnerHost;
+  private deviceProxy?: CTTDeviceProxy;
 
   /**
    * Load PID file data if it exists
@@ -248,6 +252,97 @@ class ProcessManager {
     console.log("Z-Wave stack started in WSL");
   }
 
+  async startCTTDeviceProxy(): Promise<void> {
+    const TARGET_FRAME = Buffer.from("01060028432003b1", "hex");
+
+    let expectHostAck = false;
+
+    const frameHandler: FrameHandler = (
+      config,
+      data,
+      direction,
+      forward,
+      respond
+    ) => {
+      // if (direction === "toDevice") {
+      //   console.log(c.dim(`CTT -> ${config.name}: ${data.toString("hex")}`));
+      // } else {
+      //   console.log(c.dim(`${config.name} -> CTT: ${data.toString("hex")}`));
+      // }
+
+      if (expectHostAck && data.length === 1 && data[0] === 0x06) {
+        expectHostAck = false;
+        return;
+      }
+
+      if (data.equals(TARGET_FRAME) && config.name.includes("EndDevice")) {
+        // Target frame detected - handle it
+        console.log(
+          c.yellow(
+            `[Proxy ${config.name}] NVR_GetValue for private key intercepted`
+          )
+        );
+        respond(Buffer.from([0x06])); // ACK
+
+        // Read the private key from the device's manufacturer token storage
+        const tokenPath = path.join(
+          __dirname,
+          "../zwave_stack/storage",
+          config.name.toLowerCase(),
+          "nvm_stack/20.bin"
+        );
+        const token = fs.readFileSync(tokenPath);
+
+        const response = Buffer.alloc(5 + 32);
+        response[0] = 0x01; // SOF
+        response[1] = response.length - 2; // Length
+        response[2] = 0x01; // response
+        response[3] = 0x28; // NVR_GetValue
+        response.set(token, 4); // Token data
+        let chksum = 0xff;
+        for (let i = 1; i < response.length - 1; i++) {
+          chksum ^= response[i]!;
+        }
+        response[response.length - 1] = chksum; // Checksum
+        expectHostAck = true;
+        respond(response);
+      } else {
+        // Normal data - forward as-is
+        forward(data);
+      }
+    };
+
+    const configs = [
+      {
+        name: "Controller2",
+        listenPort: 5001,
+        targetHost: "127.0.0.1",
+        targetPort: 6001,
+      },
+      {
+        name: "Controller3",
+        listenPort: 5002,
+        targetHost: "127.0.0.1",
+        targetPort: 6002,
+      },
+      {
+        name: "EndDevice1",
+        listenPort: 5003,
+        targetHost: "127.0.0.1",
+        targetPort: 6003,
+      },
+      {
+        name: "EndDevice2",
+        listenPort: 5004,
+        targetHost: "127.0.0.1",
+        targetPort: 6004,
+      },
+    ];
+
+    this.deviceProxy = new CTTDeviceProxy(configs, frameHandler);
+    await this.deviceProxy.start();
+  }
+
   async startRunner(): Promise<void> {
     console.log(`Starting ${config.dut.name} runner: ${DUT_PATH}`);
 
@@ -365,7 +460,10 @@ class ProcessManager {
   /**
    * Run all tests matching the specified categories and/or groups
    */
-  async runTestsByFilter(categories: string[], groups: string[]): Promise<void> {
+  async runTestsByFilter(
+    categories: string[],
+    groups: string[]
+  ): Promise<void> {
     // Get all tests
     const allTests = (await getTestCases({})) as Array<{
       Name: string;
@@ -386,15 +484,14 @@ class ProcessManager {
 
     if (groups.length > 0) {
       matchingTests = matchingTests.filter((tc) =>
-        groups.some((grp) =>
-          tc.Group.toLowerCase().includes(grp.toLowerCase())
-        )
+        groups.some((grp) => tc.Group.toLowerCase().includes(grp.toLowerCase()))
       );
     }
 
     if (matchingTests.length === 0) {
       const filters: string[] = [];
-      if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+      if (categories.length > 0)
+        filters.push(`categories: ${categories.join(", ")}`);
       if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
       console.log(c.yellow(`No tests found matching ${filters.join(" and ")}`));
 
@@ -413,9 +510,12 @@ class ProcessManager {
 
     const testNames = matchingTests.map((tc) => tc.Name);
     const filters: string[] = [];
-    if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+    if (categories.length > 0)
+      filters.push(`categories: ${categories.join(", ")}`);
     if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
-    console.log(`Found ${testNames.length} tests matching ${filters.join(" and ")}\n`);
+    console.log(
+      `Found ${testNames.length} tests matching ${filters.join(" and ")}\n`
+    );
 
     await this.runTests(testNames);
   }
@@ -549,6 +649,11 @@ class ProcessManager {
     // Stop DUT runner
     await this.stopRunner();
 
+    // Close device proxy
+    if (this.deviceProxy) {
+      await this.deviceProxy.close();
+    }
+
     // Kill all managed processes
     for (const managedProcess of this.processes) {
       this.killProcess(managedProcess);
@@ -622,15 +727,18 @@ async function main() {
     // Give Z-Wave devices a moment to fully initialize
     await setTimeout(2000);
 
+    // Start CTT device proxy (intercepts CTT <-> device communication)
+    await manager.startCTTDeviceProxy();
+
     if (DEVICES_ONLY) {
       console.log("\n--devices-only mode: Only emulated devices are running.");
       console.log("Z-Wave devices available at:");
-      console.log("  Controller 1: localhost:5000");
-      console.log("  Controller 2: localhost:5001");
-      console.log("  Controller 3: localhost:5002");
-      console.log("  End Device 1: localhost:5003");
-      console.log("  End Device 2: localhost:5004");
-      console.log("  Zniffer:      localhost:4905");
+      console.log("  Controller 1: localhost:5000 (direct)");
+      console.log("  Controller 2: localhost:5001 (proxied from 6001)");
+      console.log("  Controller 3: localhost:5002 (proxied from 6002)");
+      console.log("  End Device 1: localhost:5003 (proxied from 6003)");
+      console.log("  End Device 2: localhost:5004 (proxied from 6004)");
+      console.log("  Zniffer:      localhost:4905 (direct)");
       console.log("\nPress Ctrl+C to stop.");
       return;
     }
@@ -647,12 +755,20 @@ async function main() {
 
     console.log("\nAll services started successfully!");
     console.log("Z-Wave devices available at:");
-    console.log(`  Controller 1 (${config.dut.name}): localhost:5000`);
-    console.log("  Controller 2 (CTT):       localhost:5001");
-    console.log("  Controller 3 (CTT):       localhost:5002");
-    console.log("  End Device 1 (CTT):       localhost:5003");
-    console.log("  End Device 2 (CTT):       localhost:5004");
-    console.log("  Zniffer (CTT):            localhost:4905");
+    console.log(`  Controller 1 (${config.dut.name}): localhost:5000 (direct)`);
+    console.log(
+      "  Controller 2 (CTT):       localhost:5001 (proxied from 6001)"
+    );
+    console.log(
+      "  Controller 3 (CTT):       localhost:5002 (proxied from 6002)"
+    );
+    console.log(
+      "  End Device 1 (CTT):       localhost:5003 (proxied from 6003)"
+    );
+    console.log(
+      "  End Device 2 (CTT):       localhost:5004 (proxied from 6004)"
+    );
+    console.log("  Zniffer (CTT):            localhost:4905 (direct)");
     console.log(`  ${config.dut.name} Server:         ws://localhost:3000`);
   } catch (error) {
     console.error("Failed to start services:", error);
