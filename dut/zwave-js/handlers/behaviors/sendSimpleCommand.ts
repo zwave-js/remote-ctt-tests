@@ -1,4 +1,11 @@
-import { BasicCCValues, BinarySwitchCCValues, Duration, MultilevelSwitchCCValues, SubsystemType } from "zwave-js";
+import {
+  BasicCCValues,
+  BinarySwitchCCValues,
+  Duration,
+  MultilevelSwitchCCValues,
+  SubsystemType,
+  ZWaveNode,
+} from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 // Handler for SET commands with a value and duration
@@ -96,7 +103,10 @@ registerHandler(/.*/, {
           break;
 
         case "BASIC_SET": {
-          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
+          node.setValue(
+            BasicCCValues.targetValue.endpoint(endpoint),
+            targetValue
+          );
           return true;
         }
 
@@ -159,5 +169,32 @@ registerHandler(/.*/, {
 
     // Let other prompts fall through to manual handling
     return undefined;
+  },
+});
+
+registerHandler(/.*/, {
+  onPrompt: async (ctx) => {
+    if (/Prepare the DUT to send any.+command/i.test(ctx.promptText)) {
+      // Nothing to do, just confirm
+      return "Ok";
+    }
+
+    if (/Click 'OK' and send any S2/i.test(ctx.promptText)) {
+      let node: ZWaveNode | undefined;
+      const nodeIdMatch = /\(Node ID = (?<nodeId>\d+)\)/i.exec(ctx.promptText);
+      if (nodeIdMatch?.groups?.["nodeId"]) {
+        const nodeId = parseInt(nodeIdMatch.groups["nodeId"]!);
+        node = ctx.driver.controller.nodes.get(nodeId);
+      } else {
+        node = ctx.includedNodes.at(-1);
+      }
+      if (!node) return;
+
+      setTimeout(() => {
+        // Basic CC is always good.
+        node.commandClasses.Basic.set(Math.round(Math.random() * 99));
+      }, 100);
+      return "Ok";
+    }
   },
 });

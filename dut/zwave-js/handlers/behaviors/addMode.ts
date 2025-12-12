@@ -12,6 +12,11 @@ const PIN_PROMISE = "pin promise";
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
+    if (/Include.+into the DUT network/i.test(ctx.promptText)) {
+      // This is an empty prompt, just click Ok to proceed
+      return "Ok";
+    }
+
     // Auto-click Ok for "observe the DUT" prompts
     if (ctx.promptText.toLowerCase().includes("activate the add mode")) {
       const { driver, state } = ctx;
