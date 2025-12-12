@@ -1,17 +1,13 @@
-/**
- * Handler for CDR_ZWPv2IndicatorCCRequirements_Rev01 test case
- *
- * This test validates Indicator Command Class requirements.
- */
-
 import {
   createDeferredPromise,
   type DeferredPromise,
 } from "alcalzone-shared/deferred-promise";
 import { registerHandler } from "../../prompt-handlers.ts";
-import { InclusionStrategy } from "zwave-js";
+import { InclusionStrategy, type InclusionOptions } from "zwave-js";
+import { SecurityClass } from "@zwave-js/core";
 import { wait } from "alcalzone-shared/async";
 
+export const FORCE_S0 = "force_s0";
 const PIN_PROMISE = "pin promise";
 
 registerHandler(/.*/, {
@@ -21,8 +17,15 @@ registerHandler(/.*/, {
       const { driver, state } = ctx;
       state.set(PIN_PROMISE, createDeferredPromise<string>());
 
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        const inclusionStarted = await driver.controller.beginInclusion({
+      const forceS0 = state.get(FORCE_S0) === true;
+      let inclusionOptions: InclusionOptions;
+      if (forceS0) {
+        state.delete(FORCE_S0);
+        inclusionOptions = {
+          strategy: InclusionStrategy.Security_S0,
+        };
+      } else {
+        inclusionOptions = {
           strategy: InclusionStrategy.Default,
           userCallbacks: {
             abort() {},
@@ -30,13 +33,17 @@ registerHandler(/.*/, {
               return requested;
             },
             async validateDSKAndEnterPIN(dsk) {
-              console.log("Validating DSK:", dsk);
               const pin = await (state.get(PIN_PROMISE) as Promise<string>);
-              console.log("Entering PIN:", pin);
               return pin;
             },
           },
-        });
+        };
+      }
+
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        const inclusionStarted = await driver.controller.beginInclusion(
+          inclusionOptions
+        );
 
         if (inclusionStarted) break;
 
