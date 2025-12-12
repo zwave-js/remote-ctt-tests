@@ -1,5 +1,11 @@
-import { BinarySwitchCCValues, MultilevelSwitchCCValues } from "zwave-js";
+import {
+  BasicCCValues,
+  BinarySwitchCCValues,
+  MultilevelSwitchCCValues,
+} from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import { getUIContext } from "./uiContext.ts";
+import { wait } from "alcalzone-shared/async";
 
 const boolFalseValues = new Set(["off", "0", "0x00"]);
 const boolTrueValues = new Set(["on", "255", "0xff", "0xFF"]);
@@ -55,6 +61,51 @@ registerHandler(/.*/, {
               MultilevelSwitchCCValues.currentValue.endpoint(endpoint)
             );
             return actual === expectedNum ? "Yes" : "No";
+          }
+        }
+      }
+    }
+
+    // Handle "Current State has been set to X" prompts using UI context
+    if (/Current State has been set to/i.test(ctx.promptText)) {
+      const match = /Current State has been set to (?<value>\d+)/i.exec(
+        ctx.promptText
+      );
+      if (match?.groups) {
+        const uiContext = getUIContext(ctx);
+        if (!uiContext) return;
+
+        const node = ctx.includedNodes.find((n) => n.id === uiContext.nodeId);
+        if (!node) return;
+
+        let expectedValue = parseInt(match.groups.value!);
+        const endpoint = uiContext.endpoint ?? 0;
+
+        // Help with timing issues. Especially with S0, the CTT seems to ask
+        // before the command is received and processed.
+        await wait(100);
+
+        switch (uiContext.commandClass) {
+          case "Basic": {
+            // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
+            if (expectedValue === 255) expectedValue = 99;
+            const actual = node.getValue(
+              BasicCCValues.currentValue.endpoint(endpoint)
+            );
+            return actual === expectedValue ? "Yes" : "No";
+          }
+          case "Binary Switch": {
+            const actual = node.getValue(
+              BinarySwitchCCValues.currentValue.endpoint(endpoint)
+            );
+            const expectedBool = expectedValue > 0;
+            return actual === expectedBool ? "Yes" : "No";
+          }
+          case "Multilevel Switch": {
+            const actual = node.getValue(
+              MultilevelSwitchCCValues.currentValue.endpoint(endpoint)
+            );
+            return actual === expectedValue ? "Yes" : "No";
           }
         }
       }

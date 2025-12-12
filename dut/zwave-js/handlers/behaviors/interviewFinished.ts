@@ -1,12 +1,8 @@
 import { InterviewStage } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import { captureUIContext } from "./uiContext.ts";
 
 registerHandler(/.*/, {
-  // onTestStart: async ({ driver, state }) => {
-  //   console.log("[IndicatorCC] Test started, setting up handlers...");
-  //   // Set up any driver event listeners needed for this test
-  // },
-
   onPrompt: async (ctx) => {
     if (
       /wait for (the )?(node )?interview to (be )?finish(ed)?/i.test(
@@ -17,6 +13,10 @@ registerHandler(/.*/, {
       /Inclusion and interview passed.+click 'OK'/i.test(ctx.promptText)
     ) {
       const { driver } = ctx;
+
+      // Capture UI context before responding (e.g., "visit the Basic Command Class visualisation")
+      captureUIContext(ctx.promptText, ctx.state);
+
       if (
         ctx.includedNodes.at(-1)?.interviewStage === InterviewStage.Complete
       ) {
