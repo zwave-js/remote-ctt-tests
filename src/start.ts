@@ -255,7 +255,7 @@ class ProcessManager {
   async startCTTDeviceProxy(): Promise<void> {
     const TARGET_FRAME = Buffer.from("01060028432003b1", "hex");
 
-    let expectHostAck = false;
+    let expectHostAck = new Set<string>();
 
     const frameHandler: FrameHandler = (
       config,
@@ -270,8 +270,14 @@ class ProcessManager {
       //   console.log(c.dim(`${config.name} -> CTT: ${data.toString("hex")}`));
       // }
 
-      if (expectHostAck && data.length === 1 && data[0] === 0x06) {
-        expectHostAck = false;
+      // We need to intercept the ACKs we receive in response to our injected frame
+      // otherwise this will hang the simulated end devices
+      if (
+        data.length === 1 &&
+        data[0] === 0x06 &&
+        expectHostAck.has(config.name)
+      ) {
+        expectHostAck.delete(config.name);
         return;
       }
 
@@ -304,7 +310,7 @@ class ProcessManager {
           chksum ^= response[i]!;
         }
         response[response.length - 1] = chksum; // Checksum
-        expectHostAck = true;
+        expectHostAck.add(config.name);
         respond(response);
       } else {
         // Normal data - forward as-is
