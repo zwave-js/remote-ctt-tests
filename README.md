@@ -278,6 +278,26 @@ The project comes with a ready-to-use GitHub Actions workflow for running CTT te
 
 To use the workflow, configure a repository secret named `ZW_STACK_TOKEN` with a GitHub PAT that has **Contents: read** permission for the [Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries) repository.
 
+## Troubleshooting
+
+### CTT fails with `Error - RequestNodeInfo failed!`**
+
+Make sure that the DUT has all command classes set (factory reset may be required) before joining the CTT network
+
+### CTT fails to communicate securely with the DUT
+
+Make sure that:
+- The DUT storage contains the correct files
+- The home ID is configured correctly everywhere:
+    - `config.json`
+    - `ctt/project/Config/TestCaseStaticController.xml` (HomeId attribute)
+    - `ctt/project/Config/Saved Items/002_<HOMEID>.xml` (filename)
+
+### Z-Wave stack binaries frequently crash or trigger the watchdog
+
+Something in the storage is likely corrupted. Delete all stack storage files and re-create the CTT network from scratch.
+Make sure to update the home ID accordingly, see above.
+
 ## Documentation
 
 - **[docs/ipc-protocol.md](docs/ipc-protocol.md)** - DUT Runner IPC protocol specification
