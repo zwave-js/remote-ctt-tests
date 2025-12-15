@@ -470,21 +470,31 @@ async function main(): Promise<void> {
     process.exit(1);
   });
 
-  // Handle shutdown signals
-  process.on("SIGINT", async () => {
-    console.log("Received SIGINT, shutting down...");
+  async function shutdown(code: number): Promise<never> {
     if (server) await server.destroy().catch(() => {});
     if (driver) await driver.destroy().catch(() => {});
     ws?.close();
-    process.exit(0);
+    process.exit(code);
+  }
+
+  process.on("SIGINT", () => {
+    console.log("Received SIGINT, shutting down...");
+    shutdown(0);
   });
 
-  process.on("SIGTERM", async () => {
+  process.on("SIGTERM", () => {
     console.log("Received SIGTERM, shutting down...");
-    if (server) await server.destroy().catch(() => {});
-    if (driver) await driver.destroy().catch(() => {});
-    ws?.close();
-    process.exit(0);
+    shutdown(0);
+  });
+
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception in runner:", error);
+    shutdown(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled rejection in runner:", reason);
+    shutdown(1);
   });
 }
 

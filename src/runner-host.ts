@@ -33,12 +33,15 @@ export interface RunnerHostOptions {
   ipcPort?: number;
   /** Timeout for runner to connect and send ready (ms, default: 30000) */
   readyTimeout?: number;
+  /** Callback when runner process exits unexpectedly */
+  onUnexpectedExit?: () => void;
 }
 
 export class RunnerHost {
   private runnerPath: string;
   private ipcPort: number;
   private readyTimeout: number;
+  private onUnexpectedExit?: () => void;
 
   private wss?: WebSocketServer;
   private runnerProcess?: ChildProcess;
@@ -65,6 +68,7 @@ export class RunnerHost {
     this.runnerPath = path.resolve(options.runnerPath);
     this.ipcPort = options.ipcPort ?? DEFAULT_IPC_PORT;
     this.readyTimeout = options.readyTimeout ?? 30000;
+    this.onUnexpectedExit = options.onUnexpectedExit;
 
     // Create readline interface for user prompts
     this.rl = readline.createInterface({
@@ -316,9 +320,12 @@ export class RunnerHost {
 
     this.runnerProcess.on("exit", (code, signal) => {
       if (code !== null) {
-        console.log(c.dim(`Runner exited with code ${code}`));
+        console.error(`Runner exited with code ${code}`);
       } else if (signal) {
         console.log(c.dim(`Runner killed by signal ${signal}`));
+      }
+      if (this.onUnexpectedExit) {
+        this.onUnexpectedExit();
       }
     });
   }

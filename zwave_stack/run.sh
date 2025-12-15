@@ -8,7 +8,7 @@ echo "Starting Z-Wave Stack..."
 run_with_prefix() {
   local prefix="$1"
   shift
-  "$@" 2>&1 | while IFS= read -r line; do echo "[$prefix] $line"; done
+  "$@" 2>&1 | sed -u "s/^/[$prefix] /"
 }
 
 # Start 3 controllers

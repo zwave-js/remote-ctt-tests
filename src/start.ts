@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { createWebSocketServer } from "./ws-server.ts";
 import type { ManagedWebSocketServer } from "./ws-server.ts";
-import { runTestCases, closeCTT, getTestCases } from "./ctt-client.ts";
+import { runTestCases, closeCTT, getTestCases, cancelTestRun } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
 import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
 import c from "ansi-colors";
@@ -96,6 +96,7 @@ class ProcessManager {
   private wsServer?: ManagedWebSocketServer;
   private runnerHost?: RunnerHost;
   private deviceProxy?: CTTDeviceProxy;
+  private isCleaningUp = false;
 
   /**
    * Load PID file data if it exists
@@ -242,7 +243,8 @@ class ProcessManager {
     });
 
     proc.on("exit", (code) => {
-      console.log(`Z-Wave stack WSL process exited with code ${code}`);
+      console.error(`Z-Wave stack WSL process exited with code ${code}, aborting...`);
+      this.cleanup();
     });
 
     this.processes.push({
@@ -359,6 +361,7 @@ class ProcessManager {
 
     this.runnerHost = new RunnerHost({
       runnerPath: DUT_PATH,
+      onUnexpectedExit: () => this.cleanup(),
     });
 
     // Initialize the runner (spawns process, waits for ready)
@@ -415,7 +418,8 @@ class ProcessManager {
     });
 
     cttProcess.on("exit", (code) => {
-      console.log(`CTT-Remote exited with code ${code}`);
+      console.error(`CTT-Remote exited with code ${code}, aborting...`);
+      this.cleanup();
     });
 
     const managedProcess: ManagedProcess = {
@@ -670,7 +674,29 @@ class ProcessManager {
   }
 
   async cleanup(): Promise<void> {
+    if (this.isCleaningUp) return;
+    this.isCleaningUp = true;
+
     console.log("Shutting down...");
+
+    // Cancel any running test and close CTT gracefully first
+    try {
+      await cancelTestRun();
+      // Wait for test to actually stop before trying to close
+      await setTimeout(2000);
+    } catch {
+      // Ignore - test may not be running
+    }
+    try {
+      await closeCTT();
+    } catch {
+      // Ignore - CTT may already be closed
+    }
+
+    // Close WebSocket server to stop incoming CTT messages
+    if (this.wsServer) {
+      await this.wsServer.close();
+    }
 
     // Stop DUT runner
     await this.stopRunner();
@@ -690,11 +716,6 @@ class ProcessManager {
       spawn("wsl", ["pkill", "-f", "ZW_zwave"], { stdio: "ignore" });
     } catch (error) {
       // Ignore
-    }
-
-    // Close WebSocket server
-    if (this.wsServer) {
-      await this.wsServer.close();
     }
 
     // Clean up PID file on successful shutdown
