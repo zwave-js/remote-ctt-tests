@@ -225,17 +225,22 @@ class ProcessManager {
   startZWaveStackWSL(): void {
     console.log("Starting Z-Wave stack in WSL...");
 
+    const timestamp = () => {
+      const now = new Date();
+      return now.toTimeString().slice(0, 8) + '.' + now.getMilliseconds().toString().padStart(3, '0');
+    };
+
     const proc = spawn("wsl", ["bash", "./zwave_stack/run.sh"], {
       cwd: path.join(__dirname, ".."),
       stdio: "pipe",
     });
 
     proc.stdout?.on("data", (data) => {
-      console.log(`[WSL Z-Wave] ${data.toString().trim()}`);
+      console.log(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.stderr?.on("data", (data) => {
-      console.error(`[WSL Z-Wave] ${data.toString().trim()}`);
+      console.error(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.on("error", (error) => {
