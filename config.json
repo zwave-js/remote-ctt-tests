@@ -7,7 +7,7 @@
     "runnerPath": "dut/zwave-js/run.ts",
 
     // Z-Wave network home ID (used for storage file filtering)
-    "homeId": "cfc93198",
+    "homeId": "d2658d0f",
 
     // Directory containing DUT storage/cache files
     "storageDir": "dut/zwave-js/storage",
