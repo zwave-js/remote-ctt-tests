@@ -4,12 +4,20 @@ import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { createWebSocketServer } from "./ws-server.ts";
 import type { ManagedWebSocketServer } from "./ws-server.ts";
-import { runTestCases, closeCTT, getTestCases, cancelTestRun } from "./ctt-client.ts";
+import {
+  runTestCases,
+  closeCTT,
+  getTestCases,
+  cancelTestRun,
+} from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
 import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
+
+// In CI, Z-Wave stack runs from native WSL filesystem for better performance
+const ZWAVE_STACK_PATH = !!process.env.CI ? "~/zwave_stack" : "./zwave_stack";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -227,10 +235,14 @@ class ProcessManager {
 
     const timestamp = () => {
       const now = new Date();
-      return now.toTimeString().slice(0, 8) + '.' + now.getMilliseconds().toString().padStart(3, '0');
+      return (
+        now.toTimeString().slice(0, 8) +
+        "." +
+        now.getMilliseconds().toString().padStart(3, "0")
+      );
     };
 
-    const proc = spawn("wsl", ["bash", "./zwave_stack/run.sh"], {
+    const proc = spawn("wsl", ["bash", `${ZWAVE_STACK_PATH}/run.sh`], {
       cwd: path.join(__dirname, ".."),
       stdio: "pipe",
     });
@@ -248,7 +260,9 @@ class ProcessManager {
     });
 
     proc.on("exit", (code) => {
-      console.error(`Z-Wave stack WSL process exited with code ${code}, aborting...`);
+      console.error(
+        `Z-Wave stack WSL process exited with code ${code}, aborting...`
+      );
       this.cleanup();
     });
 
@@ -303,6 +317,7 @@ class ProcessManager {
         respond(Buffer.from([0x06])); // ACK
 
         // Read the private key from the device's manufacturer token storage
+        // Always read from Windows path (in CI, files exist in both places)
         const tokenPath = path.join(
           __dirname,
           "../zwave_stack/storage",
@@ -516,7 +531,11 @@ class ProcessManager {
       );
       const excluded = beforeCount - matchingTests.length;
       if (excluded > 0) {
-        console.log(c.dim(`Excluded ${excluded} test(s) matching: ${EXCLUDE_TESTS.join(", ")}`));
+        console.log(
+          c.dim(
+            `Excluded ${excluded} test(s) matching: ${EXCLUDE_TESTS.join(", ")}`
+          )
+        );
       }
     }
 
@@ -684,18 +703,20 @@ class ProcessManager {
 
     console.log("Shutting down...");
 
-    // Cancel any running test and close CTT gracefully first
-    try {
-      await cancelTestRun();
-      // Wait for test to actually stop before trying to close
-      await setTimeout(2000);
-    } catch {
-      // Ignore - test may not be running
-    }
-    try {
-      await closeCTT();
-    } catch {
-      // Ignore - CTT may already be closed
+    // Cancel any running test and close CTT gracefully first (skip in devices-only mode)
+    if (!DEVICES_ONLY) {
+      try {
+        await cancelTestRun();
+        // Wait for test to actually stop before trying to close
+        await setTimeout(2000);
+      } catch {
+        // Ignore - test may not be running
+      }
+      try {
+        await closeCTT();
+      } catch {
+        // Ignore - CTT may already be closed
+      }
     }
 
     // Close WebSocket server to stop incoming CTT messages

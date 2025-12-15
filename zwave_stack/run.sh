@@ -1,8 +1,12 @@
 #!/bin/bash
 # Start all Z-Wave binaries in the background
-# Note: Run this script from the repository root directory
 
-echo "Starting Z-Wave Stack..."
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_DIR="$SCRIPT_DIR/bin"
+STORAGE_DIR="$SCRIPT_DIR/storage"
+
+echo "Starting Z-Wave Stack from $SCRIPT_DIR..."
 
 # Helper function to prefix output with process name
 run_with_prefix() {
@@ -13,24 +17,24 @@ run_with_prefix() {
 
 # Start 3 controllers
 echo "Starting Controller 1 (Z-Wave JS) on port 5000..."
-run_with_prefix "Controller1" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5000 --storage ./zwave_stack/storage/controller1 &
+run_with_prefix "Controller1" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port 5000 --storage "$STORAGE_DIR/controller1" &
 
 echo "Starting Controller 2 (CTT) on port 6001..."
-run_with_prefix "Controller2" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6001 --storage ./zwave_stack/storage/controller2 &
+run_with_prefix "Controller2" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port 6001 --storage "$STORAGE_DIR/controller2" &
 
 echo "Starting Controller 3 (CTT) on port 6002..."
-run_with_prefix "Controller3" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6002 --storage ./zwave_stack/storage/controller3 &
+run_with_prefix "Controller3" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port 6002 --storage "$STORAGE_DIR/controller3" &
 
 # Start 2 end devices
 echo "Starting End Device 1 on port 6003..."
-run_with_prefix "EndDevice1" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6003 --storage ./zwave_stack/storage/enddevice1 &
+run_with_prefix "EndDevice1" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port 6003 --storage "$STORAGE_DIR/enddevice1" &
 
 echo "Starting End Device 2 on port 6004..."
-run_with_prefix "EndDevice2" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6004 --storage ./zwave_stack/storage/enddevice2 &
+run_with_prefix "EndDevice2" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port 6004 --storage "$STORAGE_DIR/enddevice2" &
 
 # Start the Zniffer simulator
 echo "Starting Zniffer on port 4905..."
-run_with_prefix "Zniffer" python3 ./zwave_stack/bin/zniffer.py 1234 &
+run_with_prefix "Zniffer" python3 "$BIN_DIR/zniffer.py" 1234 &
 
 echo "All Z-Wave binaries started!"
 echo "Controller 1: localhost:5000 (Z-Wave JS FirstController)"
