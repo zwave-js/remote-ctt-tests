@@ -4,26 +4,33 @@
 
 echo "Starting Z-Wave Stack..."
 
+# Helper function to prefix output with process name
+run_with_prefix() {
+  local prefix="$1"
+  shift
+  "$@" 2>&1 | while IFS= read -r line; do echo "[$prefix] $line"; done
+}
+
 # Start 3 controllers
 echo "Starting Controller 1 (Z-Wave JS) on port 5000..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5000 --storage ./zwave_stack/storage/controller1 &
+run_with_prefix "Controller1" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 5000 --storage ./zwave_stack/storage/controller1 &
 
 echo "Starting Controller 2 (CTT) on port 6001..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6001 --storage ./zwave_stack/storage/controller2 &
+run_with_prefix "Controller2" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6001 --storage ./zwave_stack/storage/controller2 &
 
 echo "Starting Controller 3 (CTT) on port 6002..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6002 --storage ./zwave_stack/storage/controller3 &
+run_with_prefix "Controller3" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_controller.elf --port 6002 --storage ./zwave_stack/storage/controller3 &
 
 # Start 2 end devices
 echo "Starting End Device 1 on port 6003..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6003 --storage ./zwave_stack/storage/enddevice1 &
+run_with_prefix "EndDevice1" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6003 --storage ./zwave_stack/storage/enddevice1 &
 
 echo "Starting End Device 2 on port 6004..."
-./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6004 --storage ./zwave_stack/storage/enddevice2 &
+run_with_prefix "EndDevice2" ./zwave_stack/bin/ZW_zwave_ncp_serial_api_end_device.elf --port 6004 --storage ./zwave_stack/storage/enddevice2 &
 
 # Start the Zniffer simulator
 echo "Starting Zniffer on port 4905..."
-python3 ./zwave_stack/bin/zniffer.py 1234 &
+run_with_prefix "Zniffer" python3 ./zwave_stack/bin/zniffer.py 1234 &
 
 echo "All Z-Wave binaries started!"
 echo "Controller 1: localhost:5000 (Z-Wave JS FirstController)"
