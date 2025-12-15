@@ -5,8 +5,8 @@
     <NetworkKey Class="0" Value="CE07372267DCB354DB216761B6E9C378" />
     <NetworkKey Class="1" Value="30B5CCF3F482A92E2F63A5C5E218149A" />
     <NetworkKey Class="2" Value="21A29A69145E38C1601DFF55E2658521" />
-    <NetworkKey Class="3" Value="3D54A7E5DE9D444B28B479CF13B4CA70" />
-    <NetworkKey Class="4" Value="C2B0A8CE070B71F409A889BCCC54A49B" />
+    <NetworkKey Class="3" Value="0F4F7E178A4207A0BBEFBF991C66F814" />
+    <NetworkKey Class="4" Value="72D42391F7ECE63BE1B38B25D085ECD4" />
   </SecuritySettings>
   <Node Id="1" NodeInfo="D39603020100" RoleType="0" NodeType="255" CommandClasses="5E989F556C568F74">
     <SecurityExtension Keys="0x87" CommandClasses="85595A7A87728E7386" />

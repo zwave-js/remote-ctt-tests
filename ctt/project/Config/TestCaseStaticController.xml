@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestCaseStaticController SocketConnectionString="127.0.0.1" HomeId="E6D68AF7" NodeId="2">
+<TestCaseStaticController SocketConnectionString="127.0.0.1" HomeId="CFC93198" NodeId="2">
   <IncludedNodes>
     <NodeItem NodeId="1" NodeType="Z-Wave Plus v2 - Generic Controller DT">
       <Capability>211</Capability>

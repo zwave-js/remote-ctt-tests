@@ -176,7 +176,7 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
   "dut": {
     "name": "Your DUT Name",
     "runnerPath": "your-dut/run.ts",
-    "homeId": "e6d68af7",
+    "homeId": "d34db33f",
     "storageDir": "your-dut/storage",
     "storageFileFilter": ["%HOME_ID_LOWER%.jsonl"]
   }
