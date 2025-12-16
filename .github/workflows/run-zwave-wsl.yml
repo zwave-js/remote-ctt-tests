@@ -85,7 +85,8 @@ jobs:
           --exclude=CCT_CRC16EncapsulationCmdClassV1_Rev02 `
           --exclude=PI_CertificationData_Rev01 `
           --exclude=DD_ManufacturerSpecificCCData_Rev01 `
-          --exclude=DD_VersionCCData_Rev01
+          --exclude=DD_VersionCCData_Rev01 `
+          --verbose
       env:
         CI: true
 
