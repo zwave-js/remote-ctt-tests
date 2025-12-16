@@ -12,3 +12,6 @@ dut/zwave-js/node_modules/
 
 # Z-Wave stack binaries (downloaded via setup script)
 zwave_stack/bin/*.elf
+
+# CTT setup archive (downloaded via setup script)
+setup/ctt-setup.zip
