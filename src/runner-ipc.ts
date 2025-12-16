@@ -33,6 +33,20 @@ export interface CttPromptParams {
   type: string; // "YesNo", "OkCancel", "WaitForDutResponse", etc.
   rawText: string; // The prompt content/message
   buttons: string[]; // Available button options
+  testName: string; // Name of the test case
+}
+
+// === CTT Log Parameters ===
+
+export interface CttLogParams {
+  logText: string; // The log message content
+  testName: string; // Name of the test case
+}
+
+// === Test Case Started Parameters ===
+
+export interface TestCaseStartedParams {
+  testName: string;
 }
 
 // === Request Messages (Orchestrator -> Runner) ===
@@ -58,7 +72,21 @@ export interface HandleCttPromptRequest {
   params: CttPromptParams;
 }
 
-export type IpcRequest = StartRequest | StopRequest | HandleCttPromptRequest;
+export interface TestCaseStartedRequest {
+  jsonrpc: "2.0";
+  id: number;
+  method: "testCaseStarted";
+  params: TestCaseStartedParams;
+}
+
+export interface HandleCttLogRequest {
+  jsonrpc: "2.0";
+  id: number;
+  method: "handleCttLog";
+  params: CttLogParams;
+}
+
+export type IpcRequest = StartRequest | StopRequest | HandleCttPromptRequest | TestCaseStartedRequest | HandleCttLogRequest;
 
 // === Response Messages (Runner -> Orchestrator) ===
 

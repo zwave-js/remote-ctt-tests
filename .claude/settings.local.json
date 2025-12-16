@@ -7,7 +7,9 @@
       "Bash(Select-Object -First 50)",
       "Bash(cat:*)",
       "Bash(git log:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Skill(implement-test-handler)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

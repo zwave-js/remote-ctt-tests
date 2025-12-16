@@ -176,7 +176,7 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
   "dut": {
     "name": "Your DUT Name",
     "runnerPath": "your-dut/run.ts",
-    "homeId": "e6d68af7",
+    "homeId": "d34db33f",
     "storageDir": "your-dut/storage",
     "storageFileFilter": ["%HOME_ID_LOWER%.jsonl"]
   }
@@ -277,6 +277,26 @@ npm run start -- --test=CC_Binary_Switch_Set --verbose
 The project comes with a ready-to-use GitHub Actions workflow for running CTT tests in CI using WSL. For now, only tests from the "Automatic" group are supported, because they don't require manual interaction.
 
 To use the workflow, configure a repository secret named `ZW_STACK_TOKEN` with a GitHub PAT that has **Contents: read** permission for the [Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries) repository.
+
+## Troubleshooting
+
+### CTT fails with `Error - RequestNodeInfo failed!`**
+
+Make sure that the DUT has all command classes set (factory reset may be required) before joining the CTT network
+
+### CTT fails to communicate securely with the DUT
+
+Make sure that:
+- The DUT storage contains the correct files
+- The home ID is configured correctly everywhere:
+    - `config.json`
+    - `ctt/project/Config/TestCaseStaticController.xml` (HomeId attribute)
+    - `ctt/project/Config/Saved Items/002_<HOMEID>.xml` (filename)
+
+### Z-Wave stack binaries frequently crash or trigger the watchdog
+
+Something in the storage is likely corrupted. Delete all stack storage files and re-create the CTT network from scratch.
+Make sure to update the home ID accordingly, see above.
 
 ## Documentation
 

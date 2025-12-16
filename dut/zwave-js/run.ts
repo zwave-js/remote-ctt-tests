@@ -11,16 +11,33 @@ import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
-import { Driver } from "zwave-js";
+import {
+  Driver,
+  type Endpoint,
+  type ZWaveNode,
+  type ZWaveNodeValueNotificationArgs,
+} from "zwave-js";
+import type { NodeNotificationArgs } from "./prompt-handlers.ts";
+import { CommandClasses } from "@zwave-js/core";
 import { ZwavejsServer } from "@zwave-js/server";
 import type {
   StartParams,
   CttPromptParams,
+  CttLogParams,
+  TestCaseStartedParams,
   IpcRequest,
   SuccessResponse,
   ErrorResponse,
   ReadyNotification,
 } from "../../src/runner-ipc.ts";
+import {
+  getHandlersForTest,
+  type PromptContext,
+  type LogContext,
+} from "./prompt-handlers.ts";
+
+// Load all registered handlers
+import "./handlers/index.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +58,37 @@ const SERVER_PORT = 3000;
 let driver: Driver | undefined;
 let server: ZwavejsServer | undefined;
 let ws: WebSocket | undefined;
+
+// Test case state for prompt handlers
+let testContext: Map<string, unknown> = new Map();
+let includedNodes: ZWaveNode[] = [];
+let nodeNotifications: {
+  endpoint: Endpoint;
+  ccId: CommandClasses;
+  args: NodeNotificationArgs;
+}[] = [];
+let valueNotifications: {
+  node: ZWaveNode;
+  args: ZWaveNodeValueNotificationArgs;
+}[] = [];
+
+// === Debug Helpers ===
+
+function formatValueId(args: {
+  commandClass: number;
+  endpoint?: number;
+  property: string | number;
+  propertyKey?: string | number;
+}): string {
+  const ccName = CommandClasses[args.commandClass] ?? "Unknown";
+  let result = `CC=${ccName} (0x${args.commandClass.toString(16)}), EP=${
+    args.endpoint ?? 0
+  }, property=${args.property}`;
+  if (args.propertyKey !== undefined) {
+    result += `, propertyKey=${args.propertyKey}`;
+  }
+  return result;
+}
 
 // === IPC Communication ===
 
@@ -83,16 +131,33 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
 
     // Parse security keys from hex strings to Buffers
     const securityKeys = {
-      S2_Unauthenticated: Buffer.from(params.securityKeys.S2_Unauthenticated, "hex"),
-      S2_Authenticated: Buffer.from(params.securityKeys.S2_Authenticated, "hex"),
-      S2_AccessControl: Buffer.from(params.securityKeys.S2_AccessControl, "hex"),
+      S2_Unauthenticated: Buffer.from(
+        params.securityKeys.S2_Unauthenticated,
+        "hex"
+      ),
+      S2_Authenticated: Buffer.from(
+        params.securityKeys.S2_Authenticated,
+        "hex"
+      ),
+      S2_AccessControl: Buffer.from(
+        params.securityKeys.S2_AccessControl,
+        "hex"
+      ),
       S0_Legacy: Buffer.from(params.securityKeys.S0_Legacy, "hex"),
     };
 
     const securityKeysLongRange = {
-      S2_Authenticated: Buffer.from(params.securityKeysLongRange.S2_Authenticated, "hex"),
-      S2_AccessControl: Buffer.from(params.securityKeysLongRange.S2_AccessControl, "hex"),
+      S2_Authenticated: Buffer.from(
+        params.securityKeysLongRange.S2_Authenticated,
+        "hex"
+      ),
+      S2_AccessControl: Buffer.from(
+        params.securityKeysLongRange.S2_AccessControl,
+        "hex"
+      ),
     };
+
+    process.env.NODE_ENV = "development";
 
     // Create driver
     driver = new Driver(params.controllerUrl, {
@@ -112,6 +177,61 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       driver!.once("driver ready", () => {
         console.log("Z-Wave JS driver is ready");
+
+        // Debug logging for value events
+        if (process.env.ZWAVE_JS_DEBUG) {
+          driver!.on("node value added", (node, args) => {
+            console.log(
+              `[VALUE ADDED] Node ${node.id}: ${formatValueId(
+                args
+              )} => ${JSON.stringify(args.newValue)}`
+            );
+          });
+
+          driver!.on("node value updated", (node, args) => {
+            console.log(
+              `[VALUE UPDATED] Node ${node.id}: ${formatValueId(
+                args
+              )} | ${JSON.stringify(args.prevValue)} => ${JSON.stringify(
+                args.newValue
+              )}`
+            );
+          });
+
+          driver!.on("node value removed", (node, args) => {
+            console.log(
+              `[VALUE REMOVED] Node ${node.id}: ${formatValueId(args)}`
+            );
+          });
+
+          driver!.on("node value notification", (node, args) => {
+            console.log(
+              `[VALUE NOTIFICATION] Node ${node.id}: ${formatValueId(
+                args
+              )} => ${JSON.stringify(args.value)}`
+            );
+          });
+
+          driver!.on("node notification", (endpoint, ccId, args) => {
+            console.log(
+              `[NOTIFICATION] Endpoint ${endpoint.nodeId}:${
+                endpoint.index
+              }, CC=${CommandClasses[ccId]} (0x${ccId.toString(
+                16
+              )}), args=${JSON.stringify(args)}`
+            );
+          });
+        }
+
+        // Track notification events for test handlers
+        driver!.on("node notification", (endpoint, ccId, args) => {
+          nodeNotifications.push({ endpoint, ccId, args });
+        });
+
+        driver!.on("node value notification", (node, args) => {
+          valueNotifications.push({ node, args });
+        });
+
         resolve();
       });
 
@@ -162,45 +282,121 @@ async function handleStop(id: number): Promise<void> {
   }
 }
 
-async function handleCttPrompt(id: number, params: CttPromptParams): Promise<void> {
-  console.log(`CTT Prompt [${params.type}]: ${params.rawText}`);
-  console.log(`  Buttons: ${params.buttons.join(", ")}`);
+async function handleTestCaseStarted(
+  id: number,
+  params: TestCaseStartedParams
+): Promise<void> {
+  const { testName } = params;
 
-  // Default response logic based on prompt type
-  let response: string;
+  // Clear previous test context
+  testContext = new Map();
+  includedNodes = [];
+  nodeNotifications = [];
+  valueNotifications = [];
 
-  switch (params.type) {
-    case "YesNo":
-      // Default to "Yes" for most prompts
-      response = "Yes";
-      break;
+  console.log(`Test case started: ${testName}`);
 
-    case "OkCancel":
-      response = "Ok";
-      break;
-
-    case "Ok":
-      response = "Ok";
-      break;
-
-    case "WaitForDutResponse":
-      // This typically means CTT is waiting for the DUT to do something
-      // The Z-Wave JS driver should handle this automatically
-      response = "Ok";
-      break;
-
-    case "Skip":
-      response = "Skip";
-      break;
-
-    default:
-      // Default to first available button
-      response = params.buttons[0] || "Ok";
-      break;
+  // Get handlers for this test and call onTestStart hooks
+  if (driver) {
+    const handlers = getHandlersForTest(testName);
+    for (const handler of handlers) {
+      if (handler.onTestStart) {
+        try {
+          await handler.onTestStart({
+            testName,
+            driver,
+            state: testContext,
+            includedNodes,
+            nodeNotifications,
+            valueNotifications,
+          });
+        } catch (error) {
+          console.error(`[Handler] onTestStart error:`, error);
+        }
+      }
+    }
   }
 
-  console.log(`  Response: ${response}`);
-  sendResponse(id, response);
+  sendResponse(id, "ok");
+}
+
+async function handleCttPrompt(
+  id: number,
+  params: CttPromptParams
+): Promise<void> {
+  const { buttons, testName, type: promptType, rawText } = params;
+
+  // Normalize whitespace: CTT sometimes formats prompt text with line breaks
+  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
+  const promptText = rawText.replace(/\s+/g, " ").trim();
+
+  // Try registered handlers - only respond if one matches
+  if (driver && testName) {
+    const handlers = getHandlersForTest(testName);
+    const context: PromptContext = {
+      testName,
+      promptType,
+      promptText,
+      buttons,
+      driver,
+      state: testContext,
+      includedNodes,
+      nodeNotifications,
+      valueNotifications,
+    };
+
+    for (const handler of handlers) {
+      if (handler.onPrompt) {
+        try {
+          const response = await handler.onPrompt(context);
+          if (response !== undefined) {
+            sendResponse(id, response);
+            return;
+          }
+        } catch (error) {
+          console.error(`[Handler] onPrompt error:`, error);
+        }
+      }
+    }
+  }
+
+  // No automatic handler - don't respond, let user input win the race
+}
+
+async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
+  const { logText: rawLogText, testName } = params;
+
+  // Normalize whitespace: CTT sometimes formats log messages with line breaks
+  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
+  const logText = rawLogText.replace(/\s+/g, " ").trim();
+
+  if (driver && testName) {
+    const handlers = getHandlersForTest(testName);
+    const context: LogContext = {
+      testName,
+      logText,
+      driver,
+      state: testContext,
+      includedNodes,
+      nodeNotifications,
+      valueNotifications,
+    };
+
+    for (const handler of handlers) {
+      if (handler.onLog) {
+        try {
+          const stopPropagation = await handler.onLog(context);
+          if (stopPropagation === true) {
+            break;
+          }
+        } catch (error) {
+          console.error(`[Handler] onLog error:`, error);
+        }
+      }
+    }
+  }
+
+  sendResponse(id, "ok");
 }
 
 // === Message Handler ===
@@ -224,13 +420,23 @@ async function handleMessage(data: string): Promise<void> {
       await handleStop(request.id);
       break;
 
+    case "testCaseStarted":
+      await handleTestCaseStarted(request.id, request.params);
+      break;
+
     case "handleCttPrompt":
       await handleCttPrompt(request.id, request.params);
       break;
 
-    default:
-      console.warn("Unknown IPC method:", (request as { method: string }).method);
-      sendError(request.id, -32601, "Method not found");
+    case "handleCttLog":
+      await handleCttLog(request.id, request.params);
+      break;
+
+    default: {
+      const unknownRequest = request as { method: string; id: number };
+      console.warn("Unknown IPC method:", unknownRequest.method);
+      sendError(unknownRequest.id, -32601, "Method not found");
+    }
   }
 }
 
@@ -264,21 +470,31 @@ async function main(): Promise<void> {
     process.exit(1);
   });
 
-  // Handle shutdown signals
-  process.on("SIGINT", async () => {
-    console.log("Received SIGINT, shutting down...");
+  async function shutdown(code: number): Promise<never> {
     if (server) await server.destroy().catch(() => {});
     if (driver) await driver.destroy().catch(() => {});
     ws?.close();
-    process.exit(0);
+    process.exit(code);
+  }
+
+  process.on("SIGINT", () => {
+    console.log("Received SIGINT, shutting down...");
+    shutdown(0);
   });
 
-  process.on("SIGTERM", async () => {
+  process.on("SIGTERM", () => {
     console.log("Received SIGTERM, shutting down...");
-    if (server) await server.destroy().catch(() => {});
-    if (driver) await driver.destroy().catch(() => {});
-    ws?.close();
-    process.exit(0);
+    shutdown(0);
+  });
+
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception in runner:", error);
+    shutdown(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled rejection in runner:", reason);
+    shutdown(1);
   });
 }
 

@@ -5,8 +5,9 @@
 .DESCRIPTION
     This script extracts setup/ctt-setup.zip and places files in the correct locations:
     - appdata/ -> %APPDATA%/Z-Wave Alliance/Z-Wave CTT 3/
-    - keys/ -> %USERPROFILE%/Documents/Z-Wave Alliance/Z-Wave CTT 3/Keys/
     - ctt-bin/ -> C:\Program Files (x86)\Z-Wave Alliance\Z-Wave CTT 3/
+
+    Keys are copied from ctt/keys/ (stored in repository, not in archive).
 
     It also updates ctt/project/Config/ZatsSettings.json to point to the correct keys directory.
 
@@ -62,10 +63,10 @@ if (Test-Path $sourceAppData) {
     Write-Host "WARNING: appdata/ not found in archive" -ForegroundColor Yellow
 }
 
-# Copy keys -> CTT Keys location
-$sourceKeys = Join-Path $tempDir "keys"
+# Copy keys from ctt/keys/ in repository (not from archive)
+$sourceKeys = Join-Path $repoRoot "ctt\keys"
 if (Test-Path $sourceKeys) {
-    Write-Host "Copying keys -> $cttKeys" -ForegroundColor Green
+    Write-Host "Copying keys from ctt/keys/ -> $cttKeys" -ForegroundColor Green
     # Create parent directories if needed
     $parentDir = Split-Path -Parent $cttKeys
     if (-not (Test-Path $parentDir)) {
@@ -76,7 +77,7 @@ if (Test-Path $sourceKeys) {
     }
     Copy-Item -Recurse $sourceKeys $cttKeys
 } else {
-    Write-Host "WARNING: keys/ not found in archive" -ForegroundColor Yellow
+    Write-Host "WARNING: ctt/keys/ not found in repository" -ForegroundColor Yellow
 }
 
 # Copy ctt-bin -> CTT installation location

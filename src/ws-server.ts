@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { getTestCases } from './ctt-client.ts';
-import { convertCttColorsToAnsi } from './ctt-output.ts';
+import { convertCttColorsToAnsi, stripCttColors } from './ctt-output.ts';
 import type { RunnerHost } from './runner-host.ts';
 
 // Global event emitter for test case events
@@ -92,6 +92,9 @@ async function queryTestCases(): Promise<void> {
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
   const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, runnerHost } = options;
 
+  // Track current test case name for detecting test start
+  let currentTestName: string | null = null;
+
   const wss = new WebSocketServer({ port });
 
   console.log(`WebSocket server listening on port ${port}`);
@@ -159,6 +162,29 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           if (coloredOutput) {
             console.log(coloredOutput);
           }
+
+          // Detect test case start by tracking testCase.TestCaseName changes
+          const testCase = message.params?.testCase || {};
+          const testName = testCase.TestCaseName || '';
+          if (testName && testName !== currentTestName) {
+            currentTestName = testName;
+            // Notify runner that a new test case has started
+            if (runnerHost) {
+              runnerHost.testCaseStarted(testName).catch((error) => {
+                console.error('[TestCase] Failed to notify runner of test start:', error);
+              });
+            }
+          }
+
+          // Forward log to runner for handler processing (strip colors for plain text matching)
+          if (runnerHost && coloredOutput && (testName || currentTestName)) {
+            runnerHost.handleCttLog({
+              logText: stripCttColors(logOutput),
+              testName: testName || currentTestName || '',
+            }).catch((error) => {
+              console.error('[Log] Failed to forward to runner:', error);
+            });
+          }
         } else if (message.method === 'testCaseFinished') {
           // Print test case result
           const params = message.params || {};
@@ -166,6 +192,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           const result = params.Result || 'Unknown';
           const icon = result === 'PASSED' ? '✓' : '✗';
           console.log(`\n${icon} ${name}: ${result}`);
+
+          // Clear current test name
+          currentTestName = null;
 
           // Emit event for test case completion tracking
           const testCaseResult: TestCaseResult = {
@@ -241,15 +270,48 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
           // Forward prompt to runner via IPC if we have buttons to show
           if (buttons.length > 0 && runnerHost) {
+            // Print the prompt cleanly
+            console.log(`\n${coloredContent}`);
+
+            // Build user prompt string
+            let userPrompt: string;
+            if (buttons.length === 1) {
+              userPrompt = `\nPress Enter to select [${buttons[0]}]: `;
+            } else {
+              const options = buttons.map((b, i) => `${i + 1}=${b}`).join(', ');
+              userPrompt = `Select (${options}): `;
+            }
+
+            // Wait for either user input or runner handler response
             try {
-              const response = await runnerHost.handleCttPrompt({
+              const result = await runnerHost.promptForResponse(userPrompt, {
                 type: msgType,
-                rawText: coloredContent,
+                rawText: stripCttColors(content),
                 buttons,
+                testName: testCase.TestCaseName || currentTestName || '',
               });
-              responseData.result = response;
+
+              if (result.source === 'runner') {
+                // Auto-handler responded
+                process.stdout.write('\r\x1b[K');
+                console.log(`[Auto] ${result.value}`);
+                responseData.result = result.value;
+              } else {
+                // User responded - parse their input
+                if (buttons.length === 1) {
+                  responseData.result = buttons[0];
+                } else {
+                  const num = parseInt(result.value, 10);
+                  if (!isNaN(num) && num >= 1 && num <= buttons.length) {
+                    responseData.result = buttons[num - 1];
+                  } else {
+                    const match = buttons.find((b) => b.toLowerCase() === result.value.toLowerCase());
+                    responseData.result = match || buttons[0];
+                  }
+                }
+              }
             } catch (error) {
-              console.error('[MsgBox] Runner prompt handler error:', error);
+              console.error('[MsgBox] Prompt handler error:', error);
               responseData.result = buttons[0]; // Fallback to first button
             }
           } else if (buttons.length > 0) {

@@ -4,11 +4,20 @@ import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { createWebSocketServer } from "./ws-server.ts";
 import type { ManagedWebSocketServer } from "./ws-server.ts";
-import { runTestCases, closeCTT, getTestCases } from "./ctt-client.ts";
+import {
+  runTestCases,
+  closeCTT,
+  getTestCases,
+  cancelTestRun,
+} from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
+import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
+
+// In CI, Z-Wave stack runs from native WSL filesystem for better performance
+const ZWAVE_STACK_PATH = !!process.env.CI ? "~/zwave_stack" : "./zwave_stack";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,9 +40,12 @@ const VERBOSE = args.includes("--verbose");
 const DISCOVER_MODE = args.includes("--discover");
 // Support multiple --test= arguments or comma-separated names
 const testArgs = args.filter((arg) => arg.startsWith("--test="));
-const TEST_NAMES: string[] = testArgs.flatMap((arg) =>
-  arg.split("=")[1].split(",")
-);
+// Also treat all positional arguments (not starting with --) as test names
+const positionalArgs = args.filter((arg) => !arg.startsWith("--"));
+const TEST_NAMES: string[] = [
+  ...testArgs.flatMap((arg) => arg.split("=")[1].split(",")),
+  ...positionalArgs,
+];
 // Support multiple --category= arguments or comma-separated categories
 const categoryArgs = args.filter((arg) => arg.startsWith("--category="));
 const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
@@ -42,6 +54,11 @@ const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
 // Support multiple --group= arguments or comma-separated groups (e.g., Automatic, Interactive)
 const groupArgs = args.filter((arg) => arg.startsWith("--group="));
 const GROUPS: string[] = groupArgs.flatMap((arg) =>
+  arg.split("=")[1].split(",")
+);
+// Support multiple --exclude= arguments or comma-separated test names to exclude
+const excludeArgs = args.filter((arg) => arg.startsWith("--exclude="));
+const EXCLUDE_TESTS: string[] = excludeArgs.flatMap((arg) =>
   arg.split("=")[1].split(",")
 );
 
@@ -72,7 +89,9 @@ const DUT_PATH = dutArg
   ? dutArg.split("=")[1]
   : path.join(__dirname, "..", config.dut.runnerPath);
 
-const CTT_PATH = process.env.CTT_PATH || "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
+const CTT_PATH =
+  process.env.CTT_PATH ||
+  "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
 
 interface ManagedProcess {
   name: string;
@@ -84,6 +103,8 @@ class ProcessManager {
   private processes: ManagedProcess[] = [];
   private wsServer?: ManagedWebSocketServer;
   private runnerHost?: RunnerHost;
+  private deviceProxy?: CTTDeviceProxy;
+  private isCleaningUp = false;
 
   /**
    * Load PID file data if it exists
@@ -191,6 +212,16 @@ class ProcessManager {
       // Ignore
     }
 
+    // Kill ZatsTestConsole.exe if it's still running
+    try {
+      console.log(c.dim("Killing any running ZatsTestConsole.exe..."));
+      spawn("taskkill", ["/IM", "ZatsTestConsole.exe", "/F"], {
+        stdio: "ignore",
+      });
+    } catch (error) {
+      // Ignore - process may not be running
+    }
+
     // Give processes a moment to die
     await setTimeout(1000);
 
@@ -202,17 +233,26 @@ class ProcessManager {
   startZWaveStackWSL(): void {
     console.log("Starting Z-Wave stack in WSL...");
 
-    const proc = spawn("wsl", ["bash", "./zwave_stack/run.sh"], {
+    const timestamp = () => {
+      const now = new Date();
+      return (
+        now.toTimeString().slice(0, 8) +
+        "." +
+        now.getMilliseconds().toString().padStart(3, "0")
+      );
+    };
+
+    const proc = spawn("wsl", ["bash", `${ZWAVE_STACK_PATH}/run.sh`], {
       cwd: path.join(__dirname, ".."),
       stdio: "pipe",
     });
 
     proc.stdout?.on("data", (data) => {
-      console.log(`[WSL Z-Wave] ${data.toString().trim()}`);
+      console.log(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.stderr?.on("data", (data) => {
-      console.error(`[WSL Z-Wave] ${data.toString().trim()}`);
+      console.error(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.on("error", (error) => {
@@ -220,7 +260,10 @@ class ProcessManager {
     });
 
     proc.on("exit", (code) => {
-      console.log(`Z-Wave stack WSL process exited with code ${code}`);
+      console.error(
+        `Z-Wave stack WSL process exited with code ${code}, aborting...`
+      );
+      this.cleanup();
     });
 
     this.processes.push({
@@ -235,11 +278,110 @@ class ProcessManager {
     console.log("Z-Wave stack started in WSL");
   }
 
+  async startCTTDeviceProxy(): Promise<void> {
+    const TARGET_FRAME = Buffer.from("01060028432003b1", "hex");
+
+    let expectHostAck = new Set<string>();
+
+    const frameHandler: FrameHandler = (
+      config,
+      data,
+      direction,
+      forward,
+      respond
+    ) => {
+      // if (direction === "toDevice") {
+      //   console.log(c.dim(`CTT -> ${config.name}: ${data.toString("hex")}`));
+      // } else {
+      //   console.log(c.dim(`${config.name} -> CTT: ${data.toString("hex")}`));
+      // }
+
+      // We need to intercept the ACKs we receive in response to our injected frame
+      // otherwise this will hang the simulated end devices
+      if (
+        data.length === 1 &&
+        data[0] === 0x06 &&
+        expectHostAck.has(config.name)
+      ) {
+        expectHostAck.delete(config.name);
+        return;
+      }
+
+      if (data.equals(TARGET_FRAME) && config.name.includes("EndDevice")) {
+        // Target frame detected - handle it
+        console.log(
+          c.yellow(
+            `[Proxy ${config.name}] NVR_GetValue for private key intercepted`
+          )
+        );
+        respond(Buffer.from([0x06])); // ACK
+
+        // Read the private key from the device's manufacturer token storage
+        // Always read from Windows path (in CI, files exist in both places)
+        const tokenPath = path.join(
+          __dirname,
+          "../zwave_stack/storage",
+          config.name.toLowerCase(),
+          "nvm_stack/20.bin"
+        );
+        const token = fs.readFileSync(tokenPath);
+
+        const response = Buffer.alloc(5 + 32);
+        response[0] = 0x01; // SOF
+        response[1] = response.length - 2; // Length
+        response[2] = 0x01; // response
+        response[3] = 0x28; // NVR_GetValue
+        response.set(token, 4); // Token data
+        let chksum = 0xff;
+        for (let i = 1; i < response.length - 1; i++) {
+          chksum ^= response[i]!;
+        }
+        response[response.length - 1] = chksum; // Checksum
+        expectHostAck.add(config.name);
+        respond(response);
+      } else {
+        // Normal data - forward as-is
+        forward(data);
+      }
+    };
+
+    const configs = [
+      {
+        name: "Controller2",
+        listenPort: 5001,
+        targetHost: "127.0.0.1",
+        targetPort: 6001,
+      },
+      {
+        name: "Controller3",
+        listenPort: 5002,
+        targetHost: "127.0.0.1",
+        targetPort: 6002,
+      },
+      {
+        name: "EndDevice1",
+        listenPort: 5003,
+        targetHost: "127.0.0.1",
+        targetPort: 6003,
+      },
+      {
+        name: "EndDevice2",
+        listenPort: 5004,
+        targetHost: "127.0.0.1",
+        targetPort: 6004,
+      },
+    ];
+
+    this.deviceProxy = new CTTDeviceProxy(configs, frameHandler);
+    await this.deviceProxy.start();
+  }
+
   async startRunner(): Promise<void> {
     console.log(`Starting ${config.dut.name} runner: ${DUT_PATH}`);
 
     this.runnerHost = new RunnerHost({
       runnerPath: DUT_PATH,
+      onUnexpectedExit: () => this.cleanup(),
     });
 
     // Initialize the runner (spawns process, waits for ready)
@@ -296,7 +438,8 @@ class ProcessManager {
     });
 
     cttProcess.on("exit", (code) => {
-      console.log(`CTT-Remote exited with code ${code}`);
+      console.error(`CTT-Remote exited with code ${code}, aborting...`);
+      this.cleanup();
     });
 
     const managedProcess: ManagedProcess = {
@@ -352,7 +495,10 @@ class ProcessManager {
   /**
    * Run all tests matching the specified categories and/or groups
    */
-  async runTestsByFilter(categories: string[], groups: string[]): Promise<void> {
+  async runTestsByFilter(
+    categories: string[],
+    groups: string[]
+  ): Promise<void> {
     // Get all tests
     const allTests = (await getTestCases({})) as Array<{
       Name: string;
@@ -373,15 +519,30 @@ class ProcessManager {
 
     if (groups.length > 0) {
       matchingTests = matchingTests.filter((tc) =>
-        groups.some((grp) =>
-          tc.Group.toLowerCase().includes(grp.toLowerCase())
-        )
+        groups.some((grp) => tc.Group.toLowerCase().includes(grp.toLowerCase()))
       );
+    }
+
+    // Apply exclusions
+    if (EXCLUDE_TESTS.length > 0) {
+      const beforeCount = matchingTests.length;
+      matchingTests = matchingTests.filter(
+        (tc) => !EXCLUDE_TESTS.some((ex) => tc.Name.includes(ex))
+      );
+      const excluded = beforeCount - matchingTests.length;
+      if (excluded > 0) {
+        console.log(
+          c.dim(
+            `Excluded ${excluded} test(s) matching: ${EXCLUDE_TESTS.join(", ")}`
+          )
+        );
+      }
     }
 
     if (matchingTests.length === 0) {
       const filters: string[] = [];
-      if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+      if (categories.length > 0)
+        filters.push(`categories: ${categories.join(", ")}`);
       if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
       console.log(c.yellow(`No tests found matching ${filters.join(" and ")}`));
 
@@ -400,9 +561,12 @@ class ProcessManager {
 
     const testNames = matchingTests.map((tc) => tc.Name);
     const filters: string[] = [];
-    if (categories.length > 0) filters.push(`categories: ${categories.join(", ")}`);
+    if (categories.length > 0)
+      filters.push(`categories: ${categories.join(", ")}`);
     if (groups.length > 0) filters.push(`groups: ${groups.join(", ")}`);
-    console.log(`Found ${testNames.length} tests matching ${filters.join(" and ")}\n`);
+    console.log(
+      `Found ${testNames.length} tests matching ${filters.join(" and ")}\n`
+    );
 
     await this.runTests(testNames);
   }
@@ -489,6 +653,9 @@ class ProcessManager {
               "  npm start -- --group=<g1>,<g2>         Run tests from multiple groups"
             );
             console.log(
+              "  npm start -- --exclude=<name>          Exclude tests matching name"
+            );
+            console.log(
               "  npm start -- --devices-only            Only start emulated devices"
             );
             console.log(
@@ -531,10 +698,39 @@ class ProcessManager {
   }
 
   async cleanup(): Promise<void> {
+    if (this.isCleaningUp) return;
+    this.isCleaningUp = true;
+
     console.log("Shutting down...");
+
+    // Cancel any running test and close CTT gracefully first (skip in devices-only mode)
+    if (!DEVICES_ONLY) {
+      try {
+        await cancelTestRun();
+        // Wait for test to actually stop before trying to close
+        await setTimeout(2000);
+      } catch {
+        // Ignore - test may not be running
+      }
+      try {
+        await closeCTT();
+      } catch {
+        // Ignore - CTT may already be closed
+      }
+    }
+
+    // Close WebSocket server to stop incoming CTT messages
+    if (this.wsServer) {
+      await this.wsServer.close();
+    }
 
     // Stop DUT runner
     await this.stopRunner();
+
+    // Close device proxy
+    if (this.deviceProxy) {
+      await this.deviceProxy.close();
+    }
 
     // Kill all managed processes
     for (const managedProcess of this.processes) {
@@ -546,11 +742,6 @@ class ProcessManager {
       spawn("wsl", ["pkill", "-f", "ZW_zwave"], { stdio: "ignore" });
     } catch (error) {
       // Ignore
-    }
-
-    // Close WebSocket server
-    if (this.wsServer) {
-      await this.wsServer.close();
     }
 
     // Clean up PID file on successful shutdown
@@ -609,15 +800,18 @@ async function main() {
     // Give Z-Wave devices a moment to fully initialize
     await setTimeout(2000);
 
+    // Start CTT device proxy (intercepts CTT <-> device communication)
+    await manager.startCTTDeviceProxy();
+
     if (DEVICES_ONLY) {
       console.log("\n--devices-only mode: Only emulated devices are running.");
       console.log("Z-Wave devices available at:");
-      console.log("  Controller 1: localhost:5000");
-      console.log("  Controller 2: localhost:5001");
-      console.log("  Controller 3: localhost:5002");
-      console.log("  End Device 1: localhost:5003");
-      console.log("  End Device 2: localhost:5004");
-      console.log("  Zniffer:      localhost:4905");
+      console.log("  Controller 1: localhost:5000 (direct)");
+      console.log("  Controller 2: localhost:5001 (proxied from 6001)");
+      console.log("  Controller 3: localhost:5002 (proxied from 6002)");
+      console.log("  End Device 1: localhost:5003 (proxied from 6003)");
+      console.log("  End Device 2: localhost:5004 (proxied from 6004)");
+      console.log("  Zniffer:      localhost:4905 (direct)");
       console.log("\nPress Ctrl+C to stop.");
       return;
     }
@@ -634,12 +828,20 @@ async function main() {
 
     console.log("\nAll services started successfully!");
     console.log("Z-Wave devices available at:");
-    console.log(`  Controller 1 (${config.dut.name}): localhost:5000`);
-    console.log("  Controller 2 (CTT):       localhost:5001");
-    console.log("  Controller 3 (CTT):       localhost:5002");
-    console.log("  End Device 1 (CTT):       localhost:5003");
-    console.log("  End Device 2 (CTT):       localhost:5004");
-    console.log("  Zniffer (CTT):            localhost:4905");
+    console.log(`  Controller 1 (${config.dut.name}): localhost:5000 (direct)`);
+    console.log(
+      "  Controller 2 (CTT):       localhost:5001 (proxied from 6001)"
+    );
+    console.log(
+      "  Controller 3 (CTT):       localhost:5002 (proxied from 6002)"
+    );
+    console.log(
+      "  End Device 1 (CTT):       localhost:5003 (proxied from 6003)"
+    );
+    console.log(
+      "  End Device 2 (CTT):       localhost:5004 (proxied from 6004)"
+    );
+    console.log("  Zniffer (CTT):            localhost:4905 (direct)");
     console.log(`  ${config.dut.name} Server:         ws://localhost:3000`);
   } catch (error) {
     console.error("Failed to start services:", error);
