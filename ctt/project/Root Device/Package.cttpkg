@@ -1,0 +1,284 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCasePackage>
+  <TestCases>
+    <TestCase TestCaseId="84dd87b0-df53-4339-b5bc-63567ef3ccad" ProjectItemId="01112309-c541-4c18-bdc8-7d25d94df54a" Name="AssociationCmdClassV4_Rev0100_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>1ac39636-6188-40d3-94dc-dd153d7b7991</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitLifeline" Description="&quot;Initializes the lifeline with a controller node id&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>7f0077bd-ca0e-4b57-9571-ac8b5e373083</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialValues" Description="&quot;Verify Initial Values&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>bcbe169f-6c5d-481e-8ff3-572312001500</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SetGetSequence" Description="&quot;Verify Set/Get sequences&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>6203a482-b7d8-4201-89e0-49cce222d24c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveCommand" Description="&quot;Verify Remove Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f9edc5e1-18f6-4ab0-894e-c6ec7ac4b380</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="DuplicateNodeIDs" Description="&quot;Verify that an already added node ID cannot be added to the same Association Group again.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>4768a1af-4679-4717-930f-ce062bfc137d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidGroupId" Description="&quot;Check for returning report for Association Group 1 if report for an unsupported AG is requested&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>42e2da03-e70d-41b2-a5a8-500265c0304c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInSpecificGroup" Description="&quot;Clear all node IDs in a specific group&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>fdeb3098-3dc7-4216-8eb8-906fc836813a</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveSpecificNodeInAllGroups" Description="&quot;Clear specified node ID in all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>3fcff806-d004-4ef3-9a45-fdaba44b91b1</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInAllGroups" Description="&quot;Clear all node IDs in all groupings&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>1cc3feb7-e54a-4eaa-b3b5-9bcc8f2dd735</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="GetSpecificGroup" Description="&quot;Test Association Specific Group Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>1841b78c-ef45-4f6a-ac5e-86f63d49963a</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurityForAssociation" Description="&quot;Supervision Status Codes For Association at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>a6479b35-e279-4712-b7a4-909063f0605c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionLowerSecurityForAssociation" Description="&quot;Supervision Status Codes for Association at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>901824db-3556-4f3c-97b0-23658091aebc</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="3d7a13d2-d3bb-42ba-9450-d3aa2ed84245" ProjectItemId="5fae3c6e-9fd1-4c49-b59b-2f1f0ffa117e" Name="AssociationGrpInfoCmdClassV3_Rev0200_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>395911d7-6659-42a3-b080-d8e4b9aa0224</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupNames" Description="&quot;Verify Association Group Names&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>99303646-b62c-41bf-89c3-920d62433d6b</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupInfoListModeOff" Description="&quot;Verify Association Group Info with List Mode = 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b516f155-13bc-4d04-b874-0b4c0afd3ddf</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupInfoListModeOn" Description="&quot;Verify Association Group Info in List Mode&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>84f1f149-560d-4d83-a0ac-93fdc6b9de59</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyGroupCommandList" Description="&quot;Verify Association Group Command List&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f5d94602-a91b-4924-bed7-d698a38287e7</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="8c7eb8aa-b2b2-4b1b-a9dd-5e06ce0b2020" ProjectItemId="6797556a-7f63-4fa9-9776-0e22f910ab35" Name="BasicMappingNotAllowed_Rev0300_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="CheckBasicCommandClassSupport" Description="&quot;Checks the support of Basic CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>c5209d9d-c745-4e82-90a1-729af7ec7c63</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="8c7eb8aa-b2b2-4b1b-a9dd-5e06ce0b2020" ProjectItemId="bdcf5e83-f21b-490a-98ed-6f1828b177c2" Name="BasicMappingNotAllowed_Rev0300_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="CheckBasicCommandClassSupport" Description="&quot;Checks the support of Basic CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>c5209d9d-c745-4e82-90a1-729af7ec7c63</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="86a5d3b5-8451-4dc5-9bc2-b0fe5f4078f3" ProjectItemId="67d07a42-a51c-479f-8c23-d1052faa512e" Name="FirmwareUpdateMetaDataCmdClassV8_Rev0100_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b40819e7-09bb-40e0-ba5a-01a84a711873</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="GetCurrentFirmwareData" Description="&quot;Report current firmware meta data&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>ed7ecf56-68d9-43e2-98ec-71c627689b12</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidTarget" Description="&quot;Check for correct behavior if invalid targets are addressed&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>29b31ef4-d078-4128-a075-b96a379bf207</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidID" Description="&quot;Check for correct behavior if invalid IDs are provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2dd4ac92-0fcf-4c1d-a35b-73993caff2b9</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidFragmentSize" Description="&quot;Check for correct behavior if invalid Fragment Size is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>9a241e36-b3a8-403d-916e-3d4c42cab96b</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidTarget0Upgrade" Description="&quot;Check behavior if target 0 is not upgradable&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f88ab4b6-8f5f-4c58-bdf9-194ea8719878</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="AbortedFirmwareUpdate" Description="&quot;Check for correct behavior if transmission fails&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>cefb0ddc-8a8d-4215-995a-984e92245708</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidChecksumAndFragment" Description="&quot;Check for correct behavior if invalid checksum or fragment number is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>35552331-3f1d-4789-860d-e0669f44deeb</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidFwChecksumAndResumingAnUpdate" Description="&quot;Verify behavior if firmware checksum is invalid and resuming a previously aborted update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>7c02538d-0669-4f01-a2f2-fcf8f18ce148</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="FirmwareRetrieve" Description="&quot;Checks the firmware transfer process from node to controller&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>936b1e3a-7d78-48ac-8ee8-6cdf52a6cb2d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Interactive_NonSecureFirmwareUpdate" Description="&quot;Verify behavior in regards to a non-secure firmware update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2cfffffd-b151-49f5-9223-3cea3fa08ac4</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="c92c8627-785b-4c0d-bcae-17ecd1f9aef4" ProjectItemId="b5eb654f-ef01-4172-a445-a38668973800" Name="IndicatorCmdClassV4_Rev0601_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="NONE" ResultLR="NONE">
+          <IdGuid>58d7f4c2-bc02-4eaa-a4b6-efbe9a6efd45</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupportedIndicators" Description="&quot;Lists all supported indicators and their properties&quot;" Included="true" Result="NONE" ResultLR="NONE">
+          <IdGuid>04a73e74-ce9a-46e1-8056-db1177074cbc</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialValues" Description="&quot;Lists the current values for each indicator&quot;" Included="true" Result="NONE" ResultLR="NONE">
+          <IdGuid>427cf698-25fb-4010-986a-4f83bc99daa1</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="IndividualValuesNodeIdentify" Description="&quot;Set individual values for properties 0x03, 0x04, 0x05 of Indicator ID 0x50 (Node Identify)&quot;" Included="true" Result="NONE" ResultLR="NONE">
+          <IdGuid>0665f887-84a5-498c-83ff-8de229bb73c7</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="fb3627a1-acff-4c19-9db0-7caed437bc98" ProjectItemId="cf5f6933-da38-4c3d-83dd-012443ba6a9c" Name="ManufacturerSpecificCmdClassV2_Rev0300_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>ccb2e7bb-80d9-4253-8edf-2e59f39f559f</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="ManufacturerSpecificReport" Description="&quot;Check the return values of the Manufacturer Specific Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>9e8ebd91-b5b8-4ee0-a019-e2a4e15def41</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="DeviceSpecific" Description="&quot;Check for support of Device Specific Get and Report (V2)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>5c1ebcb7-0c0c-498e-887a-263bb42396f2</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="2c762237-35f0-4b0e-9aa3-4607418f225c" ProjectItemId="31364cf8-52ac-4401-8f28-2b8d4f3c4af9" Name="MultiChannelAssociationCmdClassV5_Rev0100_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>5fb3d56e-5e6b-4be4-9684-58494b57f67d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="CheckAssociationCC" Description="&quot;Checks the support of Association CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>e56085c9-01a8-474c-83a0-1b4680f78ac6</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SetGetSequence" Description="&quot;Verify Set/Get sequences&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>616a3556-ca56-4a1a-a9bf-822f7a00519c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveCommand" Description="&quot;Verify Multi Channel Remove Command&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>9d45380a-3f11-4c0f-a638-ae08e54f4ef6</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="DuplicateNodeIDs" Description="&quot;Verify that an already added Node ID cannot be added to the same Multi Channel Association Group again.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>fabb73df-f3b0-468c-ac4d-0ac281fd4c26</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidGroupId" Description="&quot;Check for returning report for Association Group 1 if report for an unsupported AG is requested&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>74d1cdb1-d310-48d7-be4e-4d256ae93b36</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInSpecificGroup" Description="&quot;Clear all Node IDs in a specific Association Group&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>c998bf6a-9d16-4439-aeb3-9d2dbadd2798</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveSpecificNodeInAllGroups" Description="&quot;Clear specified Node ID in all Multi Channel Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>7e803ec7-4da3-4ad0-85de-f0dfd59569cb</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInAllGroups" Description="&quot;Clear all Node IDs in all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f6bcfc59-047a-41f4-9ebb-3976897d87f9</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInAllGroupsLegacy" Description="&quot;Clear all Node IDs in all Association Groups (legacy)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>7bdbf512-95b6-4ba5-9f95-d1bbaf5c0b82</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesInSpecificGroupLegacy" Description="&quot;Clear all Node IDs in one Association Group (legacy)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>984df826-5169-41a4-93c3-459347abfc3c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="LegacySupport" Description="&quot;Checks legacy Association Command Class support&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>77663a6f-3e8d-4fac-af3d-3511a4915603</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Overflow" Description="&quot;Checks Association Group overflow behavior (MaxNodesSupported)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>496de2dc-81dc-48c6-8605-ae83d814da48</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="BasicAddRemoveTests" Description="&quot;Basic Add/Remove Tests&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>65676bdf-e114-4c0d-b3d9-0ceb405de04d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveSingleNodeFromAllGroups" Description="&quot;Remove single node from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>ff4a6837-bc93-420c-809b-8c4b1d1fad20</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveNodeWithEndpointFromAllGroups" Description="&quot;Remove node with End Point from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>6316cfa0-a8b9-458c-9baa-2c2659cbd72a</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="RemoveAllNodesFromAllGroups" Description="&quot;Remove all nodes from all Association Groups&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>e4ddb723-e74d-4a33-bdbe-971bc7331e03</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Endpoint0" Description="&quot;Check behavior if End Point is 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>76dae3ee-87e8-42e0-b605-aecb7b5e24f3</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurity" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>3ac8a93d-b326-4ab3-9b4e-9720c7797b44</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionLowerSecurity" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>479c3344-4d41-451e-ac65-225eec7d3d4c</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="d6eb05dc-f1b6-481a-8760-6f773e48b5e8" ProjectItemId="a248e6f1-ce79-46cc-b737-45775f21db55" Name="MultiCommandCmdClassV1_Rev0400_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="MultipleEncapCommands" Description="&quot;Verifies returns the correct number of encapsulated responses&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>f07bc02d-bed8-455f-92b9-9166f21c46a8</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="ExceedingResponsePayload" Description="&quot;Verifies what happens if the responses do not fit in one Z-Wave message&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>1c5787c4-acd8-4a0d-b93d-12479c7dfbb5</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="c775cb36-4c75-499b-97e4-ea7b6edcd298" ProjectItemId="eea588ff-900a-4ed3-a827-76fb00dfcc3e" Name="PowerlevelCmdClassV1_Rev1200_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>75629e15-bcf9-4bee-9d92-41310ceed8d7</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialValues" Description="&quot;Check initial values&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>8d2c3869-6741-4983-8f64-569138a4e824</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="TimeoutTest" Description="&quot;Tests the timeout functionality&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>891dc7a5-ba2e-4a8f-8263-5da0283f71f0</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="TimeoutIgnore" Description="&quot;Check that timeout is ignored with powerlevel = 0&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>6d3abc8f-2706-4d34-ab75-763950725781</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InvalidPowerlevel" Description="&quot;Check invalid powerlevel&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>e161b27d-2aca-405d-94de-6c1ca55ad41c</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="InitialTestReport" Description="&quot;Check initial Test Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>3ac53df0-2fc5-45a4-9182-3a6cc4371b56</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="f638dd0a-fc5e-496c-a008-04b91fcdc689" ProjectItemId="d2f2ba87-c5ca-4b20-ac27-6c80de293d8b" Name="VersionCmdClassV3_Rev0900_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>df71f226-290b-4807-85a7-b46db1bf7c7d</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VersionParameters" Description="&quot;Check Version Report parameters&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>8a4b4afc-4080-430b-88e4-2555a83994fa</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="CheckFirmwareData" Description="&quot;Check firmware meta data of Version CC and FirmwareUpdateMd CC&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0af7ae65-4735-432e-98bd-dabad4763e96</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+    <TestCase TestCaseId="dc0de554-188a-49dd-8b20-f8ad0b44d06a" ProjectItemId="e179097c-2dc9-4aff-8363-1dde2bc73c8c" Name="ZWavePlusInfoCmdClassV2_Rev0900_Orig" Included="true">
+      <TestCasesSequences>
+        <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>92712a72-8f26-45bd-bbe4-26d97dd8a86f</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="Interactive_ZWavePlusInfoReport" Description="&quot;Verifies general content of Z-Wave Plus Info Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>0d6a31e8-d764-4863-9ead-8f3c2291ef69</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="VerifyVersion" Description="&quot;Verify device is implementing at least version 2 of Z-Wave Plus Info Command Class&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>aabedd0c-6d96-4b75-96e2-986bcae0155f</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="GetEndPoints" Description="&quot;Gets number of End Points&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>932891ec-935b-4941-b382-63ef671cf52a</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurityForDeviceResetLocally" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>65ba143a-d247-4c57-9905-5cc03c480eae</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionAtLowerSecurityLevelForDeviceResetLocally" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>276af0a6-a70b-4e00-9e34-536c7214daad</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionHighestSecurityForBasic" Description="&quot;Supervision Status Codes at the Highest Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>b0ca70ae-5505-4d20-b04d-3c12ef539da8</IdGuid>
+        </TestCaseSequence>
+        <TestCaseSequence Name="SupervisionAtLowerSecurityForBasic" Description="&quot;Supervision Status Codes at Lower Security Level&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+          <IdGuid>2d7bfbc0-b5ed-4d02-bed4-0a477e0d5734</IdGuid>
+        </TestCaseSequence>
+      </TestCasesSequences>
+    </TestCase>
+  </TestCases>
+</TestCasePackage>

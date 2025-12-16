@@ -1,0 +1,14 @@
+node_modules/
+
+# CTT lock file and logs
+ctt/project/lock
+ctt/project/Log
+
+# Directories extracted from setup.zip on CI
+zwave_stack/storage/
+dut/zwave-js/storage/
+dut/zwave-js/log/
+dut/zwave-js/node_modules/
+
+# Z-Wave stack binaries (downloaded via setup script)
+zwave_stack/bin/*.elf

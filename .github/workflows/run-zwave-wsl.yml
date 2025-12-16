@@ -1,0 +1,143 @@
+name: Run Z-Wave Stack (Windows + WSL)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-zwave-wsl:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    ## Set up operating system
+    - name: Setup WSL with Ubuntu
+      uses: Vampire/setup-wsl@v6
+      with:
+        distribution: Ubuntu-22.04
+
+    - name: Enable 32-bit architecture and install libraries
+      shell: wsl-bash {0}
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y libc6:i386 libstdc++6:i386
+
+    ## Set up repo scripts etc.
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Z-Wave JS dependencies
+      run: npm ci
+      working-directory: dut/zwave-js
+
+    ## Set up CTT
+    - name: Extract CTT setup files
+      shell: powershell
+      run: .\setup\unpack-ctt-archive.ps1
+
+    ## Set up Z-Wave stack
+    - name: Download Z-Wave stack binaries
+      shell: powershell
+      env:
+        GH_TOKEN: ${{ secrets.ZW_STACK_TOKEN }}
+      run: .\setup\download-zwave-stack.ps1
+
+    - name: Make Z-Wave binaries executable
+      shell: wsl-bash {0}
+      run: chmod +x zwave_stack/bin/*.elf
+
+    ## Restore network state for CTT project
+    - name: Extract network state
+      shell: powershell
+      run: .\setup\unpack-network-state-archive.ps1
+
+    - name: Copy Z-Wave storage to WSL native filesystem
+      shell: wsl-bash {0}
+      run: |
+        # Create storage in WSL native filesystem
+        rm -rf ~/zwave_storage
+        mkdir -p ~/zwave_storage
+
+        # Copy extracted storage files to WSL native filesystem
+        if [ -d "./zwave_stack/storage" ]; then
+          cp -r ./zwave_stack/storage/* ~/zwave_storage/ 2>/dev/null || true
+        fi
+
+        # Get list of storage subdirectories, then replace with symlinks
+        if [ -d "./zwave_stack/storage" ]; then
+          STORAGE_DIRS=$(find ./zwave_stack/storage -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+          rm -rf ./zwave_stack/storage
+          mkdir -p ./zwave_stack/storage
+          for dir in $STORAGE_DIRS; do
+            ln -sf ~/zwave_storage/$dir ./zwave_stack/storage/$dir
+          done
+        fi
+
+        echo "Storage symlinks created:"
+        ls -la ./zwave_stack/storage/
+
+    ## Do the testing stuff
+    - name: Run CTT tests
+      run: npm start -- --group=Automatic
+      env:
+        CI: true
+
+    - name: Package CTT test logs
+      if: always()
+      shell: powershell
+      run: |
+        $logPath = "ctt/project/Log"
+        $outputPath = "ctt-test-logs"
+
+        if (Test-Path $logPath) {
+          New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
+
+          Get-ChildItem -Path $logPath -Directory | ForEach-Object {
+            $testResultFile = Join-Path $_.FullName "TestResult.xml"
+            if (Test-Path $testResultFile) {
+              [xml]$xml = Get-Content $testResultFile
+              $suiteName = $xml.testsuites.testsuite.name
+              if ($suiteName) {
+                $zipName = "$suiteName.zip"
+                $zipPath = Join-Path $outputPath $zipName
+                Compress-Archive -Path $_.FullName -DestinationPath $zipPath -Force
+                Write-Host "Created: $zipName"
+              }
+            }
+          }
+        }
+
+    - name: Upload CTT test logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ctt-test-logs
+        path: ctt-test-logs/
+        if-no-files-found: ignore
+
+    - name: Upload CTT project file
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: "Root Device.cttproj"
+        path: ctt/project/Root Device/Root Device.cttproj
+        if-no-files-found: ignore
+
+    - name: Upload Z-Wave JS logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zwave-js-logs
+        path: dut/zwave-js/log/
+        if-no-files-found: ignore

@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="86a5d3b5-8451-4dc5-9bc2-b0fe5f4078f3">
+  <ProjectItemId>63644394-4598-4c62-bc3d-74e733d8127d</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>b40819e7-09bb-40e0-ba5a-01a84a711873</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="GetCurrentFirmwareData" Description="&quot;Report current firmware meta data&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>ed7ecf56-68d9-43e2-98ec-71c627689b12</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidTarget" Description="&quot;Check for correct behavior if invalid targets are addressed&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>29b31ef4-d078-4128-a075-b96a379bf207</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidID" Description="&quot;Check for correct behavior if invalid IDs are provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>2dd4ac92-0fcf-4c1d-a35b-73993caff2b9</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidFragmentSize" Description="&quot;Check for correct behavior if invalid Fragment Size is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>9a241e36-b3a8-403d-916e-3d4c42cab96b</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidTarget0Upgrade" Description="&quot;Check behavior if target 0 is not upgradable&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>f88ab4b6-8f5f-4c58-bdf9-194ea8719878</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="AbortedFirmwareUpdate" Description="&quot;Check for correct behavior if transmission fails&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>cefb0ddc-8a8d-4215-995a-984e92245708</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidChecksumAndFragment" Description="&quot;Check for correct behavior if invalid checksum or fragment number is provided&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>35552331-3f1d-4789-860d-e0669f44deeb</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="InvalidFwChecksumAndResumingAnUpdate" Description="&quot;Verify behavior if firmware checksum is invalid and resuming a previously aborted update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>7c02538d-0669-4f01-a2f2-fcf8f18ce148</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="FirmwareRetrieve" Description="&quot;Checks the firmware transfer process from node to controller&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>936b1e3a-7d78-48ac-8ee8-6cdf52a6cb2d</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="Interactive_NonSecureFirmwareUpdate" Description="&quot;Verify behavior in regards to a non-secure firmware update&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>2cfffffd-b151-49f5-9223-3cea3fa08ac4</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>FirmwareUpdateMetaDataCmdClassV8_Rev0100_Orig</Name>
+</TestCase>

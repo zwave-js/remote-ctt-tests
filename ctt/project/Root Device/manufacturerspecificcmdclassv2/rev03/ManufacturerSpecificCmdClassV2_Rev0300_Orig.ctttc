@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestCase IdGuid="fb3627a1-acff-4c19-9db0-7caed437bc98">
+  <ProjectItemId>bb59939d-9f18-48e8-bfc5-2736dc41f0fd</ProjectItemId>
+  <Sequencies>
+    <TestCaseSequence Name="SetInitialValuesAndVariables" Description="&quot;Set initial Values and Variables.&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>ccb2e7bb-80d9-4253-8edf-2e59f39f559f</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="ManufacturerSpecificReport" Description="&quot;Check the return values of the Manufacturer Specific Report&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>9e8ebd91-b5b8-4ee0-a019-e2a4e15def41</IdGuid>
+    </TestCaseSequence>
+    <TestCaseSequence Name="DeviceSpecific" Description="&quot;Check for support of Device Specific Get and Report (V2)&quot;" Included="true" Result="PENDING" ResultLR="PENDING">
+      <IdGuid>5c1ebcb7-0c0c-498e-887a-263bb42396f2</IdGuid>
+    </TestCaseSequence>
+  </Sequencies>
+  <Name>ManufacturerSpecificCmdClassV2_Rev0300_Orig</Name>
+</TestCase>

@@ -1,0 +1,10 @@
+{
+  "Instruments": [
+    {
+      "Type": "PsuE364x",
+      "Alias": null,
+      "SName": "192.168.0.198",
+      "SType": "RawTCP"
+    }
+  ]
+}

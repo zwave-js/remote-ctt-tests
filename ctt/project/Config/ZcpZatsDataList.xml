@@ -1,0 +1,3562 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ZcpZatsDataList>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665599</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1_COMMAND">
+    <ZatsValues>
+      <ZatsValue Value="0x5a01" DataType="Hex">
+        <FormItemNumbers>
+          <FormItemNumber>AGD.1.1-1.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665604</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665604</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1_GROUPING_ID">
+    <ZatsValues>
+      <ZatsValue Value="1" DataType="Int_1_255">
+        <FormItemNumbers>
+          <FormItemNumber>AGD.1.1-1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665600</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665600</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1_MAX_NODES">
+    <ZatsValues>
+      <ZatsValue Value="1" DataType="Int_0_255">
+        <FormItemNumbers>
+          <FormItemNumber>AGD.1.1-1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665601</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665601</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1_NAME">
+    <ZatsValues>
+      <ZatsValue Value="Lifeline" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>AGD.1.1-1.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665602</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1.4</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665602</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ASSOCIATION_GROUP_1_PROFILE">
+    <ZatsValues>
+      <ZatsValue Value="0x0001" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>AGD.1.1-1.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665603</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>AGD.1.1-1.5</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665603</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_ALLOW_CONTROL_OF_SLEEPING_NODES">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.1.7</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665405</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_ASSOCIATION_GRP_INFO">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665390</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_ALARM">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.14.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665346</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.14.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665346</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_ASSOCIATION">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665308</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665308</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_ASSOCIATION_GRP_INFO">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665309</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665309</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_BARRIER_OPERATOR">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665355</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665355</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_BASIC">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665312</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665312</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_BATTERY">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665370</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665370</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_CENTRAL_SCENE">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665314</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665314</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_CONFIGURATION">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665358</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.7.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665358</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_CRC_16_ENCAP">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.4.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665315</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665315</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_DEVICE_RESET_LOCALLY">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665371</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665371</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_DOOR_LOCK">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665359</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.8.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665359</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_ENTRY_CONTROL">
+    <ZatsValues>
+      <ZatsValue Value="PARTIALLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.9.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665545</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.9.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665545</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_FIRMWARE_UPDATE_MD">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665316</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665316</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_INDICATOR">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665317</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.6.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665317</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_METER">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.11.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665324</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.11.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665324</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_MULTI_CHANNEL_ASSOCIATION_V2">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665327</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.7.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665327</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_MULTI_CHANNEL_V3">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.4.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665326</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665326</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SECURITY">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.4.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665347</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665347</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SECURITY_2">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.4.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665348</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665348</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SENSOR_MULTILEVEL">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.12.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665339</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.12.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665339</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SOUND_SWITCH">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.16.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665364</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.16.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665364</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SUPERVISION">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.4.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665372</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665372</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SWITCH_BINARY">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665356</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665356</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SWITCH_COLOR">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665357</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.6.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665357</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_SWITCH_MULTILEVEL">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.13.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665362</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.13.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665362</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_THERMOSTAT_MODE">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.17.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665365</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.17.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665365</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_THERMOSTAT_SETBACK">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.18.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665366</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.18.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665366</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_THERMOSTAT_SETPOINT">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.19.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665367</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.19.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665367</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_USER_CODE">
+    <ZatsValues>
+      <ZatsValue Value="PARTIALLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.20.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665547</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.20.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665547</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665349</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.8.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665349</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_WAKE_UP">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.3.9.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665353</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.3.9.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665353</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CONTROL_TYPE_WINDOW_COVERING">
+    <ZatsValues>
+      <ZatsValue Value="FULLY_CONTROLLED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.2.22.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665369</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.2.22.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665369</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_CRC16_CONTROL_REQUIREMENTS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665433</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_DUT_HAS_FULL_OR_PARTIAL_CONTROL">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665008</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_NO_CONTROL_DEFINITION">
+    <ZatsValues>
+      <ZatsValue Value="Alarm Sensor&#xD;&#xA;Binary Sensor&#xD;&#xA;Climate Control Schedule&#xD;&#xA;Clock&#xD;&#xA;Color Switch&#xD;&#xA;Door Lock Logging&#xD;&#xA;Energy Production&#xD;&#xA;Humidity Control Mode&#xD;&#xA;Humidity Control Operating State&#xD;&#xA;Humidity Control Setpoint&#xD;&#xA;Irrigation&#xD;&#xA;Language&#xD;&#xA;Lock&#xD;&#xA;Manufacturer Specific&#xD;&#xA;No Operation&#xD;&#xA;Node Naming and Location&#xD;&#xA;Powerlevel&#xD;&#xA;Protection&#xD;&#xA;Scene Activation&#xD;&#xA;Scene Actuator Configuration&#xD;&#xA;Scene Controller Configuration&#xD;&#xA;Schedule Entry Lock&#xD;&#xA;Thermostat Fan Mode&#xD;&#xA;Thermostat Fan State&#xD;&#xA;Thermostat Operating State&#xD;&#xA;Time&#xD;&#xA;Time Parameters&#xD;&#xA;Transport Service&#xD;&#xA;Z-Wave Plus Info" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCR.1.1.1.18.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665424</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.1.18.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665424</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_NO_CONTROL_DEFINITION_REQUIREMENTS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.1.18.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665557</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_NO_DISCARD_FROM_NON_S2_NODES">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.1.20</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665427</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CCR_S2_DISCARD_NON_SEC_CC_CTRL_CMDS_ON_LOWER_LEVEL">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CCR.1.1.1.21</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665428</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_ALWAYS_GET_SET_CAPABLE">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CDR.21.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664878</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CDR.21.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664878</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_DETERMINE_RESET_COMPLETE">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CDR.12.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664855</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CDR.12.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664855</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_DUT_CAN_CHANGE_CAPABILITES">
+    <ZatsValues>
+      <ZatsValue Value="NO" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CDR.8.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664850</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CDR.8.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664850</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_END_POINT_ACTUATOR_CC_SUPPORT">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664845</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_FORGET_HOME_ID">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.13.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664858</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_MANDATORY_CCS_IN_NIF">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.20.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664871</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_NIF_ON_INCLUSION_AND_SECURITY">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.20.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664873</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_RESET_CC_CONFIG">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.13.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664859</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_SECURE_SUPPORT_FOR_NIF_CCS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.20.4</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664874</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_USE_OF_TRANSPORT_ENCAP">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.19.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664868</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CDR_ZWPV2_LED_REQUIREMENTS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CDR.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664846</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CERTIFIED_SW_DESIGN_BASE">
+    <ZatsValues>
+      <ZatsValue Value="FALSE" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CR.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830772</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CR.1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>830772</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="COMMAND_CLASS_CONTROL">
+    <ZatsValues>
+      <ZatsValue Value="COMMAND_CLASS_ASSOCIATION_GRP_INFO_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.4.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665092</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ASSOCIATION_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.2.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830765</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_BARRIER_OPERATOR" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665465</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_BASIC_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.9.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665311</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_BATTERY_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.5.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665549</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CENTRAL_SCENE_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.13.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665313</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CLIMATE_CONTROL_SCHEDULE" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.14.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>679693</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CLOCK" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.15.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665523</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CONFIGURATION_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.17.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665524</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CRC_16_ENCAP" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665302</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_DEVICE_RESET_LOCALLY" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665093</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_DOOR_LOCK_LOGGING" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.22.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665525</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_DOOR_LOCK_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.21.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665474</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ENERGY_PRODUCTION" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.23.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665526</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ENTRY_CONTROL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.24.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665527</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_FIRMWARE_UPDATE_MD_V8" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.7.8</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665101</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_HUMIDITY_CONTROL_MODE" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.29.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830788</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_HUMIDITY_CONTROL_OPERATING_STATE" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.30.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665529</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_HUMIDITY_CONTROL_SETPOINT_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.31.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665530</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_INCLUSION_CONTROLLER" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCN.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665303</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_INDICATOR_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.9.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665105</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_IRRIGATION" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.33.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665531</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_LANGUAGE" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.34.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665532</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_LOCK" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.35.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665533</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MANUFACTURER_SPECIFIC_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.11.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665107</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_METER_V6" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.36.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665323</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MULTI_CHANNEL_ASSOCIATION_V5" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.12.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830766</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MULTI_CHANNEL_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665325</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_NO_OPERATION" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCN.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665556</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_NODE_NAMING" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.13.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665550</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_NOTIFICATION_V8" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.43.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665345</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_POWERLEVEL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCN.9.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665118</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_PROTECTION_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.46.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665534</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SCENE_ACTIVATION" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.50.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665535</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SCENE_ACTUATOR_CONF" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.51.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665536</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SCENE_CONTROLLER_CONF" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.52.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665537</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SCHEDULE_ENTRY_LOCK_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.54.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665538</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SECURITY" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665305</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SECURITY_2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665113</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SENSOR_ALARM" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665521</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SENSOR_BINARY_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.11.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665522</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SENSOR_MULTILEVEL_V11" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.40.11</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665338</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SOUND_SWITCH_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.58.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665480</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SUPERVISION_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.6.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665116</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SWITCH_BINARY_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.12.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665467</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SWITCH_COLOR_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.16.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665470</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SWITCH_MULTILEVEL_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.41.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665478</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_FAN_MODE_V5" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.61.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665539</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_FAN_STATE_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.62.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665540</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_MODE_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.63.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665483</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_OPERATING_STATE_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.64.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665541</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_SETBACK" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.65.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665542</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_THERMOSTAT_SETPOINT_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.66.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665486</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_TIME_PARAMETERS" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.15.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668315</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_TIME_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.14.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665307</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_TRANSPORT_SERVICE_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665117</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_USER_CODE_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.67.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665543</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_VERSION_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.16.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665111</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_WAKE_UP_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.17.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665352</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_WINDOW_COVERING" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCA.69.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665487</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ZWAVEPLUS_INFO_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.19.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665112</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCA.2.1</FormItemNumber>
+      <FormItemNumber>CCA.8.1</FormItemNumber>
+      <FormItemNumber>CCA.9.2</FormItemNumber>
+      <FormItemNumber>CCA.11.2</FormItemNumber>
+      <FormItemNumber>CCA.12.2</FormItemNumber>
+      <FormItemNumber>CCA.13.1</FormItemNumber>
+      <FormItemNumber>CCA.14.1</FormItemNumber>
+      <FormItemNumber>CCA.15.1</FormItemNumber>
+      <FormItemNumber>CCA.16.3</FormItemNumber>
+      <FormItemNumber>CCA.17.4</FormItemNumber>
+      <FormItemNumber>CCA.21.4</FormItemNumber>
+      <FormItemNumber>CCA.22.1</FormItemNumber>
+      <FormItemNumber>CCA.23.1</FormItemNumber>
+      <FormItemNumber>CCA.24.1</FormItemNumber>
+      <FormItemNumber>CCA.29.1</FormItemNumber>
+      <FormItemNumber>CCA.30.1</FormItemNumber>
+      <FormItemNumber>CCA.31.2</FormItemNumber>
+      <FormItemNumber>CCA.33.1</FormItemNumber>
+      <FormItemNumber>CCA.34.1</FormItemNumber>
+      <FormItemNumber>CCA.35.1</FormItemNumber>
+      <FormItemNumber>CCA.36.6</FormItemNumber>
+      <FormItemNumber>CCA.40.11</FormItemNumber>
+      <FormItemNumber>CCA.41.4</FormItemNumber>
+      <FormItemNumber>CCA.43.6</FormItemNumber>
+      <FormItemNumber>CCA.46.2</FormItemNumber>
+      <FormItemNumber>CCA.50.1</FormItemNumber>
+      <FormItemNumber>CCA.51.1</FormItemNumber>
+      <FormItemNumber>CCA.52.1</FormItemNumber>
+      <FormItemNumber>CCA.54.3</FormItemNumber>
+      <FormItemNumber>CCA.58.2</FormItemNumber>
+      <FormItemNumber>CCA.61.5</FormItemNumber>
+      <FormItemNumber>CCA.62.2</FormItemNumber>
+      <FormItemNumber>CCA.63.3</FormItemNumber>
+      <FormItemNumber>CCA.64.2</FormItemNumber>
+      <FormItemNumber>CCA.65.1</FormItemNumber>
+      <FormItemNumber>CCA.66.3</FormItemNumber>
+      <FormItemNumber>CCA.67.2</FormItemNumber>
+      <FormItemNumber>CCA.69.1</FormItemNumber>
+      <FormItemNumber>CCM.2.3</FormItemNumber>
+      <FormItemNumber>CCM.4.3</FormItemNumber>
+      <FormItemNumber>CCM.5.3</FormItemNumber>
+      <FormItemNumber>CCM.6.1</FormItemNumber>
+      <FormItemNumber>CCM.7.8</FormItemNumber>
+      <FormItemNumber>CCM.9.4</FormItemNumber>
+      <FormItemNumber>CCM.11.2</FormItemNumber>
+      <FormItemNumber>CCM.12.3</FormItemNumber>
+      <FormItemNumber>CCM.13.1</FormItemNumber>
+      <FormItemNumber>CCM.14.2</FormItemNumber>
+      <FormItemNumber>CCM.15.1</FormItemNumber>
+      <FormItemNumber>CCM.16.2</FormItemNumber>
+      <FormItemNumber>CCM.17.3</FormItemNumber>
+      <FormItemNumber>CCM.19.1</FormItemNumber>
+      <FormItemNumber>CCT.1.1</FormItemNumber>
+      <FormItemNumber>CCT.2.1</FormItemNumber>
+      <FormItemNumber>CCT.4.1</FormItemNumber>
+      <FormItemNumber>CCT.5.1</FormItemNumber>
+      <FormItemNumber>CCT.6.2</FormItemNumber>
+      <FormItemNumber>CCT.7.1</FormItemNumber>
+      <FormItemNumber>CCN.1.1</FormItemNumber>
+      <FormItemNumber>CCN.7.1</FormItemNumber>
+      <FormItemNumber>CCN.9.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665521</ItemId>
+      <ItemId>665465</ItemId>
+      <ItemId>665311</ItemId>
+      <ItemId>665522</ItemId>
+      <ItemId>665467</ItemId>
+      <ItemId>665313</ItemId>
+      <ItemId>679693</ItemId>
+      <ItemId>665523</ItemId>
+      <ItemId>665470</ItemId>
+      <ItemId>665524</ItemId>
+      <ItemId>665474</ItemId>
+      <ItemId>665525</ItemId>
+      <ItemId>665526</ItemId>
+      <ItemId>665527</ItemId>
+      <ItemId>830788</ItemId>
+      <ItemId>665529</ItemId>
+      <ItemId>665530</ItemId>
+      <ItemId>665531</ItemId>
+      <ItemId>665532</ItemId>
+      <ItemId>665533</ItemId>
+      <ItemId>665323</ItemId>
+      <ItemId>665338</ItemId>
+      <ItemId>665478</ItemId>
+      <ItemId>665345</ItemId>
+      <ItemId>665534</ItemId>
+      <ItemId>665535</ItemId>
+      <ItemId>665536</ItemId>
+      <ItemId>665537</ItemId>
+      <ItemId>665538</ItemId>
+      <ItemId>665480</ItemId>
+      <ItemId>665539</ItemId>
+      <ItemId>665540</ItemId>
+      <ItemId>665483</ItemId>
+      <ItemId>665541</ItemId>
+      <ItemId>665542</ItemId>
+      <ItemId>665486</ItemId>
+      <ItemId>665543</ItemId>
+      <ItemId>665487</ItemId>
+      <ItemId>830765</ItemId>
+      <ItemId>665092</ItemId>
+      <ItemId>665549</ItemId>
+      <ItemId>665093</ItemId>
+      <ItemId>665101</ItemId>
+      <ItemId>665105</ItemId>
+      <ItemId>665107</ItemId>
+      <ItemId>830766</ItemId>
+      <ItemId>665550</ItemId>
+      <ItemId>665307</ItemId>
+      <ItemId>668315</ItemId>
+      <ItemId>665111</ItemId>
+      <ItemId>665352</ItemId>
+      <ItemId>665112</ItemId>
+      <ItemId>665302</ItemId>
+      <ItemId>665325</ItemId>
+      <ItemId>665305</ItemId>
+      <ItemId>665113</ItemId>
+      <ItemId>665116</ItemId>
+      <ItemId>665117</ItemId>
+      <ItemId>665303</ItemId>
+      <ItemId>665556</ItemId>
+      <ItemId>665118</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="COMMAND_CLASS_SUPPORT">
+    <ZatsValues>
+      <ZatsValue Value="COMMAND_CLASS_ASSOCIATION_GRP_INFO_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.4.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665092</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ASSOCIATION_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.2.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830765</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_CRC_16_ENCAP" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665302</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_DEVICE_RESET_LOCALLY" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665093</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_FIRMWARE_UPDATE_MD_V8" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.7.8</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665101</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_INCLUSION_CONTROLLER" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCN.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665303</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_INDICATOR_V4" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.9.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665105</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MANUFACTURER_SPECIFIC_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.11.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665107</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MULTI_CHANNEL_ASSOCIATION_V5" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.12.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>830766</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_MULTI_CMD" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665304</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_POWERLEVEL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCN.9.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665118</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SECURITY" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665305</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SECURITY_2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665113</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_SUPERVISION_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.6.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665116</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_TRANSPORT_SERVICE_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCT.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665117</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_VERSION_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.16.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665111</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_ZWAVEPLUS_INFO_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CCM.19.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665112</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CCM.2.3</FormItemNumber>
+      <FormItemNumber>CCM.4.3</FormItemNumber>
+      <FormItemNumber>CCM.6.1</FormItemNumber>
+      <FormItemNumber>CCM.7.8</FormItemNumber>
+      <FormItemNumber>CCM.9.4</FormItemNumber>
+      <FormItemNumber>CCM.11.2</FormItemNumber>
+      <FormItemNumber>CCM.12.3</FormItemNumber>
+      <FormItemNumber>CCM.16.2</FormItemNumber>
+      <FormItemNumber>CCM.19.1</FormItemNumber>
+      <FormItemNumber>CCT.1.1</FormItemNumber>
+      <FormItemNumber>CCT.3.1</FormItemNumber>
+      <FormItemNumber>CCT.4.1</FormItemNumber>
+      <FormItemNumber>CCT.5.1</FormItemNumber>
+      <FormItemNumber>CCT.6.2</FormItemNumber>
+      <FormItemNumber>CCT.7.1</FormItemNumber>
+      <FormItemNumber>CCN.1.1</FormItemNumber>
+      <FormItemNumber>CCN.9.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>830765</ItemId>
+      <ItemId>665092</ItemId>
+      <ItemId>665093</ItemId>
+      <ItemId>665101</ItemId>
+      <ItemId>665105</ItemId>
+      <ItemId>665107</ItemId>
+      <ItemId>830766</ItemId>
+      <ItemId>665111</ItemId>
+      <ItemId>665112</ItemId>
+      <ItemId>665302</ItemId>
+      <ItemId>665304</ItemId>
+      <ItemId>665305</ItemId>
+      <ItemId>665113</ItemId>
+      <ItemId>665116</ItemId>
+      <ItemId>665117</ItemId>
+      <ItemId>665303</ItemId>
+      <ItemId>665118</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="COUNTRY_REGION">
+    <ZatsValues>
+      <ZatsValue Value="Algeria" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689883</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Argentina" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Armenia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Australia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Bahamas" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Bahrain" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Barbados" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Bermuda" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Bolivia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Brazil" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="British Virgin Islands" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Canada" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+          <FormItemNumber>PI.3.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+          <ItemId>665141</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Cayman Islands" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="CEPT (Europe)" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Chile" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="China" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689881</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Colombia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Costa Rica" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689894</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Cyprus" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Ecuador" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Egypt" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="El Salvador" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="French Guiana" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Georgia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Guatemala" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Haiti" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Honduras" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Hong Kong" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689883</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="India" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689887</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Indonesia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Iraq" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Israel" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.5.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689885</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Jamaica" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Japan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689894</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Jordan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Kazakstan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Kuwait" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Lebanon" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Libya" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Macau" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689896</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Malaysia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Maldives" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Mauritius" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Mexico" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Moldova" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Morocco" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689881</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="New Zealand" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Nigeria" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Oman" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Pakistan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.6.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689887</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Panama" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Paraguay" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Peru" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Philippines" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Qatar" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Russia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.7.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689889</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Saudi Arabia" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Singapore" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689896</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="South Africa" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="South Korea" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689896</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="St Kitts and Nevis" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Suriname" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Taiwan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689896</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Thailand" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689896</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Trinidad and Tabago" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Turkmenistan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Turks and Caicos Islands" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="United Arab Emirates (UAE)" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Uruguay" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="USA" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+          <FormItemNumber>PI.3.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689891</ItemId>
+          <ItemId>665141</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Uzbekistan" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Venezuela" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Vietnam" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689879</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Yemen" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665139</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>PI.3.1.1.3.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.1.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.2.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.4.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.5.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.6.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.7.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.8.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.2.1.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.2.2.1</FormItemNumber>
+      <FormItemNumber>PI.3.2.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665139</ItemId>
+      <ItemId>689879</ItemId>
+      <ItemId>689881</ItemId>
+      <ItemId>689883</ItemId>
+      <ItemId>689885</ItemId>
+      <ItemId>689887</ItemId>
+      <ItemId>689889</ItemId>
+      <ItemId>689891</ItemId>
+      <ItemId>689894</ItemId>
+      <ItemId>689896</ItemId>
+      <ItemId>665141</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CR_DONT_BLOCK_INTEROPERABILITY">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CR.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665252</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CR_DONT_PREVENT_INCLUSION">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CR.5.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665253</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CR_NETWORK_FUNCTIONS_INCLUDED">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>CR.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665249</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>CR.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665249</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CR_PLACE_NON_PREFERRED_IN_SPECIAL_SECTION">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CR.5.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665254</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_GROUP_1_USED_FOR_LIFELINE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665128</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_LIFELINE_MAX_NODES">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665120</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_LIFELINE_NO_REPORT_ON_MULTICAST_OR_BROADCAST">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.5.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665124</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_LIFELINE_NON_COMMAND_CHANGE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.4</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665122</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_LIFELINE_REPORT_ON_SINGLECAST">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.5.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665126</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_MULTI_CMD_ENCAP_VIA_ASSOCIATION">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.7.3.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665555</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_SUPPORT_ASSOCIATION_V4_OR_NEWER">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.7.2.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>830769</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="CSR_SUPPORT_MCA_V5_OR_NEWER">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>CSR.4.7.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>830768</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_FIRMWARE_0_SUB_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="0x17" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665066</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665066</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_FIRMWARE_0_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="0x07" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665065</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665065</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_FIRMWARE_1_SUB_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="0x03" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665069</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665069</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_FIRMWARE_1_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="0x0E" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665068</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.5</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665068</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_HARDWARE_VERSION">
+    <ZatsValues>
+      <ZatsValue Value="0x00" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665064</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665064</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_INSTALLER_ICON_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="0x0500" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665079</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665079</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_MANUFACTURER_ID">
+    <ZatsValues>
+      <ZatsValue Value="0x0466" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665075</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665075</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_NUMBER_OF_ADDITIONAL_FW_TARGETS">
+    <ZatsValues>
+      <ZatsValue Value="0x01" DataType="Hex8">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.1.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665067</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.1.4</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665067</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_PRODUCT_ID">
+    <ZatsValues>
+      <ZatsValue Value="0x0001" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.2.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665077</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.2.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665077</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_PRODUCT_TYPE_ID">
+    <ZatsValues>
+      <ZatsValue Value="0x0001" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.2.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665076</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.2.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665076</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DD_USER_ICON_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="0x0500" DataType="Hex16">
+        <FormItemNumbers>
+          <FormItemNumber>DD.1.1.3.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665080</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DD.1.1.3.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665080</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DEVICE_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="Generic Controller DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DR.1.18</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664803</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DR.1.18</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664803</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DT_CTRL_ACTUATOR_CCS_OF_DT">
+    <ZatsValues>
+      <ZatsValue Value="Binary Switch DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.9</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668308</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Color Switch DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668302</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Lock DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668300</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Motorized Barrier DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668301</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Multilevel Switch DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.8</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668307</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Sound Switch DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668305</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Thermostat DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668304</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="Window Covering DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.3.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668303</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DT.18.4.3.1</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.2</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.3</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.4</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.5</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.6</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.8</FormItemNumber>
+      <FormItemNumber>DT.18.4.3.9</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668300</ItemId>
+      <ItemId>668301</ItemId>
+      <ItemId>668302</ItemId>
+      <ItemId>668303</ItemId>
+      <ItemId>668304</ItemId>
+      <ItemId>668305</ItemId>
+      <ItemId>668307</ItemId>
+      <ItemId>668308</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DT_DEVICE_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="Generic Controller DT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664826</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DT.18</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664826</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DT_MANDATORY_CTRL_CC">
+    <ZatsValues>
+      <ZatsValue Value="COMMAND_CLASS_BASIC" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668297</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_INDICATOR_V3" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668298</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_VERSION_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668309</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="COMMAND_CLASS_WAKE_UP_V2" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.4.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668310</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DT.18.4.1</FormItemNumber>
+      <FormItemNumber>DT.18.4.2</FormItemNumber>
+      <FormItemNumber>DT.18.4.4</FormItemNumber>
+      <FormItemNumber>DT.18.4.5</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668297</ItemId>
+      <ItemId>668298</ItemId>
+      <ItemId>668309</ItemId>
+      <ItemId>668310</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DT_MANDATORY_SUPP_CC">
+    <ZatsValues>
+      <ZatsValue Value="COMMAND_CLASS_MULTI_CMD" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668295</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DT.18.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668295</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="DUT_SUPPORTS_LEARN_MODE">
+    <ZatsValues>
+      <ZatsValue Value="NO" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DR.1.18.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668289</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DR.1.18.1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668289</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="LONG_RANGE">
+    <ZatsValues>
+      <ZatsValue Value="CONTROL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>LR.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665086</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>LR.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665086</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="PI_PRODUCT_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="PI_ZWPV2_SOFTWARE_PRODUCT" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.2.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664777</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>PI.2.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664777</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="PI_ZWAVE_STACK">
+    <ZatsValues>
+      <ZatsValue Value="SOFTWARE_APPLICATION" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.2.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664779</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>PI.2.2.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664779</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="PI_ZWAVE_STACK_SW_APPL">
+    <ZatsValues>
+      <ZatsValue Value="APPL_ON_PC_SERIAL_API_STD" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.2.2.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664780</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>PI.2.2.1.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664780</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_ACTIVATE_ANY_FUNCTIONALITY">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RD.20.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665059</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_ASSOCIATION_CC">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#z-wave-association-groups" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.8</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665046</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.8</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665046</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_ASSOCIATION_CC_REQUIREMENTS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RD.8.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665130</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_CONTROLLER_INCLUDE_EXCLUDE_OTHER">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#adding-a-new-device-to-the-z-wave-network and https://www.home-assistant.io/integrations/zwave_js/#removing-a-device-from-the-z-wave-network" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.2.2.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665270</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.2.2.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665270</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_CONTROLLER_REDISCOVERY">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#network-devices -&gt; &quot;Re-interview&quot;" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.2.2.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665272</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.2.2.4</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665272</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_FACTORY_DEFAULT_RESET">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#controller -&gt; &quot;Factory reset&quot;" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.11</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665049</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.11</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665049</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_IDENTITY_FUNCTION">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#identification-via-z-wave" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.12</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665050</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.12</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665050</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_PARTIAL_CONTROL">
+    <ZatsValues>
+      <ZatsValue Value="TODO" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665044</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665044</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_SECURITY_S2_CC">
+    <ZatsValues>
+      <ZatsValue Value="https://www.home-assistant.io/integrations/zwave_js/#z-wave-command-classes-home-assistant-responds-to-when-queried" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RD.15</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665053</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RD.15</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665053</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_SENDING_CONTROLLING_COMMANDS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RD.20.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665061</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_SPECIAL_PROCEDURES">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RD.20.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665060</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RD_SSR_CTRL_PROV_LIST_ACCESS_EDIT">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RD.3.2.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665517</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="ROLE_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="ROLE_TYPE_CONTROLLER_CENTRAL_STATIC" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DR.1.18.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668288</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DR.1.18.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668288</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_ASSIGNS_RETURN_ROUTE_FOR_SIS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.8</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665224</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_CAN_PERFORM_SMARTSTART_INCLUSION">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.17.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665238</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_ROLE_TYPE">
+    <ZatsValues>
+      <ZatsValue Value="ROLE_TYPE_CONTROLLER_CENTRAL_STATIC" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RT.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>664829</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RT.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>664829</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_EXCLUDE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665210</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_INCLUDE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665208</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_KEEP_REMOVE_NODE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.3.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665213</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_POLL_REMOVE_NODE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665212</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_REMOVE_NODE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.3</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665211</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_SHOWS_NODE_ADDED_BY_INCL_CTRL">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665209</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_SIS_SUPPORTS_REPLACE">
+    <ZatsValues>
+      <ZatsValue Value="NO" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>RT.1.6.4.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665217</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.6.4.1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665217</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_WAKE_UP_CONFIG_PEN_RSEN">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.10</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665228</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="RT_WAKE_UP_NO_MORE_TO_RPC">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>RT.1.9.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665227</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S0_SIS_NO_S0_BOOTSTRAPPING">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SR.1.2.6</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665279</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_ALWAYS_NON_SECURE_CCS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SR.2.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665018</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_CONTROLLER_PIN_INPUT">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SR.3.4.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665289</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SR.3.4.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665289</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_DUT_SUPPORTS_SIS_ROLE">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SR.3.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665285</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_SECURITY_CLASS">
+    <ZatsValues>
+      <ZatsValue Value="S2_ACCESS_CONTROL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668292</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="S2_AUTHENTICATED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.2.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668313</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="S2_UNAUTHENTICATED" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>DT.18.2.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>668314</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>DT.18.2.1</FormItemNumber>
+      <FormItemNumber>DT.18.2.1.1</FormItemNumber>
+      <FormItemNumber>DT.18.2.1.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>668292</ItemId>
+      <ItemId>668313</ItemId>
+      <ItemId>668314</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_SECURITY_CLASSES_CAN_BE_INSPECTED">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SR.3.4.1.3.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665383</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SR.3.4.1.3.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665383</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="S2_SIS_SUPPORTS_CSA">
+    <ZatsValues>
+      <ZatsValue Value="NO" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SR.3.3.1.5.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665379</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SR.3.3.1.5.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665379</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SMARTSTART">
+    <ZatsValues>
+      <ZatsValue Value="CONTROL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SSR.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665034</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665034</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_CONTROLLER_HAS_QR_SCANNING">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SSR.2.10.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665513</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.10.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665513</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_EDIT_PROVISIONING_LIST">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.7.2</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665507</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_GEN1_QR_SCANNING">
+    <ZatsValues>
+      <ZatsValue Value="YES" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>SSR.2.10.1.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665560</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.10.1.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665560</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_INFORM_ON_MANUAL_INCLUSION">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.8</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665510</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_INFORM_ON_NON_SMARTSTART_NODES">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.9</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665511</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SSR_QR_SCANNING_TESTS">
+    <ZatsValues />
+    <FormItemNumbers>
+      <FormItemNumber>SSR.2.10.1.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665558</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+  <ZcpZatsData Key="SW_LIB_FREQUENCY">
+    <ZatsValues>
+      <ZatsValue Value="ANZ" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689878</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="CN" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689880</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="EU" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.3</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665138</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="HK" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.4</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689882</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="IL" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.5</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689884</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="IN" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.6</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689886</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="JP" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689893</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="KR" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.2.2</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689895</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="RU" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.7</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689888</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="US" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.1.1.8</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>689890</ItemId>
+        </ItemIds>
+      </ZatsValue>
+      <ZatsValue Value="US_LR" DataType="Text">
+        <FormItemNumbers>
+          <FormItemNumber>PI.3.2.1</FormItemNumber>
+        </FormItemNumbers>
+        <ItemIds>
+          <ItemId>665140</ItemId>
+        </ItemIds>
+      </ZatsValue>
+    </ZatsValues>
+    <FormItemNumbers>
+      <FormItemNumber>PI.3.1.1.3</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.2</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.4</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.5</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.6</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.7</FormItemNumber>
+      <FormItemNumber>PI.3.1.1.8</FormItemNumber>
+      <FormItemNumber>PI.3.1.2.1</FormItemNumber>
+      <FormItemNumber>PI.3.1.2.2</FormItemNumber>
+      <FormItemNumber>PI.3.2.1</FormItemNumber>
+    </FormItemNumbers>
+    <ItemIds>
+      <ItemId>665138</ItemId>
+      <ItemId>689878</ItemId>
+      <ItemId>689880</ItemId>
+      <ItemId>689882</ItemId>
+      <ItemId>689884</ItemId>
+      <ItemId>689886</ItemId>
+      <ItemId>689888</ItemId>
+      <ItemId>689890</ItemId>
+      <ItemId>689893</ItemId>
+      <ItemId>689895</ItemId>
+      <ItemId>665140</ItemId>
+    </ItemIds>
+  </ZcpZatsData>
+</ZcpZatsDataList>

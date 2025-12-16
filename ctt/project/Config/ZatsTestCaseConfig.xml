@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ZatsTestCaseConfig>
+  <ProductName>Z-Wave JS / Home Assistant</ProductName>
+  <ModelNumber>Z-Wave JS / Home Assistant</ModelNumber>
+  <PortalUrl>https://certification.z-wavealliance.org</PortalUrl>
+  <CertId>1201</CertId>
+  <DUT_NodeId>1</DUT_NodeId>
+  <EndPoint>0</EndPoint>
+  <InitS2SeqNo>1</InitS2SeqNo>
+  <RfRegion>EU_LR</RfRegion>
+  <LRChannel>ChannelA</LRChannel>
+  <IsTestingLongRange>false</IsTestingLongRange>
+</ZatsTestCaseConfig>
