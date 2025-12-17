@@ -1,6 +1,13 @@
-import { registerHandler, type PromptResponse } from "../../prompt-handlers.ts";
+import {
+  registerHandler,
+  type PromptContext,
+  type PromptResponse,
+} from "../../prompt-handlers.ts";
 
-const questions: { pattern: RegExp; answer: PromptResponse }[] = [
+const questions: {
+  pattern: RegExp;
+  answer: PromptResponse | ((ctx: PromptContext) => PromptResponse);
+}[] = [
   { pattern: /allows the end user to establish association/i, answer: "No" },
   { pattern: /(capable|able) to display the last.+state/i, answer: "Yes" },
   {
@@ -105,14 +112,26 @@ const questions: { pattern: RegExp; answer: PromptResponse }[] = [
 
   // Generic
   { pattern: /Retry\?/i, answer: "No" },
-  { pattern: /partial control behavior documented/i, answer: "No" },
+  {
+    pattern: /partial control behavior documented/i,
+    answer: (ctx) => {
+      if (ctx.testName.includes("CCR_EntryControlCC")) {
+        return "Yes"; // Entry Control CC is marked as partial control in the certification portal
+      }
+      return "No";
+    },
+  },
 ];
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
     for (const q of questions) {
       if (q.pattern.test(ctx.promptText)) {
-        return q.answer;
+        if (typeof q.answer === "function") {
+          return q.answer(ctx);
+        } else {
+          return q.answer;
+        }
       }
     }
 

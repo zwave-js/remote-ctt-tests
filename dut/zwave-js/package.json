@@ -13,7 +13,7 @@
     "@zwave-js/server": "^3.5.0",
     "alcalzone-shared": "^5.0.0",
     "ws": "^8.18.0",
-    "zwave-js": "^15.17.1"
+    "zwave-js": "^15.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

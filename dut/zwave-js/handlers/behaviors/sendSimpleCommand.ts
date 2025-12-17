@@ -65,7 +65,7 @@ registerHandler(/.*/, {
       /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?: \* Z-Wave Value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
         ctx.logText
       ) ??
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))? with value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
+      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))? with (target )?value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
         ctx.logText
       ) ??
       /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?.+value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
