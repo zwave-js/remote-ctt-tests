@@ -5,6 +5,16 @@
  * via WebSocket using these JSON-RPC message formats.
  */
 
+// === Base JSON-RPC Types ===
+
+interface JsonRpcMessage {
+  jsonrpc: "2.0";
+}
+
+interface JsonRpcMethodMessage extends JsonRpcMessage {
+  method: string;
+}
+
 // === Security Key Types ===
 
 export interface SecurityKeys {
@@ -51,36 +61,31 @@ export interface TestCaseStartedParams {
 
 // === Request Messages (Orchestrator -> Runner) ===
 
-export interface StartRequest {
-  jsonrpc: "2.0";
+export interface StartRequest extends JsonRpcMethodMessage {
   id: number;
   method: "start";
   params: StartParams;
 }
 
-export interface StopRequest {
-  jsonrpc: "2.0";
+export interface StopRequest extends JsonRpcMethodMessage {
   id: number;
   method: "stop";
   params: Record<string, never>;
 }
 
-export interface HandleCttPromptRequest {
-  jsonrpc: "2.0";
+export interface HandleCttPromptRequest extends JsonRpcMethodMessage {
   id: number;
   method: "handleCttPrompt";
   params: CttPromptParams;
 }
 
-export interface TestCaseStartedRequest {
-  jsonrpc: "2.0";
+export interface TestCaseStartedRequest extends JsonRpcMethodMessage {
   id: number;
   method: "testCaseStarted";
   params: TestCaseStartedParams;
 }
 
-export interface HandleCttLogRequest {
-  jsonrpc: "2.0";
+export interface HandleCttLogRequest extends JsonRpcMethodMessage {
   id: number;
   method: "handleCttLog";
   params: CttLogParams;
@@ -90,14 +95,12 @@ export type IpcRequest = StartRequest | StopRequest | HandleCttPromptRequest | T
 
 // === Response Messages (Runner -> Orchestrator) ===
 
-export interface SuccessResponse {
-  jsonrpc: "2.0";
+export interface SuccessResponse extends JsonRpcMessage {
   id: number;
   result: string; // "ok" for start/stop, button name for handleCttPrompt
 }
 
-export interface ErrorResponse {
-  jsonrpc: "2.0";
+export interface ErrorResponse extends JsonRpcMessage {
   id: number;
   error: {
     code: number;
@@ -109,50 +112,48 @@ export type IpcResponse = SuccessResponse | ErrorResponse;
 
 // === Notification Messages (Runner -> Orchestrator) ===
 
-export interface ReadyNotification {
-  jsonrpc: "2.0";
+export interface ReadyNotification extends JsonRpcMethodMessage {
   method: "ready";
   params: {
     name: string; // Runner name for logging
   };
 }
 
-export type IpcNotification = ReadyNotification;
+export interface NoHandlerNotification extends JsonRpcMethodMessage {
+  method: "noHandler";
+}
+
+export type IpcNotification = ReadyNotification | NoHandlerNotification;
 
 // === Type Guards ===
 
-export function isSuccessResponse(msg: unknown): msg is SuccessResponse {
+function isJsonRpcMessage(msg: unknown): msg is JsonRpcMessage {
   return (
     typeof msg === "object" &&
     msg !== null &&
     "jsonrpc" in msg &&
-    msg.jsonrpc === "2.0" &&
-    "id" in msg &&
-    "result" in msg
+    msg.jsonrpc === "2.0"
   );
+}
+
+function isJsonRpcMethodMessage(msg: unknown): msg is JsonRpcMethodMessage {
+  return isJsonRpcMessage(msg) && "method" in msg;
+}
+
+export function isSuccessResponse(msg: unknown): msg is SuccessResponse {
+  return isJsonRpcMessage(msg) && "id" in msg && "result" in msg;
 }
 
 export function isErrorResponse(msg: unknown): msg is ErrorResponse {
-  return (
-    typeof msg === "object" &&
-    msg !== null &&
-    "jsonrpc" in msg &&
-    msg.jsonrpc === "2.0" &&
-    "id" in msg &&
-    "error" in msg
-  );
+  return isJsonRpcMessage(msg) && "id" in msg && "error" in msg;
 }
 
 export function isReadyNotification(msg: unknown): msg is ReadyNotification {
-  return (
-    typeof msg === "object" &&
-    msg !== null &&
-    "jsonrpc" in msg &&
-    msg.jsonrpc === "2.0" &&
-    "method" in msg &&
-    msg.method === "ready" &&
-    "params" in msg
-  );
+  return isJsonRpcMethodMessage(msg) && msg.method === "ready" && "params" in msg;
+}
+
+export function isNoHandlerNotification(msg: unknown): msg is NoHandlerNotification {
+  return isJsonRpcMethodMessage(msg) && msg.method === "noHandler";
 }
 
 // === Constants ===

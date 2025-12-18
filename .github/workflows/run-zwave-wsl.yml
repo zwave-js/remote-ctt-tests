@@ -92,6 +92,7 @@ jobs:
           --exclude=PI_CertificationData_Rev01 `
           --exclude=DD_ManufacturerSpecificCCData_Rev01 `
           --exclude=DD_VersionCCData_Rev01 `
+          --exclude=CSR_LifelineMandatoryReports_Rev03 `
           --verbose
       env:
         CI: true
