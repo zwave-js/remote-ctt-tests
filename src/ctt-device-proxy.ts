@@ -67,11 +67,17 @@ export class CTTDeviceProxy {
   private handleConnection(config: ProxyConfig, clientSocket: net.Socket): void {
     console.log(c.dim(`[Proxy ${config.name}] CTT connected`));
 
+    // Disable Nagle's algorithm for low-latency communication
+    clientSocket.setNoDelay(true);
+
     // Connect to target device
     const targetSocket = net.createConnection({
       host: config.targetHost,
       port: config.targetPort,
     });
+
+    // Disable Nagle's algorithm for low-latency communication
+    targetSocket.setNoDelay(true);
 
     const connection: ProxyConnection = {
       clientSocket,
