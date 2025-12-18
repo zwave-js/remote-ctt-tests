@@ -20,9 +20,11 @@ import {
   isSuccessResponse,
   isErrorResponse,
   isReadyNotification,
+  isNoHandlerNotification,
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
+import { cancelTestRun } from "./ctt-client.ts";
 import c from "ansi-colors";
 import * as readline from "readline";
 
@@ -35,6 +37,8 @@ export interface RunnerHostOptions {
   readyTimeout?: number;
   /** Callback when runner process exits unexpectedly */
   onUnexpectedExit?: () => void;
+  /** CI mode - cancel test run on unhandled prompts (default: auto-detect via CI env var) */
+  ciMode?: boolean;
 }
 
 export class RunnerHost {
@@ -42,6 +46,7 @@ export class RunnerHost {
   private ipcPort: number;
   private readyTimeout: number;
   private onUnexpectedExit?: () => void;
+  private ciMode: boolean;
 
   private wss?: WebSocketServer;
   private runnerProcess?: ChildProcess;
@@ -69,6 +74,7 @@ export class RunnerHost {
     this.ipcPort = options.ipcPort ?? DEFAULT_IPC_PORT;
     this.readyTimeout = options.readyTimeout ?? 30000;
     this.onUnexpectedExit = options.onUnexpectedExit;
+    this.ciMode = options.ciMode ?? !!process.env.CI;
 
     // Create readline interface for user prompts
     this.rl = readline.createInterface({
@@ -376,6 +382,12 @@ export class RunnerHost {
       return;
     }
 
+    // Check for no-handler notification (no prompt handler matched)
+    if (isNoHandlerNotification(msg)) {
+      this.handleNoHandler();
+      return;
+    }
+
     // Check for response to a pending request
     if (isSuccessResponse(msg)) {
       // Check if this is a response to the active prompt
@@ -432,5 +444,18 @@ export class RunnerHost {
         }
       });
     });
+  }
+
+  private async handleNoHandler(): Promise<void> {
+    if (this.ciMode) {
+      console.error("\n[CI] Unhandled prompt - cancelling test run to prevent hang\n");
+
+      try {
+        await cancelTestRun();
+      } catch (error) {
+        console.error("Failed to cancel test run:", error);
+      }
+    }
+    // In non-CI mode, do nothing - let user input work
   }
 }

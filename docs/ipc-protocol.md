@@ -29,7 +29,9 @@ Runner                              Orchestrator
    │                                     │
    │<─────── handleCttPrompt request ────│
    │                                     │
-   │──── handleCttPrompt response ──────>│
+   │──── handleCttPrompt response ──────>│  (if handler matched)
+   │  OR                                 │
+   │──── noHandler notification ────────>│  (if no handler matched)
    │                                     │
    │         ... more prompts ...        │
    │                                     │
@@ -58,6 +60,19 @@ Sent immediately after WebSocket connection is established.
 
 **Parameters:**
 - `name` (string): Display name for the runner, used in logs
+
+### noHandler
+
+Sent when a `handleCttPrompt` request was received but no prompt handler matched. This allows the orchestrator to cancel the test run in CI mode to prevent hanging.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "noHandler"
+}
+```
+
+**Note:** This is a notification only - no response is expected. The runner does not send a response to the original `handleCttPrompt` request when no handler matches, allowing interactive user input to work in non-CI environments.
 
 ## Requests (Orchestrator → Runner)
 

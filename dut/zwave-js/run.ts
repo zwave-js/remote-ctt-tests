@@ -29,6 +29,7 @@ import type {
   SuccessResponse,
   ErrorResponse,
   ReadyNotification,
+  NoHandlerNotification,
 } from "../../src/runner-ipc.ts";
 import {
   getHandlersForTest,
@@ -115,6 +116,14 @@ function sendReady(): void {
     jsonrpc: "2.0",
     method: "ready",
     params: { name: RUNNER_NAME },
+  };
+  ws?.send(JSON.stringify(notification));
+}
+
+function sendNoHandlerNotification(): void {
+  const notification: NoHandlerNotification = {
+    jsonrpc: "2.0",
+    method: "noHandler",
   };
   ws?.send(JSON.stringify(notification));
 }
@@ -360,7 +369,8 @@ async function handleCttPrompt(
     }
   }
 
-  // No automatic handler - don't respond, let user input win the race
+  // No automatic handler - notify orchestrator so it can cancel in CI mode
+  sendNoHandlerNotification();
 }
 
 async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
