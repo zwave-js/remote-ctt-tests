@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, spawnSync, ChildProcess } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
@@ -105,6 +105,7 @@ class ProcessManager {
   private runnerHost?: RunnerHost;
   private deviceProxy?: CTTDeviceProxy;
   private isCleaningUp = false;
+  private hasTestFailures = false;
 
   /**
    * Load PID file data if it exists
@@ -458,8 +459,9 @@ class ProcessManager {
 
   /**
    * Run specific tests by name
+   * @returns true if all tests passed, false otherwise
    */
-  async runTests(testNames: string[]): Promise<void> {
+  async runTests(testNames: string[]): Promise<boolean> {
     console.log(`Running ${testNames.length} test(s)...\n`);
 
     const startTime = Date.now();
@@ -487,9 +489,12 @@ class ProcessManager {
       for (const test of failed) {
         console.log(c.red(`   - ${test.name} (${test.result})`));
       }
+      this.hasTestFailures = true;
     }
     console.log(c.dim(`⏱  Total time: ${minutes}m ${seconds}s`));
     console.log("=".repeat(50));
+
+    return failed.length === 0;
   }
 
   /**
@@ -684,9 +689,10 @@ class ProcessManager {
     const { pid, process: proc } = managedProcess;
 
     if (pid && process.platform === "win32") {
-      // On Windows, use taskkill to kill the process tree
+      // On Windows, use taskkill to kill the process tree synchronously
+      // to ensure cleanup completes before exit
       try {
-        spawn("taskkill", ["/pid", pid.toString(), "/T", "/F"], {
+        spawnSync("taskkill", ["/pid", pid.toString(), "/T", "/F"], {
           stdio: "ignore",
         });
       } catch (error) {
@@ -747,29 +753,14 @@ class ProcessManager {
     // Clean up PID file on successful shutdown
     this.deletePidFile();
 
-    process.exit(0);
+    // Exit with non-zero code if any tests failed
+    process.exit(this.hasTestFailures ? 1 : 0);
   }
 
   setupExitHandlers(): void {
     // Handle various exit signals
     process.on("SIGINT", () => this.cleanup()); // Ctrl+C
     process.on("SIGTERM", () => this.cleanup()); // Termination signal
-
-    process.on("exit", () => {
-      // Synchronous kill on exit
-      for (const managedProcess of this.processes) {
-        const { pid } = managedProcess;
-        if (pid && process.platform === "win32") {
-          try {
-            require("child_process").execSync(`taskkill /pid ${pid} /T /F`, {
-              stdio: "ignore",
-            });
-          } catch (error) {
-            // Ignore errors on exit
-          }
-        }
-      }
-    });
 
     // Handle uncaught errors
     process.on("uncaughtException", (error) => {
