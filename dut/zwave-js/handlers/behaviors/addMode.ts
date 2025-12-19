@@ -4,28 +4,22 @@ import {
 } from "alcalzone-shared/deferred-promise";
 import { registerHandler } from "../../prompt-handlers.ts";
 import { InclusionStrategy, type InclusionOptions } from "zwave-js";
-import { SecurityClass } from "@zwave-js/core";
 import { wait } from "alcalzone-shared/async";
 
-export const FORCE_S0 = "force_s0";
 const PIN_PROMISE = "pin promise";
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
-    if (/Include.+into the DUT network/i.test(ctx.promptText)) {
-      // This is an empty prompt, just click Ok to proceed
-      return "Ok";
-    }
-
-    // Auto-click Ok for "observe the DUT" prompts
-    if (ctx.promptText.toLowerCase().includes("activate the add mode")) {
-      const { driver, state } = ctx;
+    // Handle ACTIVATE_NETWORK_MODE for ADD mode
+    if (
+      ctx.message?.type === "ACTIVATE_NETWORK_MODE" &&
+      ctx.message.mode === "ADD"
+    ) {
+      const { driver, state, message } = ctx;
       state.set(PIN_PROMISE, createDeferredPromise<string>());
 
-      const forceS0 = state.get(FORCE_S0) === true;
       let inclusionOptions: InclusionOptions;
-      if (forceS0) {
-        state.delete(FORCE_S0);
+      if (message.forceS0) {
         inclusionOptions = {
           strategy: InclusionStrategy.Security_S0,
         };
@@ -73,17 +67,14 @@ registerHandler(/.*/, {
   },
 
   onLog: async (ctx) => {
-    const pinPromise = ctx.state.get(PIN_PROMISE) as
-      | DeferredPromise<string>
-      | undefined;
-    if (!pinPromise) return;
+    if (ctx.message?.type === "S2_PIN_CODE") {
+      const pinPromise = ctx.state.get(PIN_PROMISE) as
+        | DeferredPromise<string>
+        | undefined;
+      if (!pinPromise) return;
 
-    const match = ctx.logText.match(/PIN( Code)?: (?<pin>\d{5})/i);
-    const pin = match?.groups?.pin;
-    if (pin) {
-      console.log("Detected PIN code:", pin);
-      pinPromise.resolve(pin);
-      // handled
+      console.log("Detected PIN code:", ctx.message.pin);
+      pinPromise.resolve(ctx.message.pin);
       return true;
     }
   },

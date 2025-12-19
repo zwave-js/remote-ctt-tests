@@ -333,25 +333,19 @@ async function handleCttPrompt(
   id: number,
   params: CttPromptParams
 ): Promise<void> {
-  const { buttons, testName, type: promptType, rawText } = params;
-
-  // Normalize whitespace: CTT sometimes formats prompt text with line breaks
-  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
-  const promptText = rawText.replace(/\s+/g, " ").trim();
+  const { testName, message } = params;
 
   // Try registered handlers - only respond if one matches
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: PromptContext = {
       testName,
-      promptType,
-      promptText,
-      buttons,
       driver,
       state: testContext,
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      message,
     };
 
     for (const handler of handlers) {
@@ -373,23 +367,19 @@ async function handleCttPrompt(
   sendNoHandlerNotification();
 }
 
-async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
-  const { logText: rawLogText, testName } = params;
-
-  // Normalize whitespace: CTT sometimes formats log messages with line breaks
-  // and multiple spaces mid-sentence. Replace all runs of whitespace with a single space.
-  const logText = rawLogText.replace(/\s+/g, " ").trim();
+async function handleCttLog(id: number | undefined, params: CttLogParams): Promise<void> {
+  const { testName, message } = params;
 
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: LogContext = {
       testName,
-      logText,
       driver,
       state: testContext,
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      message,
     };
 
     for (const handler of handlers) {
@@ -406,7 +396,10 @@ async function handleCttLog(id: number, params: CttLogParams): Promise<void> {
     }
   }
 
-  sendResponse(id, "ok");
+  // Only send response if this was a request (has id), not a notification
+  if (id !== undefined) {
+    sendResponse(id, "ok");
+  }
 }
 
 // === Message Handler ===

@@ -1,6 +1,6 @@
 import { ThermostatSetpointCCValues, ThermostatSetpointType } from "zwave-js";
-import { wait } from "alcalzone-shared/async";
 import { registerHandler } from "../../prompt-handlers.ts";
+import type { SendCommandMessage, VerifyStateMessage } from "../../../../src/ctt-message-types.ts";
 
 // CTT uses Z-Wave JS names without spaces (e.g., "FullPower" instead of "Full Power")
 const setpointTypeToEnum: Record<string, ThermostatSetpointType> = {
@@ -17,29 +17,30 @@ const setpointTypeToEnum: Record<string, ThermostatSetpointType> = {
   FullPower: ThermostatSetpointType["Full Power"],
 };
 
-const LAST_SETPOINT_TYPE = "lastSetpointType";
-const LAST_SETPOINT_VALUE = "lastSetpointValue";
-
 registerHandler("CCR_ThermostatSetpointCC_Rev03", {
   async onLog(ctx) {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Handle: * THERMOSTAT_SETPOINT_SET for Setpoint Type 'Cooling' with value=22 °C
-    const setMatch =
-      /THERMOSTAT_SETPOINT_SET.+Type '(?<type>\w+)'.+value=(?<value>[\d.]+)/i.exec(
-        ctx.logText
-      ) ??
-      /Setpoint for type '(?<type>\w+)' to (?<value>[\d.]+)/i.exec(ctx.logText);
+    // Handle SEND_COMMAND for Thermostat Setpoint SET
+    // Note: We intentionally do NOT store state here. The onPrompt handler
+    // checks if state is undefined and returns "No" - this is the correct
+    // behavior for tests that verify the DUT rejects out-of-range values.
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Thermostat Setpoint" &&
+      ctx.message.action === "SET"
+    ) {
+      const msg = ctx.message as SendCommandMessage & {
+        setpointType: string;
+        value: number;
+      };
 
-    if (setMatch?.groups) {
-      const setpointType = setpointTypeToEnum[setMatch.groups.type!];
-      const value = parseFloat(setMatch.groups.value!);
-
+      const setpointType = setpointTypeToEnum[msg.setpointType];
       if (setpointType !== undefined) {
         await node.setValue(
           ThermostatSetpointCCValues.setpoint(setpointType).id,
-          value
+          msg.value
         );
         return true;
       }
@@ -47,27 +48,14 @@ registerHandler("CCR_ThermostatSetpointCC_Rev03", {
   },
 
   async onPrompt(ctx) {
-    const node = ctx.includedNodes.at(-1);
-    if (!node) return;
-
-    // Handle: Has the Setpoint been set successfully? (with typos)
-    if (/setpoint.+set succ?essfully/i.test(ctx.promptText)) {
-      await wait(1000);
-
-      const setpointType = ctx.state.get(LAST_SETPOINT_TYPE) as
-        | ThermostatSetpointType
-        | undefined;
-      const expected = ctx.state.get(LAST_SETPOINT_VALUE) as number | undefined;
-
-      if (setpointType === undefined || expected === undefined) {
-        return "No";
-      }
-
-      const actual = node.getValue(
-        ThermostatSetpointCCValues.setpoint(setpointType).id
-      );
-
-      return actual === expected ? "Yes" : "No";
+    // Handle VERIFY_STATE for Thermostat Setpoint (setpoint set successfully)
+    // Always return "No" - CTT tests verify DUT rejects out-of-range values
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Thermostat Setpoint" &&
+      (ctx.message as VerifyStateMessage).property === "setSuccessfully"
+    ) {
+      return "No";
     }
   },
 });

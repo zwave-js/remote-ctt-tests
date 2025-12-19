@@ -1,30 +1,43 @@
-import { WindowCoveringCCValues } from "zwave-js";
+import { WindowCoveringCCValues, Duration } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
-import { parseDurationFromLog } from "../utils.ts";
 import { wait } from "alcalzone-shared/async";
+import type {
+  SendCommandMessage,
+  StartStopLevelChangeMessage,
+  VerifyStateMessage,
+  DurationValue,
+} from "../../../../src/ctt-message-types.ts";
+
+// Helper to convert DurationValue to zwave-js Duration
+function toDuration(duration: DurationValue): Duration {
+  if (duration === "default") {
+    return Duration.default();
+  }
+  return new Duration(duration.value, duration.unit);
+}
 
 registerHandler("CCR_WindowCoveringCC_Rev02", {
   async onLog(ctx) {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // * WINDOW_COVERING_SET for Parameter 'OutRightPosition' (ID = 3)
-    // with value = 50 (0x32), i. e. hardware level = '51%',
-    // and duration = factory default (0xFF)
-    const setMatch =
-      /WINDOW_COVERING_SET.+\(ID = (?<param>\d+)\).+value = (?<value>\d+).+duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
-        ctx.logText
-      );
-    if (setMatch?.groups) {
-      const param = parseInt(setMatch.groups.param!);
-      const value = parseInt(setMatch.groups.value!);
-      const duration = parseDurationFromLog(
-        setMatch.groups.unit!,
-        setMatch.groups.duration
-      );
+    // Handle SEND_COMMAND for Window Covering SET
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Window Covering" &&
+      ctx.message.action === "SET"
+    ) {
+      const msg = ctx.message as SendCommandMessage & {
+        paramId: number;
+        value: number;
+        duration?: DurationValue;
+      };
 
-      node.setValue(WindowCoveringCCValues.targetValue(param).id, value, {
-        transitionDuration: duration,
+      const transitionDuration =
+        msg.duration !== undefined ? toDuration(msg.duration) : undefined;
+
+      node.setValue(WindowCoveringCCValues.targetValue(msg.paramId).id, msg.value, {
+        transitionDuration,
       });
 
       return true;
@@ -35,64 +48,53 @@ registerHandler("CCR_WindowCoveringCC_Rev02", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    //  Verify level change for parameter 'OutBottomPosition' (13) with duration = factory default (0xFF)
-    //     1.  Click 'OK' to start test sequence.
-    //     2.  Start level change with Direction = 'DOWN' and wait a little moment. (CL:006A.01.31.03.1)
-    //     3.  Stop level change. (CL:006A.01.31.04.1)
+    // Handle START_STOP_LEVEL_CHANGE for Window Covering
     if (
-      ctx.promptText.includes("Click 'OK'") &&
-      ctx.promptText.includes("Start level change") &&
-      ctx.promptText.includes("Stop level change")
+      ctx.message?.type === "START_STOP_LEVEL_CHANGE" &&
+      ctx.message.commandClass === "Window Covering"
     ) {
-      const directionMatch = /Direction\s+=\s+'(?<direction>\w+)'/i.exec(
-        ctx.promptText
-      )?.groups?.direction;
-      const paramMatch = /parameter '\w+' \((?<param>\d+)\)/i.exec(
-        ctx.promptText
-      )?.groups?.param;
-      const durationMatch =
-        /duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
-          ctx.promptText
-        )?.groups;
+      const msg = ctx.message as StartStopLevelChangeMessage & {
+        paramId: number;
+        direction: "up" | "down";
+      };
 
-      if (directionMatch && paramMatch) {
-        const parameter = parseInt(paramMatch);
-        const direction = directionMatch.toLowerCase() === "up" ? "up" : "down";
-        const duration = durationMatch?.unit
-          ? parseDurationFromLog(durationMatch.unit, durationMatch.duration)
-          : undefined;
+      const duration = msg.duration ? toDuration(msg.duration) : undefined;
 
-        setTimeout(async () => {
-          await node.commandClasses["Window Covering"].startLevelChange(
-            parameter,
-            direction,
-            duration
-          );
+      setTimeout(async () => {
+        await node.commandClasses["Window Covering"].startLevelChange(
+          msg.paramId,
+          msg.direction,
+          duration
+        );
 
-          await wait(1000);
+        await wait(1000);
 
-          await node.commandClasses["Window Covering"].stopLevelChange(
-            parameter
-          );
-        }, 250);
+        await node.commandClasses["Window Covering"].stopLevelChange(msg.paramId);
+      }, 250);
 
-        return "Ok";
-      }
+      return "Ok";
     }
 
-    // Is the current level for Paramter = 'OutBottomPosition' (ID = 13) set to Z-Wave value = 0 (0x00), i. e. hardware level = 'closed', in the DUT's UI?
-    const currentValueMatch =
-      /current level.+\(ID = (?<param>\d+)\).+value = (?<level>\d+)/i.exec(
-        ctx.promptText
-      );
-    if (currentValueMatch?.groups) {
-      const param = parseInt(currentValueMatch.groups.param!);
-      const expectedLevel = parseInt(currentValueMatch.groups.level!);
-      const actual = node.getValue(
-        WindowCoveringCCValues.currentValue(param).id
-      );
+    // Handle VERIFY_STATE for Window Covering current value
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Window Covering"
+    ) {
+      const msg = ctx.message as VerifyStateMessage;
+      // property is in format "param_X" where X is the param ID
+      const paramMatch = /param_(\d+)/.exec(msg.property || "");
+      if (paramMatch) {
+        const param = parseInt(paramMatch[1]!);
+        const expectedLevel =
+          typeof msg.expected === "number"
+            ? msg.expected
+            : parseInt(String(msg.expected));
+        const actual = node.getValue(
+          WindowCoveringCCValues.currentValue(param).id
+        );
 
-      return actual === expectedLevel ? "Yes" : "No";
+        return actual === expectedLevel ? "Yes" : "No";
+      }
     }
   },
 });

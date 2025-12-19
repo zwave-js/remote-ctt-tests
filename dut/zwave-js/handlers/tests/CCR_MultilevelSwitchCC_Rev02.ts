@@ -1,44 +1,34 @@
-import { MultilevelSwitchCCValues } from "zwave-js";
+import { MultilevelSwitchCCValues, Duration } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
-import { parseDurationFromLog } from "../utils.ts";
 import { wait } from "alcalzone-shared/async";
+import type {
+  StartStopLevelChangeMessage,
+  VerifyStateMessage,
+  DurationValue,
+} from "../../../../src/ctt-message-types.ts";
+
+// Helper to convert DurationValue to zwave-js Duration
+function toDuration(duration: DurationValue): Duration {
+  if (duration === "default") {
+    return Duration.default();
+  }
+  return new Duration(duration.value, duration.unit);
+}
 
 registerHandler("CCR_MultilevelSwitchCC_Rev02", {
   async onPrompt(ctx) {
-    // Testing optional level change:
-    //     * Direction   = up
-    //     * Start Level = 5 (0x05), i. e. hardware level = 5%
-    //     * Duration    = 20 seconds
-    // -----------------------------------------------------------------------
-    // 1.  Click 'OK' to start test sequence!
-    // 2.  Start level change up (with increasing brightness) and wait a little moment.
-    // 3.  Stop level change.
+    const node = ctx.includedNodes.at(-1);
+    if (!node) return;
 
+    // Handle START_STOP_LEVEL_CHANGE for Multilevel Switch
     if (
-      ctx.promptText.includes("Click 'OK'") &&
-      ctx.promptText.includes("Start level change") &&
-      ctx.promptText.includes("Stop level change")
+      ctx.message?.type === "START_STOP_LEVEL_CHANGE" &&
+      ctx.message.commandClass === "Multilevel Switch"
     ) {
-      const directionMatch = /Direction\s+=\s+(?<direction>\w+)/i.exec(
-        ctx.promptText
-      )?.groups?.direction;
-      const startLevelMatch = /Start Level\s+=\s+(?<startLevel>\d+)/i.exec(
-        ctx.promptText
-      )?.groups?.startLevel;
-      const durationMatch =
-        /Duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
-          ctx.promptText
-        )?.groups;
-      const node = ctx.includedNodes.at(-1);
-      if (!node || !directionMatch) return;
-
-      const startLevel = startLevelMatch
-        ? parseInt(startLevelMatch)
-        : undefined;
-      const duration = durationMatch?.unit
-        ? parseDurationFromLog(durationMatch.unit, durationMatch.duration)
-        : undefined;
-      const direction = directionMatch.toLowerCase() === "up" ? "up" : "down";
+      const msg = ctx.message as StartStopLevelChangeMessage;
+      const startLevel = msg.startLevel;
+      const duration = msg.duration ? toDuration(msg.duration) : undefined;
+      const direction = (msg as { direction: "up" | "down" }).direction;
 
       setTimeout(async () => {
         await node.commandClasses["Multilevel Switch"].startLevelChange(
@@ -64,14 +54,16 @@ registerHandler("CCR_MultilevelSwitchCC_Rev02", {
       return "Ok";
     }
 
-    //  Is the current level set to Z-Wave value = 13 (0x0D), i. e. hardware level = 13%, in the DUT's UI?
-    const currentValueMatch =
-      /current level set to.+value = (?<level>\d+)/i.exec(ctx.promptText);
-    if (currentValueMatch?.groups) {
-      const node = ctx.includedNodes.at(-1);
-      if (!node) return;
-
-      const expectedLevel = parseInt(currentValueMatch.groups.level!);
+    // Handle VERIFY_STATE for current level
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Multilevel Switch"
+    ) {
+      const msg = ctx.message as VerifyStateMessage;
+      const expectedLevel =
+        typeof msg.expected === "number"
+          ? msg.expected
+          : parseInt(String(msg.expected));
       const actual = node.getValue(MultilevelSwitchCCValues.currentValue.id);
       return actual === expectedLevel ? "Yes" : "No";
     }

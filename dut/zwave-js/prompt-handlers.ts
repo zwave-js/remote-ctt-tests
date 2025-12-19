@@ -13,12 +13,14 @@ import type {
   ZWaveNotificationCallback,
 } from "zwave-js";
 import type { CommandClasses } from "@zwave-js/core";
+import type { DUTMessage } from "../../src/ctt-message-types.ts";
 
 // === Types ===
 
 export type NodeNotificationArgs = Parameters<ZWaveNotificationCallback>[2];
 
-export interface BaseContext {
+// Base context without message (for test start)
+interface BaseContext {
   testName: string;
   driver: Driver;
   state: Map<string, unknown>;
@@ -34,17 +36,15 @@ export interface BaseContext {
   }[];
 }
 
-export interface PromptContext extends BaseContext {
-  promptType: string;
-  promptText: string;
-  buttons: string[];
+// Context with required message (for prompts and logs)
+export interface HandlerContext extends BaseContext {
+  message: DUTMessage;
 }
 
-export interface TestStartContext extends BaseContext {}
-
-export interface LogContext extends BaseContext {
-  logText: string;
-}
+// Aliases for clarity in handler signatures
+export type PromptContext = HandlerContext;
+export type LogContext = HandlerContext;
+export type TestStartContext = BaseContext;
 
 export type PromptResponse = "Ok" | "Cancel" | "Yes" | "No" | "Open" | "Skip";
 

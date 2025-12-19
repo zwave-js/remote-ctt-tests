@@ -1,3 +1,6 @@
+import { registerHandler } from "../../prompt-handlers.ts";
+import type { OpenUIMessage } from "../../../../src/ctt-message-types.ts";
+
 export const UI_CONTEXT = "ui_context";
 
 export interface UIContext {
@@ -13,23 +16,27 @@ export function getUIContext(ctx: {
 }
 
 /**
- * Try to capture UI context from the given prompt text.
- * Call this from handlers that respond to prompts containing UI context info.
+ * Set UI context from an OPEN_UI message.
  */
-export function captureUIContext(
-  promptText: string,
+export function setUIContextFromMessage(
+  message: OpenUIMessage,
   state: Map<string, unknown>
 ): void {
-  // Pattern: "visit the X Command Class visualisation for node Y"
-  const match =
-    /visit the (?<cc>[\w\s]+) Command Class visuali[sz]ation for node (?<nodeId>\d+)/i.exec(
-      promptText
-    );
-
-  if (match?.groups) {
+  if (message.commandClass && message.nodeId) {
     state.set(UI_CONTEXT, {
-      commandClass: match.groups.cc.trim(),
-      nodeId: parseInt(match.groups.nodeId),
+      commandClass: message.commandClass,
+      nodeId: message.nodeId,
     } satisfies UIContext);
   }
 }
+
+// Handler for OPEN_UI messages - captures context and responds Ok
+registerHandler(/.*/, {
+  onPrompt: async (ctx) => {
+    if (ctx.message?.type === "OPEN_UI") {
+      setUIContextFromMessage(ctx.message, ctx.state);
+      return "Ok";
+    }
+    return undefined;
+  },
+});

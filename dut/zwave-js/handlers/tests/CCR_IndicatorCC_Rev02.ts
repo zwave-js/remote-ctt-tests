@@ -1,5 +1,3 @@
-import { BasicCCValues, CommandClass, SubsystemType } from "zwave-js";
-import { CommandClasses } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler("CCR_IndicatorCC_Rev02", {
@@ -7,7 +5,12 @@ registerHandler("CCR_IndicatorCC_Rev02", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    if (/INDICATOR_SET to identify node/i.test(ctx.logText)) {
+    // Handle SEND_COMMAND for Indicator IDENTIFY
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Indicator" &&
+      ctx.message.action === "IDENTIFY"
+    ) {
       node.commandClasses.Indicator.identify();
       return true;
     }

@@ -4,25 +4,27 @@ import {
   EntryControlEventTypes,
   type ZWaveNotificationCallbackArgs_EntryControlCC,
 } from "zwave-js";
+import type { SendCommandMessage } from "../../../../src/ctt-message-types.ts";
 
 registerHandler("CCR_EntryControlCC_Rev03", {
   async onLog(ctx) {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Handle: * ENTRY_CONTROL_CONFIGURATION_SET with KeyCacheSize = 16 and KeyCacheTimeout = 5
-    const configSetMatch =
-      /ENTRY_CONTROL_CONFIGURATION_SET.+KeyCacheSize\s*=\s*(?<size>\d+).+KeyCacheTimeout\s*=\s*(?<timeout>\d+)/i.exec(
-        ctx.logText
-      );
-
-    if (configSetMatch?.groups) {
-      const keyCacheSize = parseInt(configSetMatch.groups.size!, 10);
-      const keyCacheTimeout = parseInt(configSetMatch.groups.timeout!, 10);
+    // Handle SEND_COMMAND for Entry Control SET_CONFIG
+    if (
+      ctx.message.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Entry Control" &&
+      ctx.message.action === "SET_CONFIG"
+    ) {
+      const msg = ctx.message as SendCommandMessage & {
+        keyCacheSize: number;
+        keyCacheTimeout: number;
+      };
 
       await node.commandClasses["Entry Control"].setConfiguration(
-        keyCacheSize,
-        keyCacheTimeout
+        msg.keyCacheSize,
+        msg.keyCacheTimeout
       );
       return true;
     }
@@ -32,14 +34,12 @@ registerHandler("CCR_EntryControlCC_Rev03", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Does the UI show a received Entry Control Notification event with Event Type 'Enter' and Event Data 'DummyEventData'?
-    const notificationMatch =
-      /UI show.+Entry Control Notification.+Event Type '(?<eventType>[^']+)'.+Event Data '(?<eventData>[^']+)'/i.exec(
-        ctx.promptText
-      );
-    if (notificationMatch?.groups) {
-      const eventType = notificationMatch.groups.eventType!;
-      const eventData = notificationMatch.groups.eventData!;
+    // Handle VERIFY_NOTIFICATION for Entry Control
+    if (
+      ctx.message.type === "VERIFY_NOTIFICATION" &&
+      ctx.message.commandClass === "Entry Control"
+    ) {
+      const { eventType, eventData } = ctx.message;
 
       const events = ctx.nodeNotifications.find(
         (n) => n.ccId === CommandClasses["Entry Control"]
