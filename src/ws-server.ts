@@ -178,10 +178,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
           // Forward log to runner for handler processing (strip colors for plain text matching)
           if (runnerHost && coloredOutput && (testName || currentTestName)) {
-            runnerHost.handleCttLog({
-              logText: stripCttColors(logOutput),
-              testName: testName || currentTestName || '',
-            }).catch((error) => {
+            runnerHost.handleCttLog(
+              stripCttColors(logOutput),
+              testName || currentTestName || ''
+            ).catch((error) => {
               console.error('[Log] Failed to forward to runner:', error);
             });
           }
@@ -284,14 +284,13 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
             // Wait for either user input or runner handler response
             try {
-              const result = await runnerHost.promptForResponse(userPrompt, {
-                type: msgType,
-                rawText: stripCttColors(content),
-                buttons,
-                testName: testCase.TestCaseName || currentTestName || '',
-              });
+              const result = await runnerHost.promptForResponse(
+                userPrompt,
+                stripCttColors(content),
+                testCase.TestCaseName || currentTestName || ''
+              );
 
-              if (result.source === 'runner') {
+              if (result.source === 'auto') {
                 // Auto-handler responded
                 process.stdout.write('\r\x1b[K');
                 console.log(`[Auto] ${result.value}`);

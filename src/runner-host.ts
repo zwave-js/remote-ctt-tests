@@ -24,6 +24,8 @@ import {
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
+import { parseLog, parsePrompt } from "./ctt-parser.ts";
+import type { OrchestratorState } from "./ctt-message-types.ts";
 import { cancelTestRun } from "./ctt-client.ts";
 import c from "ansi-colors";
 import * as readline from "readline";
@@ -53,6 +55,9 @@ export class RunnerHost {
   private runnerSocket?: WebSocket;
   private runnerName: string = "Unknown Runner";
 
+  // Test context for parsing (reset per test)
+  private testContext: OrchestratorState = {};
+
   private messageId = 0;
   private pendingRequests = new Map<
     number,
@@ -65,7 +70,7 @@ export class RunnerHost {
   // Readline interface for user input prompts
   private rl?: readline.Interface;
   private activePrompt?: {
-    resolve: (result: { source: "runner" | "user"; value: string }) => void;
+    resolve: (result: { source: "user" | "auto"; value: string }) => void;
     ipcRequestId: number;
   };
 
@@ -82,9 +87,14 @@ export class RunnerHost {
       output: process.stdout,
     });
 
+    // Start with input paused - only resume when waiting for prompt
+    process.stdin.pause();
+
     // Persistent listener - dispatches to active prompt if any
     this.rl.on("line", (input) => {
       if (this.activePrompt) {
+        // Pause input immediately to prevent double-firing
+        process.stdin.pause();
         this.activePrompt.resolve({ source: "user", value: input.trim() });
         this.activePrompt = undefined;
       }
@@ -115,7 +125,7 @@ export class RunnerHost {
    * Start the Z-Wave driver/server in the runner
    */
   async start(params: StartParams): Promise<void> {
-    const response = await this.sendRequest("start", params);
+    const response = await this.sendRequest("start", params as unknown as Record<string, unknown>);
     if (response !== "ok") {
       throw new Error(`Runner start failed: ${response}`);
     }
@@ -133,10 +143,25 @@ export class RunnerHost {
   }
 
   /**
-   * Handle a CTT log message by forwarding to the runner
+   * Handle a CTT log message by parsing and forwarding to the runner
    */
-  async handleCttLog(params: CttLogParams): Promise<void> {
-    await this.sendRequest("handleCttLog", params);
+  async handleCttLog(logText: string, testName: string): Promise<void> {
+    // Normalize whitespace: CTT sometimes formats with line breaks and multiple spaces
+    const normalizedText = logText.replace(/\s+/g, " ").trim();
+
+    // Parse the log to extract structured message or state updates
+    const result = parseLog(normalizedText, this.testContext);
+
+    if (result.action === "modify_context") {
+      // Modify test context (e.g., forceS0 flag)
+      this.testContext = { ...this.testContext, ...result.stateUpdate };
+      // No message to send to DUT
+    } else if (result.action === "send_to_dut") {
+      // Send structured message to runner
+      const params: CttLogParams = { testName, message: result.message };
+      await this.sendRequest("handleCttLog", params as unknown as Record<string, unknown>);
+    }
+    // action === "none" - nothing to send to runner
   }
 
   /**
@@ -144,7 +169,9 @@ export class RunnerHost {
    */
   async testCaseStarted(testName: string): Promise<void> {
     const params: TestCaseStartedParams = { testName };
-    await this.sendRequest("testCaseStarted", params);
+    await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
+    // Reset orchestrator state for new test
+    this.testContext = {};
   }
 
   /**
@@ -153,22 +180,52 @@ export class RunnerHost {
    */
   async promptForResponse(
     userPromptText: string,
-    params: CttPromptParams
-  ): Promise<{ source: "runner" | "user"; value: string }> {
-    // Create deferred promise
-    let resolve: (result: { source: "runner" | "user"; value: string }) => void;
-    const promise = new Promise<{ source: "runner" | "user"; value: string }>((res) => {
+    rawText: string,
+    testName: string
+  ): Promise<{ source: "user" | "auto"; value: string }> {
+    // Normalize whitespace: CTT sometimes formats with line breaks and multiple spaces
+    const normalizedText = rawText.replace(/\s+/g, " ").trim();
+
+    // Parse the prompt to check for auto-answers or structured messages
+    const parseResult = parsePrompt(normalizedText, this.testContext);
+
+    // Handle orchestrator auto-answers (no DUT involvement)
+    if (parseResult.action === "auto_answer") {
+      return { source: "auto", value: parseResult.answer };
+    }
+
+    // Handle send_to_dut with optional auto-answer
+    if (parseResult.action === "send_to_dut" && parseResult.answer) {
+      // Send message to DUT (fire-and-forget, no response expected)
+      if (this.runnerSocket?.readyState === WebSocket.OPEN) {
+        const params: CttLogParams = { testName, message: parseResult.message };
+        this.runnerSocket.send(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            method: "handleCttLog", // Use log handler since no response needed
+            params,
+          })
+        );
+      }
+      return { source: "auto", value: parseResult.answer };
+    }
+
+    // Create deferred promise for response
+    let resolve: (result: { source: "user" | "auto"; value: string }) => void;
+    const promise = new Promise<{ source: "user" | "auto"; value: string }>((res) => {
       resolve = res;
     });
 
-    // Show prompt to user
+    // Show prompt to user and resume stdin for input
     process.stdout.write(userPromptText);
+    process.stdin.resume();
 
-    // Send to runner (fire-and-forget, response resolves deferred if it comes)
-    const ipcRequestId = ++this.messageId;
-    this.activePrompt = { resolve: resolve!, ipcRequestId };
+    // Only send to runner if we have a structured message
+    if (parseResult.action === "send_to_dut" && this.runnerSocket?.readyState === WebSocket.OPEN) {
+      const ipcRequestId = ++this.messageId;
+      this.activePrompt = { resolve: resolve!, ipcRequestId };
 
-    if (this.runnerSocket?.readyState === WebSocket.OPEN) {
+      const params: CttPromptParams = { testName, message: parseResult.message };
       this.runnerSocket.send(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -177,11 +234,26 @@ export class RunnerHost {
           params,
         })
       );
+    } else {
+      // No message to send - only user can respond
+      this.activePrompt = { resolve: resolve!, ipcRequestId: -1 };
     }
 
     // Wait for either user input or runner response
     const result = await promise;
     this.activePrompt = undefined;
+
+    // Clear consumed state after successful response
+    if (parseResult.action === "send_to_dut") {
+      const msg = parseResult.message;
+      if (this.testContext.forceS0 && msg.type === "ACTIVATE_NETWORK_MODE" && msg.mode === "ADD") {
+        this.testContext = { ...this.testContext, forceS0: undefined };
+      }
+      if (this.testContext.recommendationContext && msg.type === "SHOULD_DISREGARD_RECOMMENDATION") {
+        this.testContext = { ...this.testContext, recommendationContext: undefined };
+      }
+    }
+
     return result;
   }
 
@@ -392,7 +464,9 @@ export class RunnerHost {
     if (isSuccessResponse(msg)) {
       // Check if this is a response to the active prompt
       if (this.activePrompt?.ipcRequestId === msg.id) {
-        this.activePrompt.resolve({ source: "runner", value: msg.result });
+        // Pause stdin to prevent buffered input from affecting next prompt
+        process.stdin.pause();
+        this.activePrompt.resolve({ source: "auto", value: msg.result });
         this.activePrompt = undefined;
         return;
       }

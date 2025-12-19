@@ -20,7 +20,11 @@ registerHandler(/.*/, {
   },
 
   onPrompt: async (ctx) => {
-    if (ctx.promptText.toLowerCase().includes("activate the remove mode")) {
+    // Handle ACTIVATE_NETWORK_MODE for REMOVE mode
+    if (
+      ctx.message?.type === "ACTIVATE_NETWORK_MODE" &&
+      ctx.message.mode === "REMOVE"
+    ) {
       const { driver } = ctx;
 
       await driver.controller.beginExclusion();

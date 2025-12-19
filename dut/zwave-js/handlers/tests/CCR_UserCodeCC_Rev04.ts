@@ -1,5 +1,6 @@
 import { UserIDStatus, KeypadMode } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import type { SendCommandMessage } from "../../../../src/ctt-message-types.ts";
 
 const statusNameToEnum: Record<string, UserIDStatus> = {
   enabled: UserIDStatus.Enabled,
@@ -21,67 +22,52 @@ registerHandler("CCR_UserCodeCC_Rev04", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Set User ID 'X' ... to User ID Status 'Y' with User Code 'Z'
-    const setMatch =
-      /Set User ID '(?<userId>\d+)'.*User ID Status '(?<status>[^']+)'.*User Code '(?<code>[^']+)'/i.exec(
-        ctx.logText
-      );
-    if (setMatch?.groups) {
-      const userId = parseInt(setMatch.groups.userId!);
-      const status = statusNameToEnum[setMatch.groups.status!.toLowerCase()];
-      const code = setMatch.groups.code;
-      if (status !== undefined) {
-        // @ts-expect-error This API has pretty conditional types
-        await node.commandClasses["User Code"].set(userId, status, code);
+    // Handle SEND_COMMAND for User Code CC
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "User Code"
+    ) {
+      const msg = ctx.message as SendCommandMessage;
+
+      if (msg.action === "SET" || msg.action === "ADD") {
+        const { userId, status, code } = msg as {
+          userId: number;
+          status: string;
+          code: string;
+        };
+        const statusEnum = statusNameToEnum[status.toLowerCase()];
+        if (statusEnum !== undefined) {
+          // @ts-expect-error This API has pretty conditional types
+          await node.commandClasses["User Code"].set(userId, statusEnum, code);
+          return true;
+        }
+      }
+
+      if (msg.action === "CLEAR") {
+        const { userId } = msg as { userId: number };
+        await node.commandClasses["User Code"].clear(userId);
         return true;
       }
-    }
 
-    // Add a new User Code (first available User ID is 'X')
-    const addMatch =
-      /Add a new User Code.*first available User ID is '(?<userId>\d+)'.*User ID Status '(?<status>[^']+)'.*User Code '(?<code>[^']+)'/i.exec(
-        ctx.logText
-      );
-    if (addMatch?.groups) {
-      const userId = parseInt(addMatch.groups.userId!);
-      const status = statusNameToEnum[addMatch.groups.status!.toLowerCase()];
-      const code = addMatch.groups.code;
-      if (status !== undefined) {
-        // @ts-expect-error This API has pretty conditional types
-        await node.commandClasses["User Code"].set(userId, status, code);
+      if (msg.action === "SET_KEYPAD_MODE") {
+        const { mode } = msg as { mode: string };
+        const modeEnum = keypadModeNameToEnum[mode.toLowerCase()];
+        if (modeEnum !== undefined) {
+          await node.commandClasses["User Code"].setKeypadMode(modeEnum);
+          return true;
+        }
+      }
+
+      if (msg.action === "SET_ADMIN_CODE") {
+        const { code } = msg as { code: string };
+        await node.commandClasses["User Code"].setAdminCode(code);
         return true;
       }
-    }
 
-    // Erase User ID 'X'
-    const eraseMatch = /Erase User ID '(?<userId>\d+)'/i.exec(ctx.logText);
-    if (eraseMatch?.groups) {
-      const userId = parseInt(eraseMatch.groups.userId!);
-      await node.commandClasses["User Code"].clear(userId);
-      return true;
-    }
-
-    // Set Keypad mode to 'X'
-    const keypadMatch = /Set Keypad mode to '(?<mode>\w+)'/i.exec(ctx.logText);
-    if (keypadMatch?.groups) {
-      const mode = keypadModeNameToEnum[keypadMatch.groups.mode!.toLowerCase()];
-      if (mode !== undefined) {
-        await node.commandClasses["User Code"].setKeypadMode(mode);
+      if (msg.action === "DISABLE_ADMIN_CODE") {
+        await node.commandClasses["User Code"].setAdminCode("");
         return true;
       }
-    }
-
-    // Set Admin Code to 'X'
-    const adminMatch = /Set Admin Code to '(?<code>[^']+)'/i.exec(ctx.logText);
-    if (adminMatch?.groups) {
-      await node.commandClasses["User Code"].setAdminCode(adminMatch.groups.code!);
-      return true;
-    }
-
-    // Disable Admin Code
-    if (/Disable Admin Code/i.test(ctx.logText)) {
-      await node.commandClasses["User Code"].setAdminCode("");
-      return true;
     }
   },
 });

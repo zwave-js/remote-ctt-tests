@@ -1,22 +1,19 @@
 import { InterviewStage } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
-import { captureUIContext } from "./uiContext.ts";
+import { UI_CONTEXT, type UIContext } from "./uiContext.ts";
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
-    if (
-      /wait for (the )?(node )?interview to (be )?finish(ed)?/i.test(
-        ctx.promptText
-      ) ||
-      /inclusion (process )?(has )?finish(ed)?/i.test(ctx.promptText) ||
-      /inclusion.+finished.+click(ing)?.+OK/i.test(ctx.promptText) ||
-      /Inclusion and interview passed.+click 'OK'/i.test(ctx.promptText) ||
-      /wait.+dut is ready/i.test(ctx.promptText)
-    ) {
+    if (ctx.message?.type === "WAIT_FOR_INTERVIEW") {
       const { driver } = ctx;
 
-      // Capture UI context before responding (e.g., "visit the Basic Command Class visualisation")
-      captureUIContext(ctx.promptText, ctx.state);
+      // Capture embedded UI context if present
+      if (ctx.message.uiContext) {
+        ctx.state.set(UI_CONTEXT, {
+          commandClass: ctx.message.uiContext.commandClass,
+          nodeId: ctx.message.uiContext.nodeId,
+        } satisfies UIContext);
+      }
 
       if (
         ctx.includedNodes.at(-1)?.interviewStage === InterviewStage.Complete

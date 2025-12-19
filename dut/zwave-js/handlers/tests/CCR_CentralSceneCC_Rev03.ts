@@ -1,6 +1,7 @@
-import { CentralSceneCCValues, CentralSceneKeys, CommandClass } from "zwave-js";
+import { CentralSceneCCValues, CentralSceneKeys } from "zwave-js";
 import { CommandClasses } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
+import type { VerifyStateMessage, VerifySceneMessage } from "../../../../src/ctt-message-types.ts";
 
 const keyMapping: Record<string, CentralSceneKeys> = {
   "Key Pressed 1 time": CentralSceneKeys.KeyPressed,
@@ -33,25 +34,31 @@ registerHandler("CCR_CentralSceneCC_Rev03", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    const numberOfScenesMatch =
-      /the number of supported.+is (?<numScenes>\d+)/i.exec(ctx.promptText);
-    if (numberOfScenesMatch?.groups) {
-      const expectedNumScenes = parseInt(numberOfScenesMatch.groups.numScenes!);
+    // Handle VERIFY_STATE for scene count
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Central Scene" &&
+      ctx.message.property === "sceneCount"
+    ) {
+      const msg = ctx.message as VerifyStateMessage;
+      const expectedNumScenes =
+        typeof msg.expected === "number"
+          ? msg.expected
+          : parseInt(String(msg.expected));
       const actual = node.getValue(CentralSceneCCValues.sceneCount.id);
       return actual === expectedNumScenes ? "Yes" : "No";
     }
 
-    const sceneChangedMatch =
-      /has the scene.*?(?<sceneId>\d+).+to '(?<expected>.*?)'/i.exec(
-        ctx.promptText
-      );
-    if (sceneChangedMatch?.groups) {
-      const sceneId = parseInt(sceneChangedMatch.groups.sceneId!);
-      const expectedRaw = sceneChangedMatch.groups.expected!;
-      const expected = keyMapping[expectedRaw]!;
+    // Handle VERIFY_SCENE
+    if (ctx.message?.type === "VERIFY_SCENE") {
+      const msg = ctx.message as VerifySceneMessage;
+      const expected = keyMapping[msg.expectedKeyState]!;
 
-      const sceneEvents = ctx.state.get(SCENE_EVENTS) as Map<number, CentralSceneKeys>;
-      const actual = sceneEvents.get(sceneId);
+      const sceneEvents = ctx.state.get(SCENE_EVENTS) as Map<
+        number,
+        CentralSceneKeys
+      >;
+      const actual = sceneEvents.get(msg.sceneId);
 
       console.log("expected value: ", CentralSceneKeys[expected]);
       console.log(

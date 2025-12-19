@@ -5,6 +5,8 @@
  * via WebSocket using these JSON-RPC message formats.
  */
 
+import type { DUTMessage } from "./ctt-message-types.ts";
+
 // === Base JSON-RPC Types ===
 
 interface JsonRpcMessage {
@@ -40,17 +42,15 @@ export interface StartParams {
 // === CTT Prompt Parameters ===
 
 export interface CttPromptParams {
-  type: string; // "YesNo", "OkCancel", "WaitForDutResponse", etc.
-  rawText: string; // The prompt content/message
-  buttons: string[]; // Available button options
-  testName: string; // Name of the test case
+  testName: string;
+  message: DUTMessage;
 }
 
 // === CTT Log Parameters ===
 
 export interface CttLogParams {
-  logText: string; // The log message content
-  testName: string; // Name of the test case
+  testName: string;
+  message: DUTMessage;
 }
 
 // === Test Case Started Parameters ===
