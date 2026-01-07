@@ -18,6 +18,7 @@ import type {
   TrySetConfigParameterMessage,
   ShouldDisregardRecommendationMessage,
   TriggerReInterviewMessage,
+  QueryUserCodesMessage,
   VerifyIndicatorIdentifyMessage,
   OrchestratorState,
   DUTCapabilityId,
@@ -923,6 +924,25 @@ export function parsePrompt(
       nodeId: parseInt(reInterviewMatch.groups.nodeId!),
     };
     return { action: "send_to_dut", message, answer: "Ok" };
+  }
+
+  // QUERY_USER_CODES - Request specific user codes without full re-interview
+  // Matches: "trigger an interview...without deleting user codes...User IDs = '1', '50' and '11111'"
+  if (/trigger an interview.+without deleting user codes.+from User IDs/i.test(promptText)) {
+    // Extract all user IDs from the prompt (e.g., '1', '50', '11111')
+    const userIdPattern = /'(\d+)'/g;
+    const userIds: number[] = [];
+    let match;
+    while ((match = userIdPattern.exec(promptText)) !== null) {
+      userIds.push(parseInt(match[1]!));
+    }
+    if (userIds.length > 0) {
+      const message: QueryUserCodesMessage = {
+        type: "QUERY_USER_CODES",
+        userIds,
+      };
+      return { action: "send_to_dut", message, answer: "Ok" };
+    }
   }
 
   // VERIFY_INDICATOR_IDENTIFY

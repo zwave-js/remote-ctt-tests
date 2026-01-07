@@ -1,6 +1,9 @@
 import { UserIDStatus, KeypadMode } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
-import type { SendCommandMessage } from "../../../../src/ctt-message-types.ts";
+import type {
+  SendCommandMessage,
+  QueryUserCodesMessage,
+} from "../../../../src/ctt-message-types.ts";
 
 const statusNameToEnum: Record<string, UserIDStatus> = {
   enabled: UserIDStatus.Enabled,
@@ -68,6 +71,18 @@ registerHandler("CCR_UserCodeCC_Rev04", {
         await node.commandClasses["User Code"].setAdminCode("");
         return true;
       }
+    }
+
+    // Handle QUERY_USER_CODES - query specific user codes without full re-interview
+    if (ctx.message?.type === "QUERY_USER_CODES") {
+      const msg = ctx.message as QueryUserCodesMessage;
+      const userCodeCC = node.commandClasses["User Code"];
+
+      // Query each user ID in sequence
+      for (const userId of msg.userIds) {
+        await userCodeCC.get(userId);
+      }
+      return true;
     }
   },
 });

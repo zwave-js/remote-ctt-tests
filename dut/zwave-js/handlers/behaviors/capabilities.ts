@@ -25,8 +25,11 @@ const dutCapabilityResponses: Record<
   CONTROLS_UNLISTED_CCS: "No",
   ALL_DOCUMENTED_AS_CONTROLLED: "Yes",
   PARTIAL_CONTROL_DOCUMENTED: (ctx) => {
-    // Entry Control CC is marked as partial control in the certification portal
-    if (ctx.testName.includes("CCR_EntryControlCC")) {
+    // Entry Control CC and User Code CC is marked as partial control in the certification portal
+    if (
+      ctx.testName.includes("CCR_EntryControlCC") ||
+      ctx.testName.includes("CCR_UserCodeCC")
+    ) {
       return "Yes";
     }
     return "No";
@@ -103,7 +106,9 @@ registerHandler(/.*/, {
       const key: CCCapabilityKey = `${commandClass}:${capabilityId}`;
       const response = ccCapabilityResponses[key];
       if (response !== undefined) {
-        return typeof response === "function" ? response(ctx.message) : response;
+        return typeof response === "function"
+          ? response(ctx.message)
+          : response;
       }
     }
 

@@ -608,6 +608,15 @@ export interface TriggerReInterviewMessage {
 }
 
 // =============================================================================
+// QUERY_USER_CODES - Query specific user codes without full re-interview
+// =============================================================================
+
+export interface QueryUserCodesMessage {
+  type: "QUERY_USER_CODES";
+  userIds: number[];
+}
+
+// =============================================================================
 // VERIFY_INDICATOR_IDENTIFY - Check if identify event was received
 // =============================================================================
 
@@ -637,6 +646,7 @@ export type DUTMessage =
   | TrySetConfigParameterMessage
   | ShouldDisregardRecommendationMessage
   | TriggerReInterviewMessage
+  | QueryUserCodesMessage
   | VerifyIndicatorIdentifyMessage;
 
 // =============================================================================
