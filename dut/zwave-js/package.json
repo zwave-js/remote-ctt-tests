@@ -10,7 +10,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@zwave-js/server": "^3.5.0",
     "alcalzone-shared": "^5.0.0",
     "ws": "^8.18.0",
     "zwave-js": "^15.19.0"

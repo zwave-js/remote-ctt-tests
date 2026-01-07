@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 7
+    },
+    "auditLog": "C:\\Repositories\\remote-ctt-tests\\dut\\zwave-js-server\\log\\zwave-js.log_logrotate.json",
+    "files": [
+        {
+            "date": 1767793719775,
+            "name": "C:\\Repositories\\remote-ctt-tests\\dut\\zwave-js-server\\log\\zwave-js.log_2026-01-07.log",
+            "hash": "584a1fdac33cafa949948f09fe0a76d403d8c3d2624e32db7b2f2b0971494b8a"
+        }
+    ],
+    "hashType": "sha256"
+}

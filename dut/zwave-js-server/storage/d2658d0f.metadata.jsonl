@@ -1,0 +1,78 @@
+{"k":"{\"nodeId\":1,\"commandClass\":114,\"endpoint\":0,\"property\":\"manufacturerId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Manufacturer ID"}}
+{"k":"{\"nodeId\":1,\"commandClass\":114,\"endpoint\":0,\"property\":\"productType\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product type"}}
+{"k":"{\"nodeId\":1,\"commandClass\":114,\"endpoint\":0,\"property\":\"productId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product ID"}}
+{"k":"{\"nodeId\":1,\"commandClass\":134,\"endpoint\":0,\"property\":\"firmwareVersions\"}","v":{"type":"string[]","readable":true,"writeable":false,"label":"Z-Wave chip firmware versions"}}
+{"k":"{\"nodeId\":1,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":1,\"commandClass\":134,\"endpoint\":0,\"property\":\"sdkVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"SDK version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":114,\"endpoint\":0,\"property\":\"productId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product ID"}}
+{"k":"{\"nodeId\":24,\"commandClass\":114,\"endpoint\":0,\"property\":\"productType\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product type"}}
+{"k":"{\"nodeId\":24,\"commandClass\":114,\"endpoint\":0,\"property\":\"manufacturerId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Manufacturer ID"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"hardwareVersion\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Z-Wave chip hardware version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"firmwareVersions\"}","v":{"type":"string[]","readable":true,"writeable":false,"label":"Z-Wave chip firmware versions"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"protocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"libraryType\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Library type","states":{"0":"Unknown","1":"Static Controller","2":"Controller","3":"Enhanced Slave","4":"Slave","5":"Installer","6":"Routing Slave","7":"Bridge Controller","8":"Device under Test","9":"N/A","10":"AV Remote","11":"AV Device"}}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application build number"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol build number"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API build number"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API build number"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkAPIVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":134,\"endpoint\":0,\"property\":\"sdkVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"SDK version"}}
+{"k":"{\"nodeId\":24,\"commandClass\":121,\"endpoint\":0,\"property\":\"defaultToneId\"}","v":{"type":"number","readable":true,"writeable":true,"min":1,"max":5,"label":"Default tone ID","states":{"1":"Tone 1 (6 sec)","2":"Tone 2 (7 sec)","3":"Tone 3 (8 sec)","4":"Tone 4 (9 sec)","5":"Tone 5 (10 sec)"}}}
+{"k":"{\"nodeId\":24,\"commandClass\":121,\"endpoint\":0,\"property\":\"defaultVolume\"}","v":{"type":"number","readable":true,"writeable":true,"min":0,"max":100,"unit":"%","label":"Default volume"}}
+{"k":"{\"nodeId\":24,\"commandClass\":121,\"endpoint\":0,\"property\":\"toneId\"}","v":{"type":"number","readable":true,"writeable":true,"min":0,"max":5,"label":"Play Tone","valueChangeOptions":["volume"],"states":{"0":"off","1":"Tone 1 (6 sec)","2":"Tone 2 (7 sec)","3":"Tone 3 (8 sec)","4":"Tone 4 (9 sec)","5":"Tone 5 (10 sec)","255":"default"}}}
+{"k":"{\"nodeId\":26,\"commandClass\":114,\"endpoint\":0,\"property\":\"productId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product ID"}}
+{"k":"{\"nodeId\":26,\"commandClass\":114,\"endpoint\":0,\"property\":\"productType\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product type"}}
+{"k":"{\"nodeId\":26,\"commandClass\":114,\"endpoint\":0,\"property\":\"manufacturerId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Manufacturer ID"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"hardwareVersion\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Z-Wave chip hardware version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"firmwareVersions\"}","v":{"type":"string[]","readable":true,"writeable":false,"label":"Z-Wave chip firmware versions"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"protocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"libraryType\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Library type","states":{"0":"Unknown","1":"Static Controller","2":"Controller","3":"Enhanced Slave","4":"Slave","5":"Installer","6":"Routing Slave","7":"Bridge Controller","8":"Device under Test","9":"N/A","10":"AV Remote","11":"AV Device"}}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application build number"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol build number"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API build number"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API build number"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkAPIVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":134,\"endpoint\":0,\"property\":\"sdkVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"SDK version"}}
+{"k":"{\"nodeId\":26,\"commandClass\":64,\"endpoint\":0,\"property\":\"mode\"}","v":{"type":"number","readable":true,"writeable":true,"min":0,"max":255,"states":{"0":"Off","1":"Heat","13":"Away","31":"Manufacturer specific"},"label":"Thermostat mode"}}
+{"k":"{\"nodeId\":26,\"commandClass\":64,\"endpoint\":0,\"property\":\"manufacturerData\"}","v":{"type":"buffer","readable":true,"writeable":false,"label":"Manufacturer data"}}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"productId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product ID"}}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"productType\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Product type"}}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"manufacturerId\"}","v":{"type":"number","readable":true,"writeable":false,"min":0,"max":65535,"label":"Manufacturer ID"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hardwareVersion\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Z-Wave chip hardware version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"firmwareVersions\"}","v":{"type":"string[]","readable":true,"writeable":false,"label":"Z-Wave chip firmware versions"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"protocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"libraryType\"}","v":{"type":"number","readable":true,"writeable":false,"label":"Library type","states":{"0":"Unknown","1":"Static Controller","2":"Controller","3":"Enhanced Slave","4":"Slave","5":"Installer","6":"Routing Slave","7":"Bridge Controller","8":"Device under Test","9":"N/A","10":"AV Remote","11":"AV Device"}}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application build number"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Application version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol build number"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave protocol version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API build number"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Serial API version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkBuildNumber\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API build number"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkAPIVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"Z-Wave application framework API version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"sdkVersion\"}","v":{"type":"string","readable":true,"writeable":false,"label":"SDK version"}}
+{"k":"{\"nodeId\":38,\"commandClass\":50,\"endpoint\":0,\"property\":\"value\",\"propertyKey\":65536}","v":{"type":"number","readable":true,"writeable":false,"ccSpecific":{"meterType":1,"scale":0,"rateType":0},"label":"Electric [kWh]","unit":"kWh"}}
+{"k":"{\"nodeId\":38,\"commandClass\":50,\"endpoint\":0,\"property\":\"value\",\"propertyKey\":65536}","v":{"type":"number","readable":true,"writeable":false,"ccSpecific":{"meterType":1,"scale":0,"rateType":0},"label":"Electric [kWh]","unit":"kWh"}}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"productId\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"productType\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":114,\"endpoint\":0,\"property\":\"manufacturerId\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hardwareVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"firmwareVersions\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"protocolVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"libraryType\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationBuildNumber\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolBuildNumber\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"zWaveProtocolVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceBuildNumber\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"hostInterfaceVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkBuildNumber\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"applicationFrameworkAPIVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":134,\"endpoint\":0,\"property\":\"sdkVersion\"}"}
+{"k":"{\"nodeId\":38,\"commandClass\":50,\"endpoint\":0,\"property\":\"value\",\"propertyKey\":65536}"}
