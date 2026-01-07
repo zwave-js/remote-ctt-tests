@@ -6,6 +6,7 @@ import {
   type DoorLockCCConfigurationSetOptions,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import type { SendCommandMessage, VerifyStateMessage } from "../../../../src/ctt-message-types.ts";
 
 const modeNameToEnum: Record<string, DoorLockMode> = {
   unsecured: DoorLockMode.Unsecured,
@@ -22,108 +23,76 @@ registerHandler("CCR_DoorLockCC_Rev02", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Handle: Set Door Lock Operation Mode <mode>
-    const modeMatch = /Set Door Lock Operation Mode (?<mode>\w+)/i.exec(
-      ctx.logText
-    );
-    if (modeMatch?.groups?.mode) {
-      const modeName = modeMatch.groups.mode.toLowerCase();
-      const mode = modeNameToEnum[modeName];
-      if (mode !== undefined) {
-        node.setValue(DoorLockCCValues.targetMode.id, mode);
+    // Handle SEND_COMMAND for Door Lock CC
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Door Lock"
+    ) {
+      const msg = ctx.message as SendCommandMessage;
+
+      if (msg.action === "SET_MODE") {
+        const { mode } = msg as { mode: string };
+        const modeName = mode.toLowerCase();
+        const modeEnum = modeNameToEnum[modeName];
+        if (modeEnum !== undefined) {
+          node.setValue(DoorLockCCValues.targetMode.id, modeEnum);
+          return true;
+        }
+      }
+
+      if (msg.action === "SET_CONFIG") {
+        const {
+          operationType,
+          insideHandles,
+          outsideHandles,
+          lockTimeout,
+          autoRelockTime,
+          holdAndReleaseTime,
+          blockToBlock,
+          twistAssist,
+        } = msg as {
+          operationType: "Constant" | "Timed";
+          insideHandles: [boolean, boolean, boolean, boolean];
+          outsideHandles: [boolean, boolean, boolean, boolean];
+          lockTimeout?: number;
+          autoRelockTime?: number;
+          holdAndReleaseTime?: number;
+          blockToBlock?: boolean;
+          twistAssist?: boolean;
+        };
+
+        const config: DoorLockCCConfigurationSetOptions = {
+          ...(operationType === "Timed"
+            ? {
+                operationType: DoorLockOperationType.Timed,
+                lockTimeoutConfiguration: lockTimeout ?? 0,
+              }
+            : {
+                operationType: DoorLockOperationType.Constant,
+              }),
+          insideHandlesCanOpenDoorConfiguration: insideHandles,
+          outsideHandlesCanOpenDoorConfiguration: outsideHandles,
+        };
+
+        if (autoRelockTime !== undefined) {
+          config.autoRelockTime = autoRelockTime;
+        }
+
+        if (holdAndReleaseTime !== undefined) {
+          config.holdAndReleaseTime = holdAndReleaseTime;
+        }
+
+        if (blockToBlock !== undefined) {
+          config.blockToBlock = blockToBlock;
+        }
+
+        if (twistAssist !== undefined) {
+          config.twistAssist = twistAssist;
+        }
+
+        await node.commandClasses["Door Lock"].setConfiguration(config);
         return true;
       }
-    }
-
-    // Handle: Set Door Lock Configuration (multi-line)
-    if (ctx.logText.includes("Set Door Lock Configuration:")) {
-      const operationType = /Operation Type:\s+'(\w+)'/i.exec(ctx.logText)?.[1];
-      const insideHandle1 = /Inside Handle 1:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const insideHandle2 = /Inside Handle 2:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const insideHandle3 = /Inside Handle 3:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const insideHandle4 = /Inside Handle 4:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const outsideHandle1 = /Outside Handle 1:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const outsideHandle2 = /Outside Handle 2:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const outsideHandle3 = /Outside Handle 3:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const outsideHandle4 = /Outside Handle 4:\s+'(\w+)'/i.exec(
-        ctx.logText
-      )?.[1];
-      const lockTimeout = /Lock Timeout:\s+(\d+)\s+seconds/i.exec(
-        ctx.logText
-      )?.[1];
-      const autoRelockTime = /Auto-relock Time:\s+(\d+)\s+seconds/i.exec(
-        ctx.logText
-      )?.[1];
-      const holdReleaseTime = /Hold&Release Time:\s+(\d+)\s+seconds/i.exec(
-        ctx.logText
-      )?.[1];
-      const blockToBlock = /Block to Block:\s+'(\w+)'/i.exec(ctx.logText)?.[1];
-      const twistAssist = /Twist Assist:\s+'(\w+)/i.exec(ctx.logText)?.[1];
-
-      const isEnabled = (value: string | undefined) =>
-        value?.toLowerCase() === "enabled";
-
-      const lockTimeoutConfiguration = lockTimeout ? parseInt(lockTimeout) : 0;
-
-      const config: DoorLockCCConfigurationSetOptions = {
-        ...(operationType?.toLowerCase() === "timedoperation"
-          ? {
-              operationType: DoorLockOperationType.Timed,
-              lockTimeoutConfiguration,
-            }
-          : {
-              operationType: DoorLockOperationType.Constant,
-            }),
-        insideHandlesCanOpenDoorConfiguration: [
-          isEnabled(insideHandle1),
-          isEnabled(insideHandle2),
-          isEnabled(insideHandle3),
-          isEnabled(insideHandle4),
-        ],
-        outsideHandlesCanOpenDoorConfiguration: [
-          isEnabled(outsideHandle1),
-          isEnabled(outsideHandle2),
-          isEnabled(outsideHandle3),
-          isEnabled(outsideHandle4),
-        ],
-      };
-
-      if (operationType?.toLowerCase() === "timedoperation" && lockTimeout) {
-        (config as any).lockTimeoutConfiguration = parseInt(lockTimeout);
-      }
-
-      if (autoRelockTime) {
-        config.autoRelockTime = parseInt(autoRelockTime);
-      }
-
-      if (holdReleaseTime) {
-        config.holdAndReleaseTime = parseInt(holdReleaseTime);
-      }
-
-      if (blockToBlock) {
-        config.blockToBlock = isEnabled(blockToBlock);
-      }
-
-      if (twistAssist) {
-        config.twistAssist = isEnabled(twistAssist);
-      }
-
-      await node.commandClasses["Door Lock"].setConfiguration(config);
-      return true;
     }
   },
 
@@ -131,12 +100,13 @@ registerHandler("CCR_DoorLockCC_Rev02", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Handle: check if current mode is set to '<mode>'
-    const modeCheckMatch = /current mode is set to '(?<mode>\w+)'/i.exec(
-      ctx.promptText
-    );
-    if (modeCheckMatch?.groups?.mode) {
-      const expected = modeCheckMatch.groups.mode.toLowerCase();
+    // Handle VERIFY_STATE for current mode
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Door Lock"
+    ) {
+      const msg = ctx.message as VerifyStateMessage;
+      const expected = String(msg.expected).toLowerCase();
       const actual = getEnumMemberName(
         DoorLockMode,
         node.getValue(DoorLockCCValues.currentMode.id) ?? -1

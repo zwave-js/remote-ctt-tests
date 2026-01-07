@@ -1,17 +1,17 @@
-import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
+import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler("CCR_WakeUpCC_Rev02", {
-  onPrompt: async (ctx: PromptContext) => {
-    // We use Supervision for Wake Up Interval Set if supported
+  onPrompt: async (ctx) => {
+    // Handle CC_CAPABILITY_QUERY for Wake Up CC supervision
     if (
-      /used Supervision encapsulation for sending the Wake Up Interval Set/i.test(
-        ctx.promptText
-      )
+      ctx.message?.type === "CC_CAPABILITY_QUERY" &&
+      ctx.message.commandClass === "Wake Up" &&
+      ctx.message.capabilityId === "USES_SUPERVISION"
     ) {
+      // Z-Wave JS uses Supervision for Wake Up Interval Set if supported
       return "Yes";
     }
 
-    // Let other prompts fall through to manual handling
     return undefined;
   },
 });

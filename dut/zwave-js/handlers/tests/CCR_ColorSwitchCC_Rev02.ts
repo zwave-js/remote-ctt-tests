@@ -1,52 +1,55 @@
 import {
   BinarySwitchCCValues,
-  ColorComponent,
   ColorSwitchCCValues,
   MultilevelSwitchCCValues,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 import { wait } from "alcalzone-shared/async";
-
-const colorNameToComponent: Record<string, ColorComponent> = {
-  "Warm White": ColorComponent["Warm White"],
-  "Cold White": ColorComponent["Cold White"],
-  Red: ColorComponent.Red,
-  Green: ColorComponent.Green,
-  Blue: ColorComponent.Blue,
-  Amber: ColorComponent.Amber,
-  Cyan: ColorComponent.Cyan,
-  Purple: ColorComponent.Purple,
-};
+import type {
+  SendCommandMessage,
+  StartStopLevelChangeMessage,
+  VerifyStateMessage,
+} from "../../../../src/ctt-message-types.ts";
 
 registerHandler("CCR_ColorSwitchCC_Rev02", {
   async onLog(ctx) {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // * SWITCH_COLOR_SET for color component 'Green' (ID = 0x03) with value='255.
-    const match =
-      /SWITCH_COLOR_SET.+\(ID = (?<color>(0x)?[a-fA-F0-9]+)\).+value='(?<value>\d+)/i.exec(
-        ctx.logText
-      );
-    if (match?.groups) {
-      const colorComponent = parseInt(match.groups.color!);
-      const value = parseInt(match.groups.value!);
+    // Handle SEND_COMMAND for Color Switch SET
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Color Switch" &&
+      ctx.message.action === "SET"
+    ) {
+      const msg = ctx.message as SendCommandMessage & {
+        colorId: number;
+        value: number;
+      };
 
       await node.setValue(
-        ColorSwitchCCValues.targetColorChannel(colorComponent).id,
-        value
+        ColorSwitchCCValues.targetColorChannel(msg.colorId).id,
+        msg.value
       );
       return true;
     }
 
-    // Please trigger Binary Switch On or Off for the emulated device in the DUT's UI!
-    if (/trigger Binary Switch On or Off/i.test(ctx.logText)) {
+    // Handle SEND_COMMAND for Binary Switch SET (trigger any)
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Binary Switch" &&
+      ctx.message.action === "SET"
+    ) {
       node.setValue(BinarySwitchCCValues.targetValue.id, true);
       return true;
     }
 
-    // Please trigger Multilevel Switch On or Off
-    if (/trigger Multilevel Switch On or Off/i.test(ctx.logText)) {
+    // Handle SEND_COMMAND for Multilevel Switch SET (trigger any)
+    if (
+      ctx.message?.type === "SEND_COMMAND" &&
+      ctx.message.commandClass === "Multilevel Switch" &&
+      ctx.message.action === "SET"
+    ) {
       node.setValue(MultilevelSwitchCCValues.targetValue.id, 99);
       return true;
     }
@@ -56,42 +59,47 @@ registerHandler("CCR_ColorSwitchCC_Rev02", {
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    // Is the current level of color component 'Blue' (ID = 4) set to 130 in the DUT's UI?
-    const levelMatch =
-      /current level.+\(ID = (?<color>(0x)?[a-fA-F0-9]+)\).+set to (?<value>\d+)/i.exec(
-        ctx.promptText
-      );
-    if (levelMatch?.groups) {
-      const colorComponent = parseInt(levelMatch.groups.color!);
-      const expected = parseInt(levelMatch.groups.value!);
-      const actual = node.getValue(
-        ColorSwitchCCValues.currentColorChannel(colorComponent).id
-      );
-      return actual === expected ? "Yes" : "No";
+    // Handle VERIFY_STATE for Color Switch current level
+    if (
+      ctx.message?.type === "VERIFY_STATE" &&
+      ctx.message.commandClass === "Color Switch"
+    ) {
+      const msg = ctx.message as VerifyStateMessage;
+      // property is in format "color_X" where X is the color component ID
+      const colorMatch = /color_(\d+)/.exec(msg.property || "");
+      if (colorMatch) {
+        const colorComponent = parseInt(colorMatch[1]!);
+        const expected =
+          typeof msg.expected === "number"
+            ? msg.expected
+            : parseInt(String(msg.expected));
+        const actual = node.getValue(
+          ColorSwitchCCValues.currentColorChannel(colorComponent).id
+        );
+        return actual === expected ? "Yes" : "No";
+      }
     }
 
-    // Testing level change for color component 'Red' (ID = 0x02)...Click 'OK' to start
+    // Handle START_STOP_LEVEL_CHANGE for Color Switch
     if (
-      /level change for color component/i.test(ctx.promptText) &&
-      /Click 'OK'/i.test(ctx.promptText)
+      ctx.message?.type === "START_STOP_LEVEL_CHANGE" &&
+      ctx.message.commandClass === "Color Switch"
     ) {
-      const colorMatch = /\(ID = (?<color>(0x)?[a-fA-F0-9]+)\)/i.exec(ctx.promptText);
-      if (!colorMatch?.groups) return;
-
-      const colorComponent = parseInt(colorMatch.groups.color!);
+      const msg = ctx.message as StartStopLevelChangeMessage & {
+        colorId: number;
+        direction: "up" | "down";
+      };
 
       setTimeout(async () => {
         await node.commandClasses["Color Switch"].startLevelChange({
-          colorComponent,
-          direction: ctx.promptText.includes("increasing") ? "up" : "down",
+          colorComponent: msg.colorId,
+          direction: msg.direction,
           ignoreStartLevel: true,
         });
 
         await wait(1000);
 
-        await node.commandClasses["Color Switch"].stopLevelChange(
-          colorComponent
-        );
+        await node.commandClasses["Color Switch"].stopLevelChange(msg.colorId);
       }, 250);
 
       return "Ok";

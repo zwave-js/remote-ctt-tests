@@ -1,13 +1,15 @@
-import { registerHandler, type PromptContext } from "../../prompt-handlers.ts";
+import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler("RT_PowerSupply_Rev02", {
-  onPrompt: async (ctx: PromptContext) => {
-    // Auto-click Ok for "observe the DUT" prompts
-    if (ctx.promptText.includes("Is the DUT mains-powered")) {
+  onPrompt: async (ctx) => {
+    // Handle DUT_CAPABILITY_QUERY for MAINS_POWERED
+    if (
+      ctx.message?.type === "DUT_CAPABILITY_QUERY" &&
+      ctx.message.capabilityId === "MAINS_POWERED"
+    ) {
       return "Yes";
     }
 
-    // Let other prompts fall through to manual handling
     return undefined;
   },
 });

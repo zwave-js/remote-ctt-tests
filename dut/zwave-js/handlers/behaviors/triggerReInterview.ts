@@ -1,34 +1,21 @@
 /**
- * Handler for CDR_ZWPv2IndicatorCCRequirements_Rev01 test case
- *
- * This test validates Indicator Command Class requirements.
+ * Handler for triggering capability discovery (re-interview) on a node
  */
 
 import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler(/.*/, {
-  // onTestStart: async ({ driver, state }) => {
-  //   console.log("[IndicatorCC] Test started, setting up handlers...");
-  //   // Set up any driver event listeners needed for this test
-  // },
-
-  onPrompt: async (ctx) => {
-    if (ctx.promptText.includes("trigger a capability discovery")) {
+  onLog: async (ctx) => {
+    if (ctx.message?.type === "TRIGGER_RE_INTERVIEW") {
       const { driver } = ctx;
+      const node = driver.controller.nodes.get(ctx.message.nodeId);
+      if (!node) return;
 
-      const nodeId = /for node (\d+)/.exec(ctx.promptText)?.[1];
-      if (!nodeId) return undefined;
-      const node = driver.controller.nodes.get(parseInt(nodeId));
-      if (!node) return undefined;
-
-      // Trigger re-interview after pressing OK
+      // Trigger re-interview after the orchestrator sends Ok to CTT
       setTimeout(() => {
         node.refreshInfo();
       }, 10);
-      return "Ok";
+      return true; // Stop propagation
     }
-
-    // Let other prompts fall through to manual handling
-    return undefined;
   },
 });

@@ -12,106 +12,80 @@ const boolTrueValues = new Set(["on", "255", "0xff", "0xFF"]);
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
-    // Handle "last known state" confirmation prompts (with optional endpoint)
-    if (
-      ctx.promptText.includes("confirm") &&
-      ctx.promptText.includes("last known state")
-    ) {
-      const match =
-        // Non-greedy if there are '
-        /last known state of (?<cc>[\w\s]+?)(?: (on|to) end ?point (?<endpoint>\d+))? is (Z-Wave value = )?'(?<expected>.*?)'(?: \((?<alt>.+?)\))?/i.exec(
-          ctx.promptText
-        ) ??
-        // Greedy without '
-        /last known state of (?<cc>[\w\s]+?)(?: (on|to) end ?point (?<endpoint>\d+))? is (Z-Wave value = )?(?<expected>\d+)(?: \((?<alt>.+?)\))?/i.exec(
-          ctx.promptText
+    if (ctx.message?.type !== "VERIFY_STATE") return;
+
+    const { commandClass: msgCC, endpoint: msgEndpoint = 0, expected, alternativeValue } = ctx.message;
+
+    // First try to get node from UI context, then fall back to last included node
+    const uiContext = getUIContext(ctx);
+    const node = uiContext
+      ? ctx.includedNodes.find((n) => n.id === uiContext.nodeId)
+      : ctx.includedNodes.at(-1);
+
+    if (!node) return;
+
+    // Use UI context for command class and endpoint when message has "unknown"
+    const commandClass = msgCC === "unknown" && uiContext ? uiContext.commandClass : msgCC;
+    const endpoint = msgCC === "unknown" && uiContext?.endpoint !== undefined ? uiContext.endpoint : msgEndpoint;
+
+    // Help with timing issues. Especially with S0, the CTT seems to ask
+    // before the command is received and processed.
+    await wait(100);
+
+    // Build set of acceptable values
+    const allExpected = new Set<string>();
+    if (typeof expected === "string") {
+      allExpected.add(expected.toLowerCase());
+    } else if (typeof expected === "number") {
+      allExpected.add(String(expected));
+    }
+    if (alternativeValue) {
+      allExpected.add(alternativeValue.toLowerCase());
+    }
+
+    // Determine expected boolean value
+    const expectedBool =
+      allExpected.intersection(boolTrueValues).size > 0
+        ? true
+        : allExpected.intersection(boolFalseValues).size > 0
+        ? false
+        : undefined;
+
+    // Parse expected number
+    const expectedNum =
+      typeof expected === "number"
+        ? expected
+        : typeof expected === "string"
+        ? parseInt(expected)
+        : NaN;
+
+    switch (commandClass) {
+      case "Basic": {
+        // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
+        let targetValue = expectedNum;
+        if (targetValue === 255) targetValue = 99;
+        const actual = node.getValue(BasicCCValues.currentValue.endpoint(endpoint));
+        return actual === targetValue ? "Yes" : "No";
+      }
+      case "Binary Switch": {
+        const actual = node.getValue(
+          BinarySwitchCCValues.currentValue.endpoint(endpoint)
         );
-      if (match?.groups) {
-        const node = ctx.includedNodes.at(-1);
-        if (!node) return;
-
-        const ccName = match.groups["cc"]?.trim();
-        const endpoint = match.groups["endpoint"]
-          ? parseInt(match.groups["endpoint"])
-          : 0;
-        const expected = match.groups["expected"]!;
-        const alt = match.groups["alt"];
-        const allExpected = new Set([expected]);
-        if (alt != undefined) allExpected.add(alt);
-
-        // Make it easier to compare boolean values
-        const expectedBool =
-          allExpected.intersection(boolTrueValues).size > 0
-            ? true
-            : allExpected.intersection(boolFalseValues).size > 0
-            ? false
-            : undefined;
-
-        const expectedNum = parseInt(expected);
-
-        switch (ccName) {
-          case "Binary Switch": {
-            const actual = node.getValue(
-              BinarySwitchCCValues.currentValue.endpoint(endpoint)
-            );
-            return actual === expectedBool ? "Yes" : "No";
-          }
-          case "Multilevel Switch": {
-            const actual = node.getValue(
-              MultilevelSwitchCCValues.currentValue.endpoint(endpoint)
-            );
-            return actual === expectedNum ? "Yes" : "No";
-          }
+        // For Binary Switch, compare with boolean or number > 0
+        if (expectedBool !== undefined) {
+          return actual === expectedBool ? "Yes" : "No";
         }
+        return actual === (expectedNum > 0) ? "Yes" : "No";
+      }
+      case "Multilevel Switch": {
+        const actual = node.getValue(
+          MultilevelSwitchCCValues.currentValue.endpoint(endpoint)
+        );
+        return actual === expectedNum ? "Yes" : "No";
       }
     }
 
-    // Handle "Current State has been set to X" prompts using UI context
-    if (/Current State has been set to/i.test(ctx.promptText)) {
-      const match = /Current State has been set to (?<value>\d+)/i.exec(
-        ctx.promptText
-      );
-      if (match?.groups) {
-        const uiContext = getUIContext(ctx);
-        if (!uiContext) return;
-
-        const node = ctx.includedNodes.find((n) => n.id === uiContext.nodeId);
-        if (!node) return;
-
-        let expectedValue = parseInt(match.groups.value!);
-        const endpoint = uiContext.endpoint ?? 0;
-
-        // Help with timing issues. Especially with S0, the CTT seems to ask
-        // before the command is received and processed.
-        await wait(100);
-
-        switch (uiContext.commandClass) {
-          case "Basic": {
-            // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
-            if (expectedValue === 255) expectedValue = 99;
-            const actual = node.getValue(
-              BasicCCValues.currentValue.endpoint(endpoint)
-            );
-            return actual === expectedValue ? "Yes" : "No";
-          }
-          case "Binary Switch": {
-            const actual = node.getValue(
-              BinarySwitchCCValues.currentValue.endpoint(endpoint)
-            );
-            const expectedBool = expectedValue > 0;
-            return actual === expectedBool ? "Yes" : "No";
-          }
-          case "Multilevel Switch": {
-            const actual = node.getValue(
-              MultilevelSwitchCCValues.currentValue.endpoint(endpoint)
-            );
-            return actual === expectedValue ? "Yes" : "No";
-          }
-        }
-      }
-    }
-
-    // Let other prompts fall through to manual handling
+    // Let other CC types fall through to manual handling
     return undefined;
   },
 });

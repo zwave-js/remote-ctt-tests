@@ -3,135 +3,112 @@ import {
   type PromptContext,
   type PromptResponse,
 } from "../../prompt-handlers.ts";
+import type {
+  DUTCapabilityId,
+  CCCapabilityQueryMessage,
+} from "../../../../src/ctt-message-types.ts";
 
-const questions: {
-  pattern: RegExp;
-  answer: PromptResponse | ((ctx: PromptContext) => PromptResponse);
-}[] = [
-  { pattern: /allows the end user to establish association/i, answer: "No" },
-  { pattern: /(capable|able) to display the last.+state/i, answer: "Yes" },
-  {
-    pattern: /(DUT's UI|current.+state|visuali[sz]ation).+is visible/i,
-    answer: "Ok",
+// DUT capability responses by capabilityId
+const dutCapabilityResponses: Record<
+  DUTCapabilityId,
+  PromptResponse | ((ctx: PromptContext) => PromptResponse)
+> = {
+  ESTABLISH_ASSOCIATION: "No",
+  DISPLAY_LAST_STATE: "Yes",
+  QR_CODE: "Yes",
+  LEARN_MODE: "No",
+  LEARN_MODE_ACCESSIBLE: "No",
+  FACTORY_RESET: "Yes",
+  REMOVE_FAILED_NODE: "Yes",
+  ICON_TYPE_MATCH: "Yes",
+  IDENTIFY_OTHER_PURPOSE: "No",
+  CONTROLS_UNLISTED_CCS: "No",
+  ALL_DOCUMENTED_AS_CONTROLLED: "Yes",
+  PARTIAL_CONTROL_DOCUMENTED: (ctx) => {
+    // Entry Control CC and User Code CC is marked as partial control in the certification portal
+    if (
+      ctx.testName.includes("CCR_EntryControlCC") ||
+      ctx.testName.includes("CCR_UserCodeCC")
+    ) {
+      return "Yes";
+    }
+    return "No";
   },
-  { pattern: /icon type.+match the actual device/i, answer: "Yes" },
-  {
-    pattern: /Does the DUT use the identify command for any other purpose/i,
-    answer: "No",
-  },
-  { pattern: /able to send a Start\/Stop Level Change/i, answer: "Yes" },
-  {
-    pattern: /allow to set a dimming 'Duration' for 'Setting the Level'/i,
-    answer: "Yes",
-  },
-  {
-    pattern:
-      /allow to set a ('Start Level'|dimming 'Duration') for '(Start|Stop) Level Change'/i,
-    answer: "Yes",
-  },
-  {
-    pattern:
-      /activate and deactivate the '(audible|visual) notification' subsystem/i,
-    answer: "Yes",
-  },
-  {
-    pattern: /Does the DUT control.+COMMAND_CLASS_BASIC.+version 1/i,
-    answer: "Yes",
-  },
-  {
-    pattern: /Does the DUT control.+COMMAND_CLASS_INDICATOR.+version 3/i,
-    answer: "Yes",
-  },
-  {
-    pattern: /Does the DUT control.+COMMAND_CLASS_VERSION.+version 2/i,
-    answer: "Yes",
-  },
-  {
-    pattern: /Does the DUT control.+COMMAND_CLASS_WAKE_UP.+version 2/i,
-    answer: "Yes",
-  },
-  { pattern: /provide a QR Code scanning capability/i, answer: "Yes" },
-  { pattern: /can be reset to factory settings/i, answer: "Yes" },
-  { pattern: /Does the DUT support Learn Mode/i, answer: "No" },
-  { pattern: /Is the Learn Mode accessible/i, answer: "No" },
-  { pattern: /lock or unlock the Anti-Theft feature/i, answer: "No" },
-  { pattern: /offering a possibility to remove the failed/i, answer: "Yes" },
+  MAINS_POWERED: "Yes",
+};
 
-  // Command Class Control
-  {
-    pattern: /control any further Command Classes which are not listed/i,
-    answer: "No",
-  },
-  {
-    pattern: /Are all of them correctly documented as controlled/i,
-    answer: "Yes",
-  },
+// CC capability responses by commandClass and capabilityId
+type CCCapabilityKey = `${string}:${string}`;
+const ccCapabilityResponses: Record<
+  CCCapabilityKey,
+  PromptResponse | ((msg: CCCapabilityQueryMessage) => PromptResponse)
+> = {
+  // Multilevel Switch capabilities
+  "Multilevel Switch:START_STOP_LEVEL_CHANGE": "Yes",
+  "Multilevel Switch:SET_DIMMING_DURATION": "Yes",
+  "Multilevel Switch:SET_LEVEL_CHANGE_PARAMS": "Yes",
 
-  // Door Lock
-  {
-    pattern: /configure the door handles of a v[14] supporting end node/i,
-    answer: "Yes",
-  },
+  // Barrier Operator capabilities
+  "Barrier Operator:CONTROL_EVENT_SIGNALING": "Yes",
 
-  // Configuration CC
-  {
-    pattern: /allow to reset one particular configuration parameter/i,
-    answer: "Yes",
-  },
+  // Anti-Theft capabilities
+  "Anti-Theft:LOCK_UNLOCK": "No",
 
-  // Notification CC
-  {
-    pattern:
-      /allow to create rules or commands based on received notifications/i,
-    answer: "Yes",
-  },
-  {
-    pattern: /capability to update its Notification list/i,
-    answer: "Yes",
-  },
+  // Door Lock capabilities
+  "Door Lock:CONFIGURE_DOOR_HANDLES": "Yes",
 
-  // Notification Report verification ready
-  {
-    pattern: /verifies if the DUT displays.+Notification Report.+click 'OK'/i,
-    answer: "Ok",
-  },
+  // Configuration capabilities
+  "Configuration:RESET_SINGLE_PARAM": "Yes",
 
-  // User Code CC
-  { pattern: /able to (modify|erase|add).+User Code/i, answer: "Yes" },
-  { pattern: /able to set the Keypad Mode/i, answer: "Yes" },
-  { pattern: /able to (set|disable).+Admin Code/i, answer: "Yes" },
+  // Notification capabilities
+  "Notification:CREATE_RULES_FROM_NOTIFICATIONS": "Yes",
+  "Notification:UPDATE_NOTIFICATION_LIST": "Yes",
 
-  // Entry Control CC
-  { pattern: /able to configure the keypad/i, answer: "Yes" },
+  // User Code capabilities
+  "User Code:MODIFY_USER_CODE": "Yes",
+  "User Code:SET_KEYPAD_MODE": "Yes",
+  "User Code:SET_ADMIN_CODE": "Yes",
 
-  // Multilevel Sensor CC
-  {
-    pattern: /navigate to '[^']+' on DUT's UI and make '[^']+' scale visible/i,
-    answer: "Ok",
-  },
+  // Entry Control capabilities
+  "Entry Control:CONFIGURE_KEYPAD": "Yes",
+};
 
-  // Generic
-  { pattern: /Retry\?/i, answer: "No" },
-  {
-    pattern: /partial control behavior documented/i,
-    answer: (ctx) => {
-      if (ctx.testName.includes("CCR_EntryControlCC")) {
-        return "Yes"; // Entry Control CC is marked as partial control in the certification portal
-      }
-      return "No";
-    },
-  },
-];
+// CC version control - which CC versions we control
+const controlledCCVersions: Record<string, number[]> = {
+  Basic: [1, 2],
+  Indicator: [1, 2, 3, 4],
+  Version: [1, 2, 3],
+  "Wake Up": [1, 2, 3],
+};
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
-    for (const q of questions) {
-      if (q.pattern.test(ctx.promptText)) {
-        if (typeof q.answer === "function") {
-          return q.answer(ctx);
-        } else {
-          return q.answer;
+    if (ctx.message?.type === "DUT_CAPABILITY_QUERY") {
+      const response = dutCapabilityResponses[ctx.message.capabilityId];
+      if (response !== undefined) {
+        return typeof response === "function" ? response(ctx) : response;
+      }
+    }
+
+    if (ctx.message?.type === "CC_CAPABILITY_QUERY") {
+      const { commandClass, capabilityId } = ctx.message;
+
+      // Special handling for CONTROLS_CC with version
+      if (capabilityId === "CONTROLS_CC" && "version" in ctx.message) {
+        const versions = controlledCCVersions[commandClass];
+        if (versions?.includes(ctx.message.version)) {
+          return "Yes";
         }
+        return "No";
+      }
+
+      // Look up standard capability response
+      const key: CCCapabilityKey = `${commandClass}:${capabilityId}`;
+      const response = ccCapabilityResponses[key];
+      if (response !== undefined) {
+        return typeof response === "function"
+          ? response(ctx.message)
+          : response;
       }
     }
 

@@ -4,197 +4,138 @@ import {
   Duration,
   MultilevelSwitchCCValues,
   SubsystemType,
-  ZWaveNode,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import type {
+  SendCommandMessage,
+  DurationValue,
+} from "../../../../src/ctt-message-types.ts";
 
-// Handler for SET commands with a value and duration
+// Helper to convert DurationValue to zwave-js Duration
+function toDuration(duration: DurationValue): Duration {
+  if (duration === "default") {
+    return Duration.default();
+  }
+  return new Duration(duration.value, duration.unit);
+}
+
+// Handler for SEND_COMMAND messages (from logs - fire and forget)
 registerHandler(/.*/, {
   onLog: async (ctx) => {
-    // Each of those commands is sent as a single log line:
-    const match =
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?:.+Value\s+=\s+(?<targetValue>\d+).+Duration\s+=\s+(?<duration>\d+ )?(?<unit>\w+)/i.exec(
-        ctx.logText
-      );
-    if (!match?.groups) return;
+    if (ctx.message?.type !== "SEND_COMMAND") return;
 
+    const msg = ctx.message as SendCommandMessage;
     const node = ctx.includedNodes.at(-1);
     if (!node) return;
 
-    if (!match.groups["targetValue"] || !match.groups["unit"]) {
-      return;
-    }
+    const endpoint = msg.endpoint ?? 0;
+    const ep = node.getEndpoint(endpoint);
 
-    const endpoint = match.groups["endpoint"]
-      ? parseInt(match.groups["endpoint"])
-      : 0;
-    const targetValue = parseInt(match.groups["targetValue"]!);
-    const durationRaw = parseInt(match.groups["duration"]!);
-    const unit = match.groups["unit"]!;
-    let duration =
-      unit === "instantly"
-        ? new Duration(0, "seconds")
-        : unit.includes("default") || unit.includes("factory")
-        ? Duration.default()
-        : unit === "seconds"
-        ? new Duration(durationRaw, "seconds")
-        : new Duration(durationRaw, "minutes");
-
-    switch (match.groups["cmd"]) {
-      case "SWITCH_MULTILEVEL_SET": {
-        node
-          .getEndpoint(endpoint)
-          ?.commandClasses["Multilevel Switch"].set(targetValue, duration);
-        return true;
+    switch (msg.commandClass) {
+      case "Basic": {
+        if (msg.action === "SET") {
+          const targetValue =
+            msg.targetValue === "any"
+              ? Math.round(Math.random() * 99)
+              : msg.targetValue;
+          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
+          return true;
+        }
+        break;
       }
-    }
 
-    // Let other prompts fall through to manual handling
-    return undefined;
-  },
-});
+      case "Binary Switch": {
+        if (msg.action === "SET") {
+          const targetValue =
+            msg.targetValue === "any" ? Math.random() > 0.5 : msg.targetValue;
+          ep?.commandClasses["Binary Switch"].set(targetValue);
+          node.setValue(
+            BinarySwitchCCValues.targetValue.endpoint(endpoint),
+            targetValue
+          );
+          return true;
+        }
+        break;
+      }
 
-// Handler for SET commands with a specific value.
-// Must come after the ones with a duration so those get parsed correctly
-registerHandler(/.*/, {
-  onLog: async (ctx) => {
-    const node = ctx.includedNodes.at(-1);
-    if (!node) return;
+      case "Multilevel Switch": {
+        if (msg.action === "SET") {
+          const targetValue =
+            msg.targetValue === "any"
+              ? Math.round(Math.random() * 99)
+              : msg.targetValue;
 
-    let match =
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?: \* Z-Wave Value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
-        ctx.logText
-      ) ??
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))? with (target )?value='(?<targetValue>(0x)?[a-fA-F0-9]+)/.exec(
-        ctx.logText
-      ) ??
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?.+value = (?<targetValue>(0x)?[a-fA-F0-9]+)/i.exec(
-        ctx.logText
-      );
+          // Handle duration if specified
+          if (msg.duration !== undefined) {
+            const duration = toDuration(msg.duration);
+            ep?.commandClasses["Multilevel Switch"].set(targetValue, duration);
+          } else {
+            node.setValue(
+              MultilevelSwitchCCValues.targetValue.endpoint(endpoint),
+              targetValue
+            );
+          }
+          return true;
+        }
+        break;
+      }
 
-    if (match?.groups?.["cmd"] && match.groups["targetValue"]) {
-      const endpoint = match.groups["endpoint"]
-        ? parseInt(match.groups["endpoint"])
-        : 0;
-      const targetValue = parseInt(match.groups["targetValue"]!);
-      const ep = node.getEndpoint(endpoint);
-
-      switch (match.groups["cmd"]) {
-        case "BARRIER_OPERATOR_SET":
+      case "Barrier Operator": {
+        if (msg.action === "SET") {
+          const targetValue =
+            msg.targetValue === "Open"
+              ? 0xff
+              : msg.targetValue === "Close"
+              ? 0x00
+              : msg.targetValue;
           ep?.commandClasses["Barrier Operator"].set(targetValue);
           return true;
+        }
 
-        case "BARRIER_OPERATOR_EVENT_SIGNAL_SET":
-          if (ctx.logText.includes("AudibleNotification")) {
-            ep?.commandClasses["Barrier Operator"].setEventSignaling(
-              SubsystemType.Audible,
-              targetValue
-            );
-            return true;
-          }
-
-          if (ctx.logText.includes("VisualNotification")) {
-            ep?.commandClasses["Barrier Operator"].setEventSignaling(
-              SubsystemType.Visual,
-              targetValue
-            );
-            return true;
-          }
-          break;
-
-        case "BASIC_SET": {
-          node.setValue(
-            BasicCCValues.targetValue.endpoint(endpoint),
-            targetValue
+        if (msg.action === "SET_EVENT_SIGNALING") {
+          const subsystem =
+            msg.subsystem === "Audible"
+              ? SubsystemType.Audible
+              : SubsystemType.Visual;
+          ep?.commandClasses["Barrier Operator"].setEventSignaling(
+            subsystem,
+            msg.value
           );
           return true;
         }
+        break;
+      }
 
-        case "SWITCH_BINARY_SET": {
-          node.setValue(
-            BinarySwitchCCValues.targetValue.endpoint(endpoint),
-            targetValue === 0xff
-          );
+      case "any": {
+        // "Send any S2 command" - just send a Basic SET with random value
+        if (msg.action === "any") {
+          node.commandClasses.Basic.set(Math.round(Math.random() * 99));
           return true;
         }
-
-        case "SWITCH_MULTILEVEL_SET": {
-          node.setValue(
-            MultilevelSwitchCCValues.targetValue.endpoint(endpoint),
-            targetValue
-          );
-          return true;
-        }
+        break;
       }
     }
 
-    // * SWITCH_BINARY_SET with any value
-    match =
-      /\* (?<cmd>[A-Z_]+)(?: (to|on) end ?point (?<endpoint>\d+))?.+any value/.exec(
-        ctx.logText
-      );
-    if (match?.groups?.["cmd"]) {
-      const endpoint = match.groups["endpoint"]
-        ? parseInt(match.groups["endpoint"])
-        : 0;
-      const ep = node.getEndpoint(endpoint);
-
-      switch (match.groups["cmd"]) {
-        case "BASIC_SET": {
-          const anyValue = Math.round(Math.random() * 99);
-          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), anyValue);
-          return true;
-        }
-
-        case "SWITCH_BINARY_SET": {
-          const anyValue = Math.random() > 0.5;
-          ep?.commandClasses["Binary Switch"].set(anyValue);
-          node.setValue(
-            BinarySwitchCCValues.targetValue.endpoint(endpoint),
-            anyValue
-          );
-          return true;
-        }
-
-        case "SWITCH_MULTILEVEL_SET": {
-          const anyValue = Math.round(Math.random() * 99);
-          node.setValue(
-            MultilevelSwitchCCValues.targetValue.endpoint(endpoint),
-            anyValue
-          );
-          return true;
-        }
-      }
-    }
-
-    // Let other prompts fall through to manual handling
+    // Let other command types fall through
     return undefined;
   },
-});
 
-registerHandler(/.*/, {
+  // Also handle SEND_COMMAND messages from prompts (some require response after sending)
   onPrompt: async (ctx) => {
-    if (/Prepare the DUT to send any.+command/i.test(ctx.promptText)) {
-      // Nothing to do, just confirm
-      return "Ok";
-    }
+    if (ctx.message?.type !== "SEND_COMMAND") return;
 
-    if (/Click 'OK' and send any S2/i.test(ctx.promptText)) {
-      let node: ZWaveNode | undefined;
-      const nodeIdMatch = /\(Node ID = (?<nodeId>\d+)\)/i.exec(ctx.promptText);
-      if (nodeIdMatch?.groups?.["nodeId"]) {
-        const nodeId = parseInt(nodeIdMatch.groups["nodeId"]!);
-        node = ctx.driver.controller.nodes.get(nodeId);
-      } else {
-        node = ctx.includedNodes.at(-1);
-      }
-      if (!node) return;
+    const msg = ctx.message as SendCommandMessage;
+    const node = ctx.includedNodes.at(-1);
+    if (!node) return;
 
+    // For "any" commands (like "send any S2 command"), send and respond Ok
+    if (msg.commandClass === "any" && msg.action === "any") {
       setTimeout(() => {
-        // Basic CC is always good.
         node.commandClasses.Basic.set(Math.round(Math.random() * 99));
       }, 100);
       return "Ok";
     }
+
+    return undefined;
   },
 });
