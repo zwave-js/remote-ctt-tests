@@ -1,21 +1,14 @@
 # Automation of Z-Wave Certification Tests
 
-This project provides a complete framework for running Z-Wave CTT certification tests against a Controller DUT with device emulation based on the "Open Source" Z-Wave stack.
-
-Since the release of **CTT Remote 4 for Linux**, the whole framework runs natively on Linux — both locally and in CI. Windows contributors can use WSL2.
+This project provides a complete framework for running Z-Wave CTT certification tests against a Controller DUT with device emulation based on the "Open Source" Z-Wave stack. It runs natively on Linux, both locally and in CI.
 
 ## Prerequisites
 
-- **Linux** (Ubuntu/Debian recommended; CI runs on `ubuntu-latest`)
-- **Node.js 24** or later (local development on Node 22 also works; the setup
-  scripts and orchestrator are run with `--experimental-strip-types`)
-- **.NET 10 runtime** — CTT Remote 4 is a framework-dependent .NET 10 app, so the
-  runtime must be installed (it is not bundled):
+- **Linux** (Windows contributors can use WSL2)
+- **Node.js 24** or later
+- **.NET 10 runtime** — required by CTT Remote 4, not bundled:
   ```bash
-  sudo apt-get update && sudo apt-get install -y dotnet-runtime-10.0
-  # or, runtime-only via the official script:
-  curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --runtime dotnet --version 10.0.x
-  dotnet --list-runtimes   # expect: Microsoft.NETCore.App 10.0.x
+  sudo apt-get install -y dotnet-runtime-10.0
   ```
 - **32-bit libraries** — the Z-Wave stack `.elf` binaries are 32-bit x86:
   ```bash
@@ -95,23 +88,12 @@ Install the .NET 10 runtime, the 32-bit libraries, and `python3` as described in
 npm run setup
 ```
 
-This runs all download/unpack scripts in `setup/`:
-
-- `download-zwave-stack.ts` — fetches the latest `*Linux.tar.gz` from
-  [Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries)
-  and extracts the controller + end-device `.elf` into `zwave_stack/bin/`.
-- `download-ctt-archive.ts` — fetches `ctt-setup.zip` from
-  [zwave-js/byoctt](https://github.com/zwave-js/byoctt).
-- `unpack-ctt-archive.ts` — unpacks the CTT 4 apphost into `ctt/bin/`, writes
-  `~/.ctt-4/settings.json` (pointing `KeyStorageFolder` at `ctt/keys/`), and
-  rewrites `ctt/project/Config/ZatsSettings.json`'s `KeysStoragePath` to match.
-- `unpack-network-state-archive.ts` — restores `zwave_stack/storage/` and the DUT
-  storage directory from `setup/network-state.zip`.
-
-The setup scripts are directly executable (shebang + `chmod +x`); you can also run
-them individually, e.g. `./setup/download-zwave-stack.ts`.
-
-If your CTT lives elsewhere, set the `CTT_PATH` environment variable.
+This downloads and unpacks the Z-Wave stack binaries (from
+[Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries))
+into `zwave_stack/bin/`, the CTT package (from
+[zwave-js/byoctt](https://github.com/zwave-js/byoctt)) into `ctt/bin/`, and
+restores the saved network state from `setup/network-state.zip`. The individual
+scripts in `setup/` can also be run directly.
 
 > **Note:** This setup assumes the DUT is a **controller**, which connects to the emulated controller on port 5000. Testing sample applications (end devices) should also be possible but requires copying additional files from the stack binaries, and updating the `zwave_stack/run.sh` script accordingly.
 
@@ -218,12 +200,18 @@ This regenerates `setup/network-state.zip` (emulated-device storage + DUT
 storage), which is committed and used by CI. Regenerate it whenever the network
 state changes.
 
-The CTT package (`ctt-setup.zip`) is **not** built here — it is published as a
-release asset on [zwave-js/byoctt](https://github.com/zwave-js/byoctt) and
-fetched by `download-ctt-archive.ts`. To update it, repackage the CTT Remote 4
-Linux distribution (an `ctt-bin/` directory containing `ZWaveCTT` + DLLs, plus an
-optional `appdata/` seed) into `ctt-setup.zip` and upload it to the byoctt
-release.
+CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo
+downloads it from a private GitHub repository
+([zwave-js/byoctt](https://github.com/zwave-js/byoctt)) via
+`download-ctt-archive.ts`; hosting your own private repo and adapting that script
+is the recommended approach. Whatever the source, `unpack-ctt-archive.ts` expects
+the archive to contain:
+
+```
+ctt-setup.zip
+├── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
+└── appdata/      # optional seed for ~/.ctt-4/ (e.g. a settings.json)
+```
 
 ### Step 10: Git Commit
 
