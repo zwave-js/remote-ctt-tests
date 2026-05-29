@@ -94,6 +94,110 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
   // Track current test case name for detecting test start
   let currentTestName: string | null = null;
+  // Ensure the project-loaded sequence runs at most once
+  let projectLoadHandled = false;
+  // CTT 4 streams all test output via `generalLogMsg`; we parse the verdict from
+  // the text. Set once we see "final Test Result:" until the verdict word lands.
+  let awaitingVerdict = false;
+
+  // CTT verdict keywords (as printed in the log) -> normalized result string.
+  // runTestCases/runTests treat anything other than 'PASSED' as a failure.
+  const VERDICT_RESULTS: Record<string, string> = {
+    pass: 'PASSED',
+    passed: 'PASSED',
+    fail: 'FAILED',
+    failed: 'FAILED',
+    skip: 'SKIPPED',
+    skipped: 'SKIPPED',
+    inconclusive: 'INCONCLUSIVE',
+    aborted: 'ABORTED',
+    cancelled: 'CANCELLED',
+    canceled: 'CANCELLED',
+    na: 'NA',
+  };
+
+  // Emit a synthesized testCaseFinished for the current test (CTT 4 path).
+  const emitTestCaseFinished = (result: string) => {
+    const name = currentTestName ?? 'Unknown';
+    const icon = result === 'PASSED' ? '✓' : '✗';
+    console.log(`\n${icon} ${name}: ${result}`);
+    const testCaseResult: TestCaseResult = {
+      name,
+      endPoint: '0',
+      executionMode: 'Classic',
+      result,
+      isLongRange: false,
+      category: '',
+      group: '',
+    };
+    testCaseEvents.emit('testCaseFinished', testCaseResult);
+    currentTestName = null;
+    awaitingVerdict = false;
+  };
+
+  // Parse a chunk of CTT 4 generalLogMsg output: render it, detect the current
+  // test name, forward to the runner, and synthesize verdicts.
+  const handleGeneralLogOutput = (rawOutput: string) => {
+    const plain = stripCttColors(rawOutput);
+    const lines = plain.split('\n');
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      // Test header: CTT prints the test name twice ("Name Name") between
+      // dashed separator lines. Capture it as the current test.
+      const headerMatch = line.match(/^(\S+)\s+\1$/);
+      const headerName = headerMatch?.[1];
+      if (headerName && headerName !== currentTestName) {
+        currentTestName = headerName;
+        awaitingVerdict = false;
+        if (runnerHost) {
+          runnerHost.testCaseStarted(currentTestName).catch((error) => {
+            console.error('[TestCase] Failed to notify runner of test start:', error);
+          });
+        }
+        continue;
+      }
+
+      // Verdict detection. The marker line and the verdict word can arrive in
+      // the same or in separate messages, so we latch `awaitingVerdict`.
+      if (line.includes('final Test Result:')) {
+        awaitingVerdict = true;
+        continue;
+      }
+      if (awaitingVerdict) {
+        const verdict = VERDICT_RESULTS[line.toLowerCase()];
+        if (verdict) {
+          emitTestCaseFinished(verdict);
+          continue;
+        }
+      }
+    }
+
+    // Render the output for the user (colored), skipping blank lines.
+    const colored = convertCttColorsToAnsi(rawOutput);
+    for (const rawLine of colored.split('\n')) {
+      const out = rawLine.replace(/\s+$/, '');
+      if (out.trim()) console.log(out);
+    }
+
+    // Forward to the runner so its handlers can react (e.g. interactive tests).
+    if (runnerHost && plain.trim()) {
+      runnerHost.handleCttLog(plain, currentTestName ?? '').catch((error) => {
+        console.error('[Log] Failed to forward to runner:', error);
+      });
+    }
+  };
+
+  const handleProjectLoaded = () => {
+    if (projectLoadHandled) return;
+    projectLoadHandled = true;
+    console.log('Project loaded successfully detected!');
+    if (onProjectLoaded) {
+      onProjectLoaded();
+    }
+  };
 
   const wss = new WebSocketServer({ port });
 
@@ -110,7 +214,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         const message = JSON.parse(messageStr);
 
         // Log received messages, except for ones we handle separately
-        const silentMethods = ['testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished', 'closeProjectDone'];
+        const silentMethods = ['generalLogMsg', 'testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished', 'closeProjectDone'];
         if (!silentMethods.includes(message.method)) {
           console.log('Received message:', messageStr);
         }
@@ -120,6 +224,23 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           const result = message.params?.result || 'Unknown';
           console.log(`Project close: ${result}`);
           testCaseEvents.emit('closeProjectDone', { result });
+        }
+
+        // CTT 4 signals project-load completion via a structured `projectLoaded`
+        // method (CTT 3 used a generalLogMsg containing "Project loaded
+        // successfully", handled below for backwards compatibility).
+        if (message.method === 'projectLoaded') {
+          const state = message.params?.state;
+          if (state === 'Success') {
+            handleProjectLoaded();
+          } else if (state === 'Failed') {
+            console.error(
+              `Project failed to load: ${message.params?.msg ?? 'unknown error'}`
+            );
+            if (onFatalError) {
+              onFatalError();
+            }
+          }
         }
 
         // Prepare acknowledgement response (CTT expects this for every message)
@@ -133,17 +254,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           // Emit event for external listeners
           testCaseEvents.emit('generalLogMsg', { output: message.params.output, errorType: message.params.errorType });
 
-          // Check for project loaded success
+          // Check for project loaded success (CTT 3 style)
           if (message.params.errorType === 'None' &&
               message.params.output.includes('Project loaded successfully')) {
-            console.log('Project loaded successfully detected!');
-
-            // // Query and display available test cases
-            // queryTestCases();
-
-            if (onProjectLoaded) {
-              onProjectLoaded();
-            }
+            handleProjectLoaded();
           }
 
           // Check for fatal errors
@@ -154,6 +268,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               onFatalError();
             }
           }
+
+          // CTT 4 streams test logs + verdicts through generalLogMsg: render,
+          // track the current test, forward to the runner, parse the result.
+          handleGeneralLogOutput(message.params.output);
         } else if (message.method === 'testCaseLogMsg') {
           // Log test case output with ANSI colors
           const logOutput = message.params?.logOutput || '';

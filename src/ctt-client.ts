@@ -182,7 +182,7 @@ export async function closeCTT(): Promise<void> {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     // Set up listener for closeProjectDone
-    const closeResult = await new Promise<{ success: boolean }>((resolve) => {
+    const closeResult = await new Promise<{ success: boolean; unreachable?: boolean }>((resolve) => {
       const timeout = setTimeout(() => {
         testCaseEvents.removeListener('closeProjectDone', onClose);
         resolve({ success: false });
@@ -198,15 +198,24 @@ export async function closeCTT(): Promise<void> {
 
       // Send the close request
       const request = createRequest('closeCTT', {});
-      sendRequest(request).catch(() => {
+      sendRequest(request).catch((error: NodeJS.ErrnoException) => {
         clearTimeout(timeout);
         testCaseEvents.removeListener('closeProjectDone', onClose);
-        resolve({ success: false });
+        // CTT not listening on 4711 means it has already closed; treat that as
+        // success rather than retrying for ~15s against a dead endpoint.
+        const unreachable =
+          error?.code === 'ECONNREFUSED' || error?.code === 'ECONNRESET';
+        resolve({ success: false, unreachable });
       });
     });
 
     if (closeResult.success) {
       console.log('[CTT Client] Project closed successfully');
+      return;
+    }
+
+    if (closeResult.unreachable) {
+      console.log('[CTT Client] CTT already closed (not reachable)');
       return;
     }
 
