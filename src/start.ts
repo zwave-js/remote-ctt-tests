@@ -16,9 +16,6 @@ import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
 
-// In CI, Z-Wave stack runs from native WSL filesystem for better performance
-const ZWAVE_STACK_PATH = !!process.env.CI ? "~/zwave_stack" : "./zwave_stack";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -29,7 +26,6 @@ interface PidFileData {
   pids: {
     name: string;
     pid: number;
-    platform: "windows" | "wsl";
   }[];
 }
 
@@ -90,8 +86,7 @@ const DUT_PATH = dutArg
   : path.join(__dirname, "..", config.dut.runnerPath);
 
 const CTT_PATH =
-  process.env.CTT_PATH ||
-  "C:\\Program Files (x86)\\Z-Wave Alliance\\Z-Wave CTT 3";
+  process.env.CTT_PATH || path.join(__dirname, "..", "ctt", "bin");
 
 interface ManagedProcess {
   name: string;
@@ -106,6 +101,13 @@ class ProcessManager {
   private deviceProxy?: CTTDeviceProxy;
   private isCleaningUp = false;
   private hasTestFailures = false;
+  // CTT 4.0.1 beta intermittently aborts during startup with an
+  // ArgumentNullException in its own WebSocket server (a name-resolution race).
+  // Retry launching it until the project loads instead of failing the run.
+  private projectLoaded = false;
+  private cttVerbose = false;
+  private cttLaunchAttempts = 0;
+  private readonly maxCttLaunchAttempts = 5;
 
   /**
    * Load PID file data if it exists
@@ -131,9 +133,6 @@ class ProcessManager {
       .map((p) => ({
         name: p.name,
         pid: p.pid!,
-        platform: p.name.includes("WSL")
-          ? ("wsl" as const)
-          : ("windows" as const),
       }));
 
     // Add runner PID if available
@@ -142,7 +141,6 @@ class ProcessManager {
       pids.push({
         name: `${config.dut.name} Runner`,
         pid: runnerPid,
-        platform: "windows",
       });
     }
 
@@ -178,61 +176,50 @@ class ProcessManager {
    */
   async killOrphanedProcesses(): Promise<void> {
     const pidData = this.loadPidFile();
-    if (!pidData) {
-      return;
-    }
 
-    console.log(c.yellow(`\nFound PID file from ${pidData.startTime}`));
-    console.log(c.yellow("Cleaning up orphaned processes...\n"));
+    if (pidData) {
+      console.log(c.yellow(`\nFound PID file from ${pidData.startTime}`));
+      console.log(c.yellow("Cleaning up orphaned processes...\n"));
 
-    for (const { name, pid, platform } of pidData.pids) {
-      try {
-        if (platform === "wsl") {
-          // Kill WSL process - use wsl kill command
-          console.log(c.dim(`Killing WSL process: ${name} (PID ${pid})`));
-          spawn("wsl", ["kill", "-9", pid.toString()], { stdio: "ignore" });
-        } else {
-          // Kill Windows process
-          console.log(c.dim(`Killing Windows process: ${name} (PID ${pid})`));
-          spawn("taskkill", ["/pid", pid.toString(), "/T", "/F"], {
-            stdio: "ignore",
-          });
+      for (const { name, pid } of pidData.pids) {
+        console.log(c.dim(`Killing process: ${name} (PID ${pid})`));
+        // Kill the whole process group first (negative PID), then the leader,
+        // in case the process did not start its own group.
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // Ignore - group may not exist
         }
-      } catch (error) {
-        // Ignore errors - process may already be dead
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // Ignore - process may already be dead
+        }
       }
+
+      this.deletePidFile();
     }
 
-    // Also kill any Z-Wave processes that might be lingering in WSL
-    try {
-      console.log(
-        c.dim("Cleaning up any lingering Z-Wave processes in WSL...")
-      );
-      spawn("wsl", ["pkill", "-f", "ZW_zwave"], { stdio: "ignore" });
-    } catch (error) {
-      // Ignore
+    // Always sweep lingering stack / CTT processes by name, even when there is
+    // no PID file. A crashed or force-quit run leaves no PID file but can leave
+    // orphans holding the device/RPC ports, which makes a freshly launched CTT
+    // abort ("bind: Address already in use" -> CTT exits with a signal).
+    const before = spawnSync("pgrep", ["-f", "ZW_zwave|ZWaveCTT|zniffer.py"], {
+      encoding: "utf-8",
+    });
+    if (before.stdout && before.stdout.trim()) {
+      console.log(c.yellow("Sweeping lingering Z-Wave / CTT processes...\n"));
     }
+    spawnSync("pkill", ["-9", "-f", "ZW_zwave"], { stdio: "ignore" });
+    spawnSync("pkill", ["-9", "-f", "ZWaveCTT"], { stdio: "ignore" });
+    spawnSync("pkill", ["-9", "-f", "zniffer.py"], { stdio: "ignore" });
 
-    // Kill ZatsTestConsole.exe if it's still running
-    try {
-      console.log(c.dim("Killing any running ZatsTestConsole.exe..."));
-      spawn("taskkill", ["/IM", "ZatsTestConsole.exe", "/F"], {
-        stdio: "ignore",
-      });
-    } catch (error) {
-      // Ignore - process may not be running
-    }
-
-    // Give processes a moment to die
+    // Give the OS a moment to release the ports
     await setTimeout(1000);
-
-    // Clean up the old PID file
-    this.deletePidFile();
-    console.log(c.green("✓ Orphaned processes cleaned up\n"));
   }
 
-  startZWaveStackWSL(): void {
-    console.log("Starting Z-Wave stack in WSL...");
+  startZWaveStack(): void {
+    console.log("Starting Z-Wave stack...");
 
     const timestamp = () => {
       const now = new Date();
@@ -243,32 +230,35 @@ class ProcessManager {
       );
     };
 
-    const proc = spawn("wsl", ["bash", `${ZWAVE_STACK_PATH}/run.sh`], {
+    // Spawn detached so bash becomes a process-group leader; the .elf and
+    // python children can then be killed as a group via the negative PID.
+    const proc = spawn("bash", ["./zwave_stack/run.sh"], {
       cwd: path.join(__dirname, ".."),
       stdio: "pipe",
+      detached: true,
     });
 
     proc.stdout?.on("data", (data) => {
-      console.log(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
+      console.log(`[${timestamp()}] [Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.stderr?.on("data", (data) => {
-      console.error(`[${timestamp()}] [WSL Z-Wave] ${data.toString().trim()}`);
+      console.error(`[${timestamp()}] [Z-Wave] ${data.toString().trim()}`);
     });
 
     proc.on("error", (error) => {
-      console.error("Failed to start Z-Wave stack in WSL:", error);
+      console.error("Failed to start Z-Wave stack:", error);
     });
 
     proc.on("exit", (code) => {
       console.error(
-        `Z-Wave stack WSL process exited with code ${code}, aborting...`
+        `Z-Wave stack process exited with code ${code}, aborting...`
       );
       this.cleanup();
     });
 
     this.processes.push({
-      name: "Z-Wave Stack (WSL)",
+      name: "Z-Wave Stack",
       process: proc,
       pid: proc.pid,
     });
@@ -276,7 +266,7 @@ class ProcessManager {
     // Save PIDs after adding this process
     this.savePidFile();
 
-    console.log("Z-Wave stack started in WSL");
+    console.log("Z-Wave stack started");
   }
 
   async startCTTDeviceProxy(): Promise<void> {
@@ -318,7 +308,6 @@ class ProcessManager {
         respond(Buffer.from([0x06])); // ACK
 
         // Read the private key from the device's manufacturer token storage
-        // Always read from Windows path (in CI, files exist in both places)
         const tokenPath = path.join(
           __dirname,
           "../zwave_stack/storage",
@@ -414,8 +403,10 @@ class ProcessManager {
     }
   }
 
-  startCTTRemote(verbose: boolean = false): ManagedProcess {
-    const cttRemotePath = path.join(CTT_PATH, "CTT-Remote.exe");
+  startCTT(verbose: boolean = false): ManagedProcess {
+    this.cttVerbose = verbose;
+    this.cttLaunchAttempts++;
+    const cttPath = path.join(CTT_PATH, "ZWaveCTT");
     const solutionPath = path.join(
       __dirname,
       "..",
@@ -424,27 +415,77 @@ class ProcessManager {
       "zwave-js.cttsln"
     );
 
-    console.log(`Starting CTT-Remote: ${cttRemotePath} ${solutionPath}`);
+    // -autoUpdateProject lets CTT migrate/update the project's test cases on
+    // load (required when loading a project authored by an older CTT version).
+    const cttArgs = [solutionPath, "-autoUpdateProject"];
 
-    // On Windows, run directly
-    // Hide console output unless verbose mode is enabled
-    const cttProcess = spawn(cttRemotePath, [solutionPath], {
+    console.log(`Starting CTT: ${cttPath} ${cttArgs.join(" ")}`);
+
+    // Always capture CTT's output to a log file (and echo to the console when
+    // verbose). Discarding it with stdio:"ignore" hides the reason CTT dies
+    // (e.g. a .NET exception that aborts the process with SIGABRT).
+    const cttLogPath = path.join(__dirname, "..", "ctt-remote.log");
+    const cttLog = fs.createWriteStream(cttLogPath, { flags: "a" });
+
+    // Spawn detached so CTT becomes a process-group leader and any children
+    // it spawns can be killed as a group.
+    const cttProcess = spawn(cttPath, cttArgs, {
       cwd: CTT_PATH,
-      stdio: verbose ? "inherit" : "ignore",
-      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
     });
+
+    const tee = (
+      stream: NodeJS.ReadableStream | null,
+      out: NodeJS.WriteStream
+    ) => {
+      stream?.on("data", (data: Buffer) => {
+        cttLog.write(data);
+        if (verbose) out.write(data);
+      });
+    };
+    tee(cttProcess.stdout, process.stdout);
+    tee(cttProcess.stderr, process.stderr);
 
     cttProcess.on("error", (error) => {
-      console.error("Failed to start CTT-Remote:", error);
+      console.error("Failed to start CTT:", error);
     });
 
-    cttProcess.on("exit", (code) => {
-      console.error(`CTT-Remote exited with code ${code}, aborting...`);
+    cttProcess.on("exit", (code, signal) => {
+      cttLog.end();
+
+      // Don't react to CTT exiting while we're already tearing down.
+      if (this.isCleaningUp) return;
+
+      const how = `code ${code}${signal ? ` (signal ${signal})` : ""}`;
+
+      // If CTT died before the project finished loading, it almost certainly
+      // hit the known startup race - relaunch it (the stack/devices/runner are
+      // still up) rather than failing the whole run.
+      if (!this.projectLoaded && this.cttLaunchAttempts < this.maxCttLaunchAttempts) {
+        console.error(
+          `CTT exited with ${how} before the project loaded. ` +
+            `Retrying (${this.cttLaunchAttempts}/${this.maxCttLaunchAttempts})... ` +
+            `(CTT output logged to ${cttLogPath})`
+        );
+        // Drop the dead process from the managed list before relaunching.
+        this.processes = this.processes.filter((p) => p.process !== cttProcess);
+        // NOTE: setTimeout here is the promise-based version from
+        // "timers/promises" (see imports), so use .then rather than a callback.
+        void setTimeout(1000).then(() => {
+          if (!this.isCleaningUp) this.startCTT(this.cttVerbose);
+        });
+        return;
+      }
+
+      console.error(
+        `CTT exited with ${how}, aborting... (CTT output logged to ${cttLogPath})`
+      );
       this.cleanup();
     });
 
     const managedProcess: ManagedProcess = {
-      name: "CTT-Remote",
+      name: "CTT",
       process: cttProcess,
       pid: cttProcess.pid,
     };
@@ -623,6 +664,9 @@ class ProcessManager {
       runnerHost: this.runnerHost,
       onFatalError: () => this.cleanup(),
       onProjectLoaded: async () => {
+        // Mark loaded so a later CTT exit is treated as shutdown, not a
+        // startup-race retry.
+        this.projectLoaded = true;
         console.log("\n✓ Project loaded successfully!");
         await setTimeout(1000);
 
@@ -671,15 +715,11 @@ class ProcessManager {
           console.error("Operation failed:", error);
         }
 
-        // Shutdown
-        // Wait before first attempt to let CTT finish processing
+        // Shutdown. Let CTT finish processing, then hand off to cleanup(),
+        // which owns the single cancelTestRun -> closeCTT sequence. (Closing
+        // here as well would leave cleanup() retrying against an already-closed
+        // CTT for ~15s.)
         await setTimeout(3000);
-        console.log("\nShutting down...");
-        try {
-          await closeCTT();
-        } catch (error) {
-          console.warn("Failed to close CTT gracefully:", error);
-        }
         await this.cleanup();
       },
     });
@@ -688,18 +728,21 @@ class ProcessManager {
   killProcess(managedProcess: ManagedProcess): void {
     const { pid, process: proc } = managedProcess;
 
-    if (pid && process.platform === "win32") {
-      // On Windows, use taskkill to kill the process tree synchronously
-      // to ensure cleanup completes before exit
+    // Kill the whole process group (negative PID) so the stack's .elf/python
+    // children die with their bash leader. Fall back to the single process.
+    if (pid) {
       try {
-        spawnSync("taskkill", ["/pid", pid.toString(), "/T", "/F"], {
-          stdio: "ignore",
-        });
+        process.kill(-pid, "SIGTERM");
+      } catch {
+        // Group may not exist (process not detached) - fall through
+      }
+    }
+    if (proc && !proc.killed) {
+      try {
+        proc.kill("SIGTERM");
       } catch (error) {
         console.error(`Error killing ${managedProcess.name}:`, error);
       }
-    } else if (proc && !proc.killed) {
-      proc.kill();
     }
   }
 
@@ -743,9 +786,10 @@ class ProcessManager {
       this.killProcess(managedProcess);
     }
 
-    // Also kill any Z-Wave processes in WSL to be thorough
+    // Also kill any lingering stack / CTT processes by name to be thorough
     try {
-      spawn("wsl", ["pkill", "-f", "ZW_zwave"], { stdio: "ignore" });
+      spawn("pkill", ["-f", "ZW_zwave"], { stdio: "ignore" });
+      spawn("pkill", ["-f", "ZWaveCTT"], { stdio: "ignore" });
     } catch (error) {
       // Ignore
     }
@@ -757,10 +801,55 @@ class ProcessManager {
     process.exit(this.hasTestFailures ? 1 : 0);
   }
 
+  /**
+   * Synchronously force-kill every managed process group (and the runner) plus
+   * any lingering stack/CTT processes. Used as a last resort on a repeated
+   * shutdown signal, where awaiting the graceful CTT close is not acceptable.
+   */
+  private forceKillAll(): void {
+    const pids = this.processes.map((p) => p.pid);
+    const runnerPid = this.runnerHost?.getRunnerPid();
+    if (runnerPid) pids.push(runnerPid);
+
+    for (const pid of pids) {
+      if (!pid) continue;
+      try {
+        process.kill(-pid, "SIGKILL");
+      } catch {
+        // Group may not exist
+      }
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // Already dead
+      }
+    }
+
+    // Synchronous name-based sweep as a safety net
+    spawnSync("pkill", ["-9", "-f", "ZW_zwave"], { stdio: "ignore" });
+    spawnSync("pkill", ["-9", "-f", "ZWaveCTT"], { stdio: "ignore" });
+    this.deletePidFile();
+  }
+
   setupExitHandlers(): void {
-    // Handle various exit signals
-    process.on("SIGINT", () => this.cleanup()); // Ctrl+C
-    process.on("SIGTERM", () => this.cleanup()); // Termination signal
+    let signalCount = 0;
+    const onSignal = (signal: string) => {
+      signalCount++;
+      if (signalCount >= 2) {
+        // Second Ctrl+C: don't wait for the graceful CTT close (which can take
+        // tens of seconds of retries) - force everything down now.
+        console.log(`\nReceived ${signal} again - force quitting.`);
+        this.forceKillAll();
+        process.exit(1);
+      }
+      console.log(
+        `\nReceived ${signal}. Shutting down (press Ctrl+C again to force-quit)...`
+      );
+      this.cleanup();
+    };
+
+    process.on("SIGINT", () => onSignal("SIGINT")); // Ctrl+C
+    process.on("SIGTERM", () => onSignal("SIGTERM")); // Termination signal
 
     // Handle uncaught errors
     process.on("uncaughtException", (error) => {
@@ -784,9 +873,8 @@ async function main() {
     // Kill any orphaned processes from a previous run
     await manager.killOrphanedProcesses();
 
-    // Start Z-Wave stack in WSL
-    console.log("Starting Z-Wave stack in WSL...");
-    manager.startZWaveStackWSL();
+    // Start Z-Wave stack
+    manager.startZWaveStack();
 
     // Give Z-Wave devices a moment to fully initialize
     await setTimeout(2000);
@@ -814,8 +902,8 @@ async function main() {
     // The runner handles CTT prompts via IPC
     manager.startWebSocketServer();
 
-    // Start CTT-Remote
-    manager.startCTTRemote(VERBOSE);
+    // Start CTT
+    manager.startCTT(VERBOSE);
 
     console.log("\nAll services started successfully!");
     console.log("Z-Wave devices available at:");
