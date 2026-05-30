@@ -102,6 +102,11 @@ export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): P
   const pendingTests = new Set(testCaseNames);
 
   const completionPromise = new Promise<TestCaseResult[]>((resolve) => {
+    const cleanup = () => {
+      testCaseEvents.removeListener('testCaseFinished', onTestCaseFinished);
+      testCaseEvents.removeListener('runAborted', onRunAborted);
+    };
+
     const onTestCaseFinished = (result: TestCaseResult) => {
       // Check if this is one of the tests we're waiting for
       if (pendingTests.has(result.name)) {
@@ -109,13 +114,38 @@ export async function runTestCases(options: Partial<TestCaseRequestDTO> = {}): P
         pendingTests.delete(result.name);
 
         if (pendingTests.size === 0) {
-          testCaseEvents.removeListener('testCaseFinished', onTestCaseFinished);
+          cleanup();
           resolve(results);
         }
       }
     };
 
+    // The run was aborted (e.g. CI hit a prompt that can never be answered).
+    // CTT aborts the whole run without emitting a per-test verdict, so without
+    // this we would wait forever for testCaseFinished events that never come.
+    // Mark every still-pending test as ABORTED and resolve.
+    const onRunAborted = ({ reason }: { reason: string }) => {
+      console.warn(
+        `[CTT Client] Test run aborted (${reason}); marking ${pendingTests.size} pending test(s) as ABORTED`
+      );
+      for (const name of pendingTests) {
+        results.push({
+          name,
+          endPoint: '0',
+          executionMode: 'Classic',
+          result: 'ABORTED',
+          isLongRange: false,
+          category: '',
+          group: '',
+        });
+      }
+      pendingTests.clear();
+      cleanup();
+      resolve(results);
+    };
+
     testCaseEvents.on('testCaseFinished', onTestCaseFinished);
+    testCaseEvents.on('runAborted', onRunAborted);
   });
 
   // Start the test cases via RPC
@@ -149,6 +179,14 @@ export async function cancelTestRun(): Promise<void> {
   if (response.error) {
     throw new Error(`RPC Error: ${response.error.message}`);
   }
+}
+
+/**
+ * Aborts the whole test run with the given reason.
+ */
+export async function abortTestRun(reason: string): Promise<void> {
+  testCaseEvents.emit('runAborted', { reason });
+  await cancelTestRun();
 }
 
 export async function resetController(): Promise<unknown> {

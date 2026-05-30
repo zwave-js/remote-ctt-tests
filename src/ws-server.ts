@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
-import { getTestCases } from './ctt-client.ts';
+import { getTestCases, abortTestRun } from './ctt-client.ts';
 import { convertCttColorsToAnsi, stripCttColors } from './ctt-output.ts';
 import type { RunnerHost } from './runner-host.ts';
 
@@ -400,32 +400,70 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               userPrompt = `Select (${options}): `;
             }
 
-            // Wait for either user input or runner handler response
-            try {
-              const result = await runnerHost.promptForResponse(
-                userPrompt,
-                stripCttColors(content),
-                testCase.TestCaseName || currentTestName || ''
+            // Strictly resolve an answer (a 1-based number or an exact button
+            // label) to one of the buttons CTT offered. Returns null for
+            // anything that isn't an offered button - we must never silently
+            // swap one valid button for another, and sending a label CTT
+            // doesn't recognise (e.g. "Ok" to a Yes/No box) just hangs the box.
+            const resolveButton = (value: string): string | null => {
+              const num = parseInt(value, 10);
+              if (!isNaN(num) && num >= 1 && num <= buttons.length) {
+                return buttons[num - 1] ?? null;
+              }
+              const match = buttons.find(
+                (b) => b.toLowerCase() === value.trim().toLowerCase()
               );
+              return match ?? null;
+            };
 
-              if (result.source === 'auto') {
-                // Auto-handler responded
-                process.stdout.write('\r\x1b[K');
-                console.log(`[Auto] ${result.value}`);
-                responseData.result = result.value;
-              } else {
-                // User responded - parse their input
-                if (buttons.length === 1) {
+            // Wait for user input or a runner handler response, re-prompting the
+            // user on invalid input. The loop only repeats for bad user input;
+            // every other branch settles the box.
+            try {
+              for (;;) {
+                const result = await runnerHost.promptForResponse(
+                  userPrompt,
+                  stripCttColors(content),
+                  testCase.TestCaseName || currentTestName || ''
+                );
+
+                // No answer is coming (timed out, or unhandled with no handler).
+                // runner-host has already aborted the whole run; we only need a
+                // valid button so CTT can close the box.
+                if (result.source === 'timeout' || result.source === 'unhandled') {
+                  process.stdout.write('\r\x1b[K');
+                  const reason = result.source === 'unhandled' ? 'unhandled' : 'timed out';
+                  console.log(`[MsgBox] Prompt ${reason} - run aborted; closing box with "${buttons[0]}"`);
                   responseData.result = buttons[0];
-                } else {
-                  const num = parseInt(result.value, 10);
-                  if (!isNaN(num) && num >= 1 && num <= buttons.length) {
-                    responseData.result = buttons[num - 1];
-                  } else {
-                    const match = buttons.find((b) => b.toLowerCase() === result.value.toLowerCase());
-                    responseData.result = match || buttons[0];
-                  }
+                  break;
                 }
+
+                const mapped = resolveButton(result.value);
+
+                if (result.source === 'auto') {
+                  process.stdout.write('\r\x1b[K');
+                  if (mapped) {
+                    console.log(`[Auto] ${mapped}`);
+                    responseData.result = mapped;
+                  } else {
+                    // The handler produced something that isn't an offered
+                    // button - we can't answer correctly, so abort the run
+                    // rather than guess (same policy as a missing handler).
+                    console.error(
+                      `[Auto] handler returned "${result.value}", not one of (${buttons.join(', ')}) - aborting run`
+                    );
+                    await abortTestRun('handler returned an invalid answer');
+                    responseData.result = buttons[0];
+                  }
+                  break;
+                }
+
+                // User input.
+                if (mapped) {
+                  responseData.result = mapped;
+                  break;
+                }
+                console.log(`Invalid input "${result.value}". Choose one of: ${buttons.join(', ')}`);
               }
             } catch (error) {
               console.error('[MsgBox] Prompt handler error:', error);
