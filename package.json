@@ -9,7 +9,7 @@
     "start": "node --experimental-strip-types src/start.ts",
     "debug": "cross-env ZWAVE_JS_DEBUG=1 node --experimental-strip-types src/start.ts",
     "devices": "node --experimental-strip-types src/start.ts --devices-only",
-    "ctt": "ctt/bin/ZWaveCTT ctt/project/zwave-js.cttsln -autoUpdateProject",
+    "ctt": "ctt/bin/ZWaveCTT \"$PWD/ctt/project/zwave-js.cttsln\" -autoUpdateProject",
     "setup": "./setup/download-zwave-stack.ts && ./setup/download-ctt-archive.ts && ./setup/unpack-ctt-archive.ts && ./setup/unpack-network-state-archive.ts"
   },
   "keywords": [],

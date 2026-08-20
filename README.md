@@ -210,8 +210,13 @@ the archive to contain:
 ```
 ctt-setup.zip
 ├── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
-└── appdata/      # optional seed for ~/.ctt-4/ (e.g. a settings.json)
+└── appdata/      # optional seed for ~/.ctt4/ (e.g. a settings.json)
 ```
+
+CTT reads its Linux settings from `~/.ctt4/settings.json`. The unpack script
+sets `SimplicityCommanderPath` to `/usr/bin/true` when no path is configured.
+The virtual test environment does not use Simplicity Commander, but ZATS scans
+the filesystem for it when the setting is empty.
 
 ### Step 10: Git Commit
 

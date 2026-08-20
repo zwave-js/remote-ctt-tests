@@ -4,10 +4,10 @@
  *
  * setup/ctt-setup.zip is expected to contain:
  *   - ctt-bin/   -> ctt/bin/            (the ZWaveCTT apphost + DLLs)
- *   - appdata/   -> ~/.ctt-4/           (optional; CTT 4 settings seed)
+ *   - appdata/   -> ~/.ctt4/            (optional; CTT 4 settings seed)
  *
  * Keys are committed in the repo at ctt/keys/. This script points both
- * ~/.ctt-4/settings.json (KeyStorageFolder) and
+ * ~/.ctt4/settings.json (KeyStorageFolder) and
  * ctt/project/Config/ZatsSettings.json (KeysStoragePath) at that directory.
  */
 import { execFileSync } from "child_process";
@@ -23,7 +23,7 @@ const repoRoot = path.join(__dirname, "..");
 const archiveFile = path.join(repoRoot, "setup", "ctt-setup.zip");
 const cttBinDir = path.join(repoRoot, "ctt", "bin");
 const keysDir = path.join(repoRoot, "ctt", "keys");
-const cttSettingsDir = path.join(os.homedir(), ".ctt-4");
+const cttSettingsDir = path.join(os.homedir(), ".ctt4");
 const cttSettingsFile = path.join(cttSettingsDir, "settings.json");
 const zatsSettingsPath = path.join(
   repoRoot,
@@ -64,7 +64,7 @@ try {
     console.warn(`WARNING: ZWaveCTT apphost not found at ${apphost}`);
   }
 
-  // appdata/ -> ~/.ctt-4/ (optional seed)
+  // appdata/ -> ~/.ctt4/ (optional seed)
   const sourceAppData = path.join(tempDir, "appdata");
   fs.mkdirSync(cttSettingsDir, { recursive: true });
   if (fs.existsSync(sourceAppData)) {
@@ -75,9 +75,6 @@ try {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }
 
-// Write ~/.ctt-4/settings.json with the resolved keys directory.
-// KeyStorageFolder governs key loading; SimplicityCommanderPath is only needed
-// for real-hardware RF flashing, so leave it empty for the emulated setup.
 let cttSettings: Record<string, unknown> = {};
 if (fs.existsSync(cttSettingsFile)) {
   try {
@@ -87,8 +84,9 @@ if (fs.existsSync(cttSettingsFile)) {
   }
 }
 cttSettings.KeyStorageFolder = keysDir;
-if (cttSettings.SimplicityCommanderPath === undefined) {
-  cttSettings.SimplicityCommanderPath = "";
+// ZATS requires a Commander path even when every device is virtual.
+if (!cttSettings.SimplicityCommanderPath) {
+  cttSettings.SimplicityCommanderPath = "/usr/bin/true";
 }
 fs.writeFileSync(cttSettingsFile, JSON.stringify(cttSettings, null, 2));
 console.log(`Wrote ${cttSettingsFile} (KeyStorageFolder=${keysDir})`);
