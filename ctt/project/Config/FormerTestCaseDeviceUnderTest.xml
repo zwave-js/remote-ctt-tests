@@ -108,6 +108,16 @@
       <Version>3</Version>
       <Secure>true</Secure>
     </SupportedCommandClass>
+    <SupportedCommandClass>
+      <Id>83</Id>
+      <Version>1</Version>
+      <Secure>true</Secure>
+    </SupportedCommandClass>
+    <SupportedCommandClass>
+      <Id>22</Id>
+      <Version>1</Version>
+      <Secure>true</Secure>
+    </SupportedCommandClass>
   </SupportedCommandClasses>
   <ApplicationVersion>1.0</ApplicationVersion>
   <ProtocolVersion>25.9</ProtocolVersion>

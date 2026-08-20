@@ -18,8 +18,8 @@
   </EndPointLinks>
   <ProjectSystemVersion>5</ProjectSystemVersion>
   <MinimumCTTVersion>3.10.4.0</MinimumCTTVersion>
-  <CTTVersion>4.0.1.0</CTTVersion>
-  <ScriptVersion>45</ScriptVersion>
+  <CTTVersion>4.0.3.1</CTTVersion>
+  <ScriptVersion>47</ScriptVersion>
   <ZcpCert Id="1201" FormName="Z-Wave Plus v2 Certification" FormVersion="17" Number="Pre-Cert" UpdatedAt="2025-02-18 12:37:30" Phase="Initial Selection" State="Pre-Certification" ProductName="Z-Wave JS / Home Assistant" ProductLine="" ModelNumber="Z-Wave JS / Home Assistant" BrandName="" CustomerName="Nabu Casa, Inc." OwnerEmail="dominic.griesel@openhomefoundation.org" TesthouseName="Trident IoT Test Lab" ProductDescription="" Checksum="6b612e3e47843b6c3763ab76b86c7df3">
     <Sections Id="50240" Number="PI" Title="Product Information">
       <Items Id="664775" SectionId="50240" Number="PI.1" Title="Certification Data" Description="The information provided on the &quot;Certification Data&quot; overview page MUST match the product." Level="0" ItemType="checkbox" Selfcert="-" SelfcertType="select" VerificationType="select" AdhocType="select" Select="true" Support="false" Control="false" HoldsPortalResult="false" UploadResult="false">
