@@ -26,7 +26,6 @@ import {
   isNodeRemovedNotification,
   isProvisioningEntryAddedNotification,
   isProvisioningEntryRemovedNotification,
-  DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
 import {
@@ -64,8 +63,10 @@ type PromptResult = {
 export interface RunnerHostOptions {
   /** Path to the runner script */
   runnerPath: string;
-  /** Port for the IPC WebSocket server (default: 4713) */
-  ipcPort?: number;
+  /** Reserved port for the IPC WebSocket server */
+  ipcPort: number;
+  /** Per-run environment passed to the runner process */
+  runnerEnv?: NodeJS.ProcessEnv;
   /** Timeout for runner to connect and send ready (ms, default: 30000) */
   readyTimeout?: number;
   /** Callback when runner process exits unexpectedly */
@@ -83,6 +84,7 @@ export interface RunnerHostOptions {
 export class RunnerHost {
   private runnerPath: string;
   private ipcPort: number;
+  private runnerEnv: NodeJS.ProcessEnv;
   private readyTimeout: number;
   private onUnexpectedExit?: () => void;
   private ciMode: boolean;
@@ -119,7 +121,8 @@ export class RunnerHost {
 
   constructor(options: RunnerHostOptions) {
     this.runnerPath = path.resolve(options.runnerPath);
-    this.ipcPort = options.ipcPort ?? DEFAULT_IPC_PORT;
+    this.ipcPort = options.ipcPort;
+    this.runnerEnv = options.runnerEnv ?? {};
     this.readyTimeout = options.readyTimeout ?? 30000;
     this.onUnexpectedExit = options.onUnexpectedExit;
     this.ciMode = options.ciMode ?? !!process.env.CI;
@@ -654,6 +657,7 @@ export class RunnerHost {
     this.runnerProcess = spawn(command, args, {
       env: {
         ...process.env,
+        ...this.runnerEnv,
         [IPC_PORT_ENV_VAR]: this.ipcPort.toString(),
       },
       stdio: ["ignore", "inherit", "pipe"],
