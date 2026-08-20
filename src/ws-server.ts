@@ -11,6 +11,27 @@ import type { RunnerHost } from './runner-host.ts';
 // Global event emitter for test case events
 export const testCaseEvents = new EventEmitter();
 
+// Opt-in WebSocket tracing (CTT_WS_TRACE=1). Timestamps use local-clock
+// HH:MM:SS.mmm to match CTT's ctt-remote.log and the Z-Wave JS driver log.
+const WS_TRACE = !!process.env.CTT_WS_TRACE;
+function wsTraceTs(): string {
+  const d = new Date();
+  return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+}
+function wsTrace(dir: 'IN ' | 'OUT' | 'DUT', detail: string): void {
+  if (WS_TRACE) console.log(`[WSTRACE ${wsTraceTs()}] ${dir} ${detail}`);
+}
+function traceSnippet(method: string, params: Record<string, unknown> | undefined): string {
+  if (!params) return '';
+  const raw =
+    method === 'generalLogMsg' ? String(params.output ?? '') :
+    method === 'testCaseLogMsg' ? String(params.logOutput ?? '') :
+    method === 'testCaseMsgBox' ? `${params.type ?? ''} | ${String((params as { content?: unknown }).content ?? '')}` :
+    '';
+  // eslint-disable-next-line no-control-regex
+  return raw.replace(/\x1b\[[0-9;]*m/g, '').replace(/\{color[^}]*\}/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
 export interface TestCaseResult {
   name: string;
   endPoint: string;
@@ -216,6 +237,8 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
       // Parse JSON-RPC message and check for fatal errors or success
       try {
         const message = JSON.parse(messageStr);
+
+        wsTrace('IN ', `${message.method} id=${message.id ?? '-'} ${traceSnippet(message.method, message.params)}`);
 
         // Log received messages, except for ones we handle separately
         const silentMethods = ['generalLogMsg', 'testCaseLogMsg', 'testCaseMsgBox', 'testCaseFinished', 'closeProjectDone'];
@@ -508,6 +531,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         }
 
         // Send acknowledgement back to CTT
+        if (message.method === 'testCaseMsgBox') {
+          wsTrace('OUT', `testCaseMsgBoxResult result="${responseData.result}"`);
+        }
         if (!responseSent) {
           ws.send(JSON.stringify(responseData));
         }
