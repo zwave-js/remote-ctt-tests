@@ -7,13 +7,37 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  run-zwave:
+  validate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Run unit tests
+      run: npm test
+
+  run-zwave:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     ## Runtime prerequisites
     - name: Setup .NET 10 runtime
