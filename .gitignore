@@ -1,4 +1,6 @@
 node_modules/
+setup/zats-input-patch/**/bin/
+setup/zats-input-patch/**/obj/
 
 # CTT lock file and logs
 ctt/project/lock
