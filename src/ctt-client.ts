@@ -1,11 +1,20 @@
 import WebSocket from 'ws';
 import { testCaseEvents, type TestCaseResult } from './ws-server.ts';
 
-const CTT_HOST = '127.0.0.1';
-const CTT_PORT = 4711;
-const CTT_URL = `ws://${CTT_HOST}:${CTT_PORT}/json-rpc`;
+let cttUrl: string | undefined;
 
 let messageId = 0;
+
+export function configureCttClient(port: number, host = '127.0.0.1'): void {
+  cttUrl = `ws://${host}:${port}/json-rpc`;
+}
+
+function getCttUrl(): string {
+  if (!cttUrl) {
+    throw new Error('CTT client endpoint has not been configured');
+  }
+  return cttUrl;
+}
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -40,7 +49,7 @@ function createRequest(method: string, params: Record<string, unknown>): JsonRpc
 
 async function sendRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(CTT_URL);
+    const ws = new WebSocket(getCttUrl());
     const timeout = setTimeout(() => {
       ws.close();
       reject(new Error('Request timeout'));
@@ -239,8 +248,7 @@ export async function closeCTT(): Promise<void> {
       sendRequest(request).catch((error: NodeJS.ErrnoException) => {
         clearTimeout(timeout);
         testCaseEvents.removeListener('closeProjectDone', onClose);
-        // CTT not listening on 4711 means it has already closed; treat that as
-        // success rather than retrying for ~15s against a dead endpoint.
+        // An unreachable endpoint means CTT has already closed.
         const unreachable =
           error?.code === 'ECONNREFUSED' || error?.code === 'ECONNRESET';
         resolve({ success: false, unreachable });
@@ -268,7 +276,7 @@ export async function closeCTT(): Promise<void> {
 
 export function isCTTAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
-    const ws = new WebSocket(CTT_URL);
+    const ws = new WebSocket(getCttUrl());
     const timeout = setTimeout(() => {
       ws.close();
       resolve(false);

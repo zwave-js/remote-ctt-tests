@@ -7,13 +7,37 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  run-zwave:
+  validate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Run unit tests
+      run: npm test
+
+  run-zwave:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     ## Runtime prerequisites
     - name: Setup .NET 10 runtime
@@ -63,10 +87,6 @@ jobs:
         chmod +x zwave_stack/bin/*.elf
         chmod +x ctt/bin/ZWaveCTT
 
-    ## Restore network state for CTT project
-    - name: Extract network state
-      run: ./setup/unpack-network-state-archive.ts
-
     ## Do the testing stuff
     - name: Run CTT tests
       run: |
@@ -85,16 +105,16 @@ jobs:
     - name: Package CTT test logs
       if: always()
       run: |
-        logPath="ctt/project/Log"
+        logPath=$(find .ctt-runs -type d -path '*/ctt/project/Log' -print -quit)
         outputPath="ctt-test-logs"
-        if [ -d "$logPath" ]; then
+        if [ -n "$logPath" ] && [ -d "$logPath" ]; then
           mkdir -p "$outputPath"
           for dir in "$logPath"/*/; do
             resultFile="$dir/TestResult.xml"
             if [ -f "$resultFile" ]; then
               suiteName=$(node -e "const fs=require('fs');const x=fs.readFileSync(process.argv[1],'utf8');const m=x.match(/<testsuite[^>]*\bname=\"([^\"]+)\"/);process.stdout.write(m?m[1]:'')" "$resultFile")
               if [ -n "$suiteName" ]; then
-                (cd "$logPath" && zip -r -q "../../../$outputPath/$suiteName.zip" "$(basename "$dir")")
+                (cd "$logPath" && zip -r -q "$GITHUB_WORKSPACE/$outputPath/$suiteName.zip" "$(basename "$dir")")
                 echo "Created: $suiteName.zip"
               fi
             fi
@@ -114,7 +134,7 @@ jobs:
       if: always()
       with:
         name: "Root Device.cttproj"
-        path: ctt/project/Root Device/Root Device.cttproj
+        path: .ctt-runs/*/ctt/project/root device/Root Device.cttproj
         if-no-files-found: ignore
 
     - name: Upload Z-Wave JS logs
@@ -122,5 +142,5 @@ jobs:
       if: always()
       with:
         name: zwave-js-logs
-        path: dut/zwave-js/log/
+        path: .ctt-runs/*/logs/dut/
         if-no-files-found: ignore

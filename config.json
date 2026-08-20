@@ -9,9 +9,6 @@
     // Z-Wave network home ID (used for storage file filtering)
     "homeId": "d2658d0f",
 
-    // Directory containing DUT storage/cache files
-    "storageDir": "dut/zwave-js/storage",
-
     // Glob patterns to match storage files (supports %HOME_ID_LOWER% and %HOME_ID_UPPER% placeholders)
     "storageFileFilter": [
       "%HOME_ID_LOWER%.jsonl",

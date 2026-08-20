@@ -3,7 +3,7 @@
  * Creates setup/network-state.zip with the Z-Wave network state for CI.
  *
  * Packages:
- *   - zwave_stack/storage/                      -> storage/
+ *   - <run>/state/zwave-stack/                  -> storage/
  *   - DUT storage files (config.json globs)     -> dut-storage/
  *
  * Maintainer tool: run after capturing a good network state locally.
@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
 
 interface Config {
-  dut: { homeId: string; storageDir: string; storageFileFilter: string[] };
+  dut: { homeId: string; storageFileFilter: string[] };
 }
 const config = JSON5.parse(
   fs.readFileSync(path.join(repoRoot, "config.json"), "utf-8")
@@ -27,9 +27,46 @@ const config = JSON5.parse(
 
 const homeIdLower = config.dut.homeId.toLowerCase();
 const homeIdUpper = config.dut.homeId.toUpperCase();
-const dutStorageDir = path.join(repoRoot, config.dut.storageDir);
-const zwaveStorage = path.join(repoRoot, "zwave_stack", "storage");
+const runDir = resolveRunDirectory(repoRoot);
+const dutStorageDir = path.join(runDir, "state", "dut");
+const zwaveStorage = path.join(runDir, "state", "zwave-stack");
 const outputFile = path.join(repoRoot, "setup", "network-state.zip");
+
+function resolveRunDirectory(root: string): string {
+  const runArgument = process.argv
+    .slice(2)
+    .find((argument) => argument.startsWith("--run-dir="));
+  if (runArgument) {
+    return path.resolve(root, runArgument.slice("--run-dir=".length));
+  }
+
+  const runsRoot = path.join(root, ".ctt-runs");
+  if (!fs.existsSync(runsRoot)) {
+    throw new Error(
+      `No run state found in ${runsRoot}; pass --run-dir=<directory>`
+    );
+  }
+  const candidates = fs
+    .readdirSync(runsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(runsRoot, entry.name))
+    .filter(
+      (candidate) =>
+        fs.existsSync(path.join(candidate, "state", "dut")) &&
+        fs.existsSync(path.join(candidate, "state", "zwave-stack"))
+    )
+    .sort(
+      (left, right) =>
+        fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs
+    );
+  const latest = candidates[0];
+  if (!latest) {
+    throw new Error(
+      `No run state found in ${runsRoot}; pass --run-dir=<directory>`
+    );
+  }
+  return latest;
+}
 
 // Convert a glob with `*` wildcards into an anchored RegExp.
 function globToRegExp(glob: string): RegExp {
@@ -41,13 +78,14 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "network-state-staging-"))
 
 try {
   console.log("Creating network state archive...");
+  console.log(`  Source run: ${runDir}`);
 
-  // Stage zwave_stack/storage
+  // Stage the emulator state.
   if (fs.existsSync(zwaveStorage)) {
-    console.log("  Staging zwave_stack/storage...");
+    console.log("  Staging Z-Wave stack state...");
     fs.cpSync(zwaveStorage, path.join(tempDir, "storage"), { recursive: true });
   } else {
-    console.warn(`  WARNING: zwave_stack/storage not found at ${zwaveStorage}`);
+    console.warn(`  WARNING: Z-Wave stack state not found at ${zwaveStorage}`);
   }
 
   // Stage DUT storage files matching the configured globs
