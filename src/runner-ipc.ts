@@ -34,7 +34,7 @@ export interface SecurityKeysLongRange {
 // === Start Request Parameters ===
 
 export interface StartParams {
-  controllerUrl: string; // e.g., "tcp://127.0.0.1:5000"
+  controllerUrl: string;
   securityKeys: SecurityKeys;
   securityKeysLongRange: SecurityKeysLongRange;
 }
@@ -156,7 +156,9 @@ export function isNoHandlerNotification(msg: unknown): msg is NoHandlerNotificat
   return isJsonRpcMethodMessage(msg) && msg.method === "noHandler";
 }
 
-// === Constants ===
+// === Runner Environment ===
 
-export const DEFAULT_IPC_PORT = 4713;
 export const IPC_PORT_ENV_VAR = "RUNNER_IPC_PORT";
+export const STORAGE_DIR_ENV_VAR = "RUNNER_STORAGE_DIR";
+export const LOG_DIR_ENV_VAR = "RUNNER_LOG_DIR";
+export const SERVER_PORT_ENV_VAR = "RUNNER_SERVER_PORT";

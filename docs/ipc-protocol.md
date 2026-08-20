@@ -5,10 +5,16 @@ This document describes the IPC (Inter-Process Communication) protocol used betw
 ## Overview
 
 - **Transport**: WebSocket
-- **Port**: 4713 (configurable via `RUNNER_IPC_PORT` environment variable)
+- **Port**: Allocated per run and passed in `RUNNER_IPC_PORT`
 - **Protocol**: JSON-RPC 2.0
 
 The runner connects to the orchestrator's WebSocket server at `ws://127.0.0.1:<port>`.
+
+The orchestrator also passes writable runner resources through the environment:
+
+- `RUNNER_STORAGE_DIR`: Per-run DUT storage directory
+- `RUNNER_LOG_DIR`: Per-run DUT log directory
+- `RUNNER_SERVER_PORT`: Reserved port for a DUT-facing server
 
 ## Message Flow
 
@@ -87,7 +93,7 @@ Initialize the DUT and connect to the Z-Wave controller.
   "id": 1,
   "method": "start",
   "params": {
-    "controllerUrl": "tcp://127.0.0.1:5000",
+    "controllerUrl": "tcp://127.0.0.1:<controller-port>",
     "securityKeys": {
       "S2_Unauthenticated": "CE07372267DCB354DB216761B6E9C378",
       "S2_Authenticated": "30B5CCF3F482A92E2F63A5C5E218149A",
@@ -103,7 +109,7 @@ Initialize the DUT and connect to the Z-Wave controller.
 ```
 
 **Parameters:**
-- `controllerUrl` (string): TCP URL for the Z-Wave controller (e.g., `tcp://127.0.0.1:5000`)
+- `controllerUrl` (string): Per-run TCP URL for the Z-Wave controller
 - `securityKeys` (object): Z-Wave security keys as hex strings
   - `S2_Unauthenticated` (string): 16-byte hex string
   - `S2_Authenticated` (string): 16-byte hex string

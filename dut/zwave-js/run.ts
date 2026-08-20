@@ -10,7 +10,6 @@
 import WebSocket from "ws";
 import * as path from "path";
 import * as fs from "fs";
-import { fileURLToPath } from "url";
 import {
   Driver,
   type Endpoint,
@@ -32,6 +31,12 @@ import type {
   NoHandlerNotification,
 } from "../../src/runner-ipc.ts";
 import {
+  IPC_PORT_ENV_VAR,
+  STORAGE_DIR_ENV_VAR,
+  LOG_DIR_ENV_VAR,
+  SERVER_PORT_ENV_VAR,
+} from "../../src/runner-ipc.ts";
+import {
   getHandlersForTest,
   type PromptContext,
   type LogContext,
@@ -40,19 +45,32 @@ import {
 // Load all registered handlers
 import "./handlers/index.ts";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // === Constants ===
 
 const RUNNER_NAME = "Z-Wave JS";
-const IPC_PORT = parseInt(process.env.RUNNER_IPC_PORT || "4713", 10);
+const IPC_PORT = readPortEnvironment(IPC_PORT_ENV_VAR);
 const IPC_URL = `ws://127.0.0.1:${IPC_PORT}`;
 
-// Directories relative to this file's location
-const STORAGE_DIR = path.join(__dirname, "storage");
-const LOG_DIR = path.join(__dirname, "log");
-const SERVER_PORT = 3000;
+const STORAGE_DIR = readEnvironment(STORAGE_DIR_ENV_VAR);
+const LOG_DIR = readEnvironment(LOG_DIR_ENV_VAR);
+const SERVER_PORT = readPortEnvironment(SERVER_PORT_ENV_VAR);
+
+function readEnvironment(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required runner environment variable: ${name}`);
+  }
+  return value;
+}
+
+function readPortEnvironment(name: string): number {
+  const value = readEnvironment(name);
+  const port = Number.parseInt(value, 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid port in ${name}: ${value}`);
+  }
+  return port;
+}
 
 // === State ===
 

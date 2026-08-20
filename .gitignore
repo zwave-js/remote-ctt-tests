@@ -1,16 +1,9 @@
 node_modules/
 
-# CTT lock file and logs
-ctt/project/lock
-ctt/project/Log
+# Per-run state, generated projects, and logs
+.ctt-runs/
 
-# CTT 3->4 migration backups (regenerated on load)
-ctt/project/Backup_*/
-
-# Directories extracted from setup.zip on CI
-zwave_stack/storage/
-dut/zwave-js/storage/
-dut/zwave-js/log/
+# DUT dependencies
 dut/zwave-js/node_modules/
 
 # Z-Wave stack binaries (downloaded via setup script)
@@ -21,6 +14,3 @@ ctt/bin/
 
 # CTT setup archive (downloaded via setup script)
 setup/ctt-setup.zip
-
-# CTT process output log
-ctt-remote.log
