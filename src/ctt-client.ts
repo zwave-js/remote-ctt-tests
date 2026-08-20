@@ -181,6 +181,15 @@ export async function cancelTestRun(): Promise<void> {
   }
 }
 
+export async function submitTestCaseMessageBoxResult(resultString: string): Promise<void> {
+  const request = createRequest('testCaseMsgBoxResult', { resultString });
+  const response = await sendRequest(request);
+
+  if (response.error) {
+    throw new Error(`RPC Error: ${response.error.message}`);
+  }
+}
+
 /**
  * Aborts the whole test run with the given reason.
  */

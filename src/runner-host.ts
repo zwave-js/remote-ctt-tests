@@ -31,11 +31,15 @@ import c from "ansi-colors";
 import * as readline from "readline";
 
 /**
- * Outcome of a prompt: answered by the user, by an auto-handler/runner, or
- * settled by the inactivity timeout (no answer arrived in time).
+ * Outcome of a prompt:
+ *  - "user"/"auto": answered by the user or an auto-handler/runner.
+ *  - "timeout"/"unhandled": no valid answer is possible; the run was aborted.
+ *  - "closed": CTT dismissed the box after observing the expected event.
+ *  - "skip": CTT never dismissed a self-closing box within the safety timeout.
+ *    Skip just this step.
  */
 type PromptResult = {
-  source: "user" | "auto" | "timeout" | "unhandled";
+  source: "user" | "auto" | "timeout" | "unhandled" | "closed" | "skip";
   value: string;
 };
 
@@ -88,6 +92,8 @@ export class RunnerHost {
   private activePrompt?: {
     resolve: (result: PromptResult) => void;
     ipcRequestId: number;
+    /** CTT dismisses this box itself; never abort the whole run because of it. */
+    autoCloseable: boolean;
   };
 
   constructor(options: RunnerHostOptions) {
@@ -198,8 +204,14 @@ export class RunnerHost {
   async promptForResponse(
     userPromptText: string,
     rawText: string,
-    testName: string
+    testName: string,
+    options: { autoCloseable?: boolean } = {}
   ): Promise<PromptResult> {
+    // A self-closing box like "Skip" is one CTT dismisses via CloseCurrentMsgBox
+    // once it observes the expected event. It must never abort the run when
+    // unhandled because the DUT may still satisfy it. The safety timeout skips
+    // just this step.
+    const { autoCloseable = false } = options;
     // Normalize whitespace: CTT sometimes formats with line breaks and multiple spaces
     const normalizedText = rawText.replace(/\s+/g, " ").trim();
 
@@ -252,7 +264,7 @@ export class RunnerHost {
 
     if (forwardedToRunner) {
       const ipcRequestId = ++this.messageId;
-      this.activePrompt = { resolve: settle!, ipcRequestId };
+      this.activePrompt = { resolve: settle!, ipcRequestId, autoCloseable };
 
       const params: CttPromptParams = { testName, message: parseResult.message };
       this.runnerSocket?.send(
@@ -265,7 +277,7 @@ export class RunnerHost {
       );
     } else {
       // No message to send - only user can respond
-      this.activePrompt = { resolve: settle!, ipcRequestId: -1 };
+      this.activePrompt = { resolve: settle!, ipcRequestId: -1, autoCloseable };
     }
 
     // Abort a CI prompt that can never receive a valid answer: stop waiting for
@@ -280,14 +292,27 @@ export class RunnerHost {
       settle!({ source, value: "" });
     };
 
-    // Timeout policy depends on the environment:
-    //  - Local (interactive): a human is at the terminal and observation tests
-    //    can legitimately take minutes, so wait indefinitely - no timeout.
-    //  - CI + unhandled prompt: no one can ever answer, so fail immediately
-    //    instead of waiting out the safety timeout.
-    //  - CI + prompt forwarded to the runner: arm a safety timeout so a hung or
-    //    crashed runner that never replies aborts the run instead of hanging CI.
-    if (this.ciMode && !forwardedToRunner) {
+    // Timeout policy:
+    //  - Local: wait indefinitely. Self-closing boxes resolve via
+    //    closeActivePrompt().
+    //  - CI + self-closing box: arm the safety timeout. CTT closes it on the
+    //    expected event ("closed"). If not, skip just this step ("skip").
+    //  - CI + unhandled, non-self-closing prompt: fail immediately.
+    //  - CI + forwarded to runner: arm the safety timeout. Abort if the runner
+    //    never replies ("timeout").
+    if (this.ciMode && autoCloseable) {
+      timeoutHandle = setTimeout(() => {
+        if (!this.activePrompt) return;
+        this.activePrompt = undefined;
+        process.stdin.pause();
+        console.error(
+          c.yellow(
+            `[Prompt] CTT did not close the box for "${testName}" within ${this.promptTimeout}ms in CI - skipping this step.`
+          )
+        );
+        settle!({ source: "skip", value: "" });
+      }, this.promptTimeout);
+    } else if (this.ciMode && !forwardedToRunner) {
       abortCiPrompt(
         "unhandled",
         `[Prompt] Unhandled prompt for "${testName}" with no auto-answer in CI - cancelling run immediately.`
@@ -319,6 +344,19 @@ export class RunnerHost {
     }
 
     return result;
+  }
+
+  /**
+   * Resolve the in-flight prompt after CTT dismisses the message box via
+   * CloseCurrentMsgBox. No-op if no prompt is active. Clears any armed
+   * safety timeout.
+   */
+  closeActivePrompt(): void {
+    if (!this.activePrompt) return;
+    process.stdin.pause();
+    const { resolve } = this.activePrompt;
+    this.activePrompt = undefined;
+    resolve({ source: "closed", value: "" });
   }
 
   /**
@@ -585,6 +623,10 @@ export class RunnerHost {
   }
 
   private async handleNoHandler(): Promise<void> {
+    // Self-closing boxes like "Skip" resolve via closeActivePrompt() or the
+    // safety timeout. A missing handler is expected for these.
+    if (this.activePrompt?.autoCloseable) return;
+
     if (this.ciMode) {
       console.error("\n[CI] Unhandled prompt - aborting test run to prevent hang\n");
 

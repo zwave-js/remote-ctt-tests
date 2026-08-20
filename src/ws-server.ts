@@ -1,6 +1,10 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
-import { getTestCases, abortTestRun } from './ctt-client.ts';
+import {
+  getTestCases,
+  abortTestRun,
+  submitTestCaseMessageBoxResult,
+} from './ctt-client.ts';
 import { convertCttColorsToAnsi, stripCttColors } from './ctt-output.ts';
 import type { RunnerHost } from './runner-host.ts';
 
@@ -249,6 +253,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           result: 'null',
           id: message.id,
         };
+        let responseSent = false;
 
         if (message.method === 'generalLogMsg' && message.params?.output) {
           // Emit event for external listeners
@@ -326,6 +331,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           };
           testCaseEvents.emit('testCaseFinished', testCaseResult);
         } else if (message.method === 'testCaseMsgBox') {
+          ws.send(JSON.stringify(responseData));
+          responseSent = true;
+
           // Handle message box based on documented TestCaseMsgBoxTypes:
           // OkCancel, Ok, YesNo, UrlOpenCancel, Skip, WaitForDutResponse,
           // CloseCurrentMsgBox, Yes, No
@@ -346,7 +354,9 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               break;
 
             case 'CloseCurrentMsgBox':
-              // Just closes the current message box
+              // CTT is dismissing the box because it observed the expected event.
+              // Resolve any still-pending prompt so the orchestrator can proceed.
+              runnerHost?.closeActivePrompt();
               responseData.result = '';
               console.log('[MsgBox] Closing current message box');
               break;
@@ -424,8 +434,29 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                 const result = await runnerHost.promptForResponse(
                   userPrompt,
                   stripCttColors(content),
-                  testCase.TestCaseName || currentTestName || ''
+                  testCase.TestCaseName || currentTestName || '',
+                  // "Skip" boxes are self-closing. CTT dismisses them once it
+                  // observes the expected event.
+                  { autoCloseable: msgType === 'Skip' }
                 );
+
+                // CTT already dismissed the box after observing the expected
+                // event. Acknowledge with an empty result since the box is gone.
+                if (result.source === 'closed') {
+                  process.stdout.write('\r\x1b[K');
+                  console.log('[MsgBox] CTT closed the box (event satisfied) - acknowledging');
+                  responseData.result = '';
+                  break;
+                }
+
+                // CTT never dismissed this self-closing box within the safety
+                // timeout. Skip just this step.
+                if (result.source === 'skip') {
+                  process.stdout.write('\r\x1b[K');
+                  console.log(`[MsgBox] Self-closing prompt not satisfied - skipping step with "${buttons[0]}"`);
+                  responseData.result = buttons[0]!;
+                  break;
+                }
 
                 // No answer is coming (timed out, or unhandled with no handler).
                 // runner-host has already aborted the whole run; we only need a
@@ -434,7 +465,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                   process.stdout.write('\r\x1b[K');
                   const reason = result.source === 'unhandled' ? 'unhandled' : 'timed out';
                   console.log(`[MsgBox] Prompt ${reason} - run aborted; closing box with "${buttons[0]}"`);
-                  responseData.result = buttons[0];
+                  responseData.result = buttons[0]!;
                   break;
                 }
 
@@ -453,7 +484,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                       `[Auto] handler returned "${result.value}", not one of (${buttons.join(', ')}) - aborting run`
                     );
                     await abortTestRun('handler returned an invalid answer');
-                    responseData.result = buttons[0];
+                    responseData.result = buttons[0]!;
                   }
                   break;
                 }
@@ -467,17 +498,27 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
               }
             } catch (error) {
               console.error('[MsgBox] Prompt handler error:', error);
-              responseData.result = buttons[0]; // Fallback to first button
+              responseData.result = buttons[0]!; // Fallback to first button
             }
           } else if (buttons.length > 0) {
             // No runner host - auto-respond with first button
-            responseData.result = buttons[0];
+            responseData.result = buttons[0]!;
             console.log('[MsgBox] Auto-responding:', buttons[0], '-', coloredContent);
           }
         }
 
         // Send acknowledgement back to CTT
-        ws.send(JSON.stringify(responseData));
+        if (!responseSent) {
+          ws.send(JSON.stringify(responseData));
+        }
+
+        if (
+          message.method === 'testCaseMsgBox' &&
+          responseData.result !== '' &&
+          responseData.result !== 'null'
+        ) {
+          await submitTestCaseMessageBoxResult(responseData.result);
+        }
       } catch {
         // Ignore JSON parse errors
       }
