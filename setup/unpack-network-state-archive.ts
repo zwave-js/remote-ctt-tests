@@ -4,7 +4,7 @@
  *
  * setup/network-state.zip contains:
  *   - storage/      -> zwave_stack/storage/
- *   - dut-storage/  -> config.dut.storageDir (individual files)
+ *   - dut-storage/  -> config.dut.storageDir
  */
 import { execFileSync } from "child_process";
 import * as fs from "fs";
@@ -51,18 +51,12 @@ try {
     console.warn("WARNING: storage/ not found in archive");
   }
 
-  // dut-storage/ -> config.dut.storageDir (copy individual files)
+  // dut-storage/ -> config.dut.storageDir
   const sourceDutStorage = path.join(tempDir, "dut-storage");
   if (fs.existsSync(sourceDutStorage)) {
     console.log(`Copying dut-storage -> ${config.dut.storageDir}`);
-    fs.mkdirSync(dutStorageDir, { recursive: true });
-    for (const file of fs.readdirSync(sourceDutStorage)) {
-      console.log(`  Copying ${file}`);
-      fs.copyFileSync(
-        path.join(sourceDutStorage, file),
-        path.join(dutStorageDir, file)
-      );
-    }
+    fs.rmSync(dutStorageDir, { recursive: true, force: true });
+    fs.cpSync(sourceDutStorage, dutStorageDir, { recursive: true });
   } else {
     console.warn("WARNING: dut-storage/ not found in archive");
   }

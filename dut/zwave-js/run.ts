@@ -180,6 +180,14 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
       },
       securityKeys,
       securityKeysLongRange,
+      vendor: {
+        manufacturerId: 0x0466,
+        productType: 0x0001,
+        productId: 0x0001,
+        hardwareVersion: 0x00,
+        installerIcon: 0x0500,
+        userIcon: 0x0500,
+      },
     });
 
     // Wait for driver to be ready
@@ -295,7 +303,7 @@ async function handleTestCaseStarted(
   id: number,
   params: TestCaseStartedParams
 ): Promise<void> {
-  const { testName } = params;
+  const { testName, executionMode } = params;
 
   // Clear previous test context
   testContext = new Map();
@@ -303,7 +311,7 @@ async function handleTestCaseStarted(
   nodeNotifications = [];
   valueNotifications = [];
 
-  console.log(`Test case started: ${testName}`);
+  console.log(`Test case started: ${testName} (${executionMode})`);
 
   // Get handlers for this test and call onTestStart hooks
   if (driver) {
@@ -313,6 +321,7 @@ async function handleTestCaseStarted(
         try {
           await handler.onTestStart({
             testName,
+            executionMode,
             driver,
             state: testContext,
             includedNodes,
@@ -333,13 +342,14 @@ async function handleCttPrompt(
   id: number,
   params: CttPromptParams
 ): Promise<void> {
-  const { testName, message } = params;
+  const { testName, executionMode, message } = params;
 
   // Try registered handlers - only respond if one matches
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: PromptContext = {
       testName,
+      executionMode,
       driver,
       state: testContext,
       includedNodes,
@@ -368,12 +378,13 @@ async function handleCttPrompt(
 }
 
 async function handleCttLog(id: number | undefined, params: CttLogParams): Promise<void> {
-  const { testName, message } = params;
+  const { testName, executionMode, message } = params;
 
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: LogContext = {
       testName,
+      executionMode,
       driver,
       state: testContext,
       includedNodes,

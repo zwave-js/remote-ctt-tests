@@ -16,6 +16,7 @@ import {
   type CttPromptParams,
   type CttLogParams,
   type TestCaseStartedParams,
+  type CttExecutionMode,
   type IpcRequest,
   isSuccessResponse,
   isErrorResponse,
@@ -168,7 +169,11 @@ export class RunnerHost {
   /**
    * Handle a CTT log message by parsing and forwarding to the runner
    */
-  async handleCttLog(logText: string, testName: string): Promise<void> {
+  async handleCttLog(
+    logText: string,
+    testName: string,
+    executionMode: CttExecutionMode
+  ): Promise<void> {
     // Normalize whitespace: CTT sometimes formats with line breaks and multiple spaces
     const normalizedText = logText.replace(/\s+/g, " ").trim();
 
@@ -181,7 +186,11 @@ export class RunnerHost {
       // No message to send to DUT
     } else if (result.action === "send_to_dut") {
       // Send structured message to runner
-      const params: CttLogParams = { testName, message: result.message };
+      const params: CttLogParams = {
+        testName,
+        executionMode,
+        message: result.message,
+      };
       await this.sendRequest("handleCttLog", params as unknown as Record<string, unknown>);
     }
     // action === "none" - nothing to send to runner
@@ -190,8 +199,11 @@ export class RunnerHost {
   /**
    * Notify the runner that a test case has started
    */
-  async testCaseStarted(testName: string): Promise<void> {
-    const params: TestCaseStartedParams = { testName };
+  async testCaseStarted(
+    testName: string,
+    executionMode: CttExecutionMode
+  ): Promise<void> {
+    const params: TestCaseStartedParams = { testName, executionMode };
     await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
     // Reset orchestrator state for new test
     this.testContext = {};
@@ -205,6 +217,7 @@ export class RunnerHost {
     userPromptText: string,
     rawText: string,
     testName: string,
+    executionMode: CttExecutionMode,
     options: { autoCloseable?: boolean } = {}
   ): Promise<PromptResult> {
     // A self-closing box like "Skip" is one CTT dismisses via CloseCurrentMsgBox
@@ -216,7 +229,10 @@ export class RunnerHost {
     const normalizedText = rawText.replace(/\s+/g, " ").trim();
 
     // Parse the prompt to check for auto-answers or structured messages
-    const parseResult = parsePrompt(normalizedText, this.testContext);
+    const parseResult = parsePrompt(normalizedText, this.testContext, {
+      testName,
+      executionMode,
+    });
 
     // Handle orchestrator auto-answers (no DUT involvement)
     if (parseResult.action === "auto_answer") {
@@ -227,7 +243,11 @@ export class RunnerHost {
     if (parseResult.action === "send_to_dut" && parseResult.answer) {
       // Send message to DUT (fire-and-forget, no response expected)
       if (this.runnerSocket?.readyState === WebSocket.OPEN) {
-        const params: CttLogParams = { testName, message: parseResult.message };
+        const params: CttLogParams = {
+          testName,
+          executionMode,
+          message: parseResult.message,
+        };
         this.runnerSocket.send(
           JSON.stringify({
             jsonrpc: "2.0",
@@ -266,7 +286,11 @@ export class RunnerHost {
       const ipcRequestId = ++this.messageId;
       this.activePrompt = { resolve: settle!, ipcRequestId, autoCloseable };
 
-      const params: CttPromptParams = { testName, message: parseResult.message };
+      const params: CttPromptParams = {
+        testName,
+        executionMode,
+        message: parseResult.message,
+      };
       this.runnerSocket?.send(
         JSON.stringify({
           jsonrpc: "2.0",

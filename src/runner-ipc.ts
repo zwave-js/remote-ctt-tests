@@ -7,6 +7,8 @@
 
 import type { DUTMessage } from "./ctt-message-types.ts";
 
+export type CttExecutionMode = "Classic" | "LR";
+
 // === Base JSON-RPC Types ===
 
 interface JsonRpcMessage {
@@ -43,6 +45,7 @@ export interface StartParams {
 
 export interface CttPromptParams {
   testName: string;
+  executionMode: CttExecutionMode;
   message: DUTMessage;
 }
 
@@ -50,6 +53,7 @@ export interface CttPromptParams {
 
 export interface CttLogParams {
   testName: string;
+  executionMode: CttExecutionMode;
   message: DUTMessage;
 }
 
@@ -57,6 +61,7 @@ export interface CttLogParams {
 
 export interface TestCaseStartedParams {
   testName: string;
+  executionMode: CttExecutionMode;
 }
 
 // === Request Messages (Orchestrator -> Runner) ===

@@ -24,6 +24,7 @@ import type {
   DUTCapabilityId,
   DurationValue,
 } from "./ctt-message-types.ts";
+import type { CttExecutionMode } from "./runner-ipc.ts";
 
 // =============================================================================
 // Parse Result Types
@@ -38,6 +39,11 @@ export type PromptParseResult =
   | { action: "send_to_dut"; message: DUTMessage; answer?: string }
   | { action: "auto_answer"; answer: string }
   | { action: "none" };
+
+export interface CttTestInstance {
+  testName: string;
+  executionMode: CttExecutionMode;
+}
 
 // =============================================================================
 // Log Parsing
@@ -674,7 +680,11 @@ function parseEndpoint(text: string): { endpoint?: number } {
 
 export function parsePrompt(
   promptText: string,
-  state: OrchestratorState
+  state: OrchestratorState,
+  testInstance: CttTestInstance = {
+    testName: "",
+    executionMode: "Classic",
+  }
 ): PromptParseResult {
   // Orchestrator-only auto-answers
   if (/Prepare the DUT to send any.+command/i.test(promptText)) {
