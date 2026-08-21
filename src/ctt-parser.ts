@@ -733,7 +733,8 @@ export function parsePrompt(
 ): PromptParseResult {
   const { testName } = testInstance;
   // Orchestrator-only auto-answers
-  if (state.waitForInterviewPrompt && !promptText.trim()) {
+  // CTT's blank Ok box still contains separator formatting
+  if (state.waitForInterviewPrompt && !/[a-z]/?i.test(promptText)) {
     return {
       action: "send_to_dut",
       message: {
@@ -1014,6 +1015,18 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
 
+  // The long-delay subcase aborts S0, so readiness means inclusion is idle
+  if (
+    testName === "S0_DelaySchemeReportAfterSchemeInherit_Rev01" &&
+    /wait until the DUT is ready/i.test(promptText)
+  ) {
+    const message: WaitForInclusionIdleMessage = {
+      type: "WAIT_FOR_INCLUSION_IDLE",
+      responseOptions: ["Ok"],
+    };
+    return { action: "send_to_dut", message };
+  }
+
   // WAIT_FOR_INTERVIEW
   if (
     /wait for (the )?(node )?interview to (be )?finish/i.test(promptText) ||
@@ -1183,6 +1196,15 @@ export function parsePrompt(
       responseOptions: ["Yes", "No"],
       securityClass: "INSECURE",
       nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/intended to include the S0 Node non-securely only/i.test(promptText)) {
+    const message: DUTCapabilityQueryMessage = {
+      type: "DUT_CAPABILITY_QUERY",
+      responseOptions: ["Yes", "No"],
+      capabilityId:
+        "INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER",
     };
     return { action: "send_to_dut", message };
   }

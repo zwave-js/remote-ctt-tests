@@ -31,7 +31,10 @@ registerHandler(/.*/, {
       state.set(PIN_PROMISE, createDeferredPromise<string>());
 
       let inclusionOptions: InclusionOptions;
-      if (message.forceS0) {
+      if (
+        message.forceS0 ||
+        state.get("force S0 inclusion") === true
+      ) {
         inclusionOptions = {
           strategy: InclusionStrategy.Security_S0,
         };
