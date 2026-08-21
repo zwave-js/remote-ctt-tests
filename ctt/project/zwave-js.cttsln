@@ -1,61 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project IdGuid="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" Location="X:\Project\zwave-js-headless.cttsln" Name="zwave-js-headless">
+<Project IdGuid="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" Location="" Name="zwave-js-headless">
   <PortalAlias>Z-Wave Alliance ZCP</PortalAlias>
   <PortalId>6f4a3fce-ab7a-4ccc-9133-274b43403192</PortalId>
-  <ProjectConstants>
-    <ProjectConstant>
-      <Name>ON</Name>
-      <Value>99</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>OFF</Name>
-      <Value>0</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>MULTI_INSTANCE_MARKER</Name>
-      <Value>0</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>COMMAND_CLASS_SWITCH_BINARY</Name>
-      <Value>37</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>COMMAND_CLASS_SWITCH_MULTILEVEL</Name>
-      <Value>38</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>COMMAND_CLASS_SWITCH_ALL</Name>
-      <Value>39</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>GENERIC_TYPE_SWITCH_BINARY</Name>
-      <Value>16</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>SPECIFIC_TYPE_POWER_SWITCH_BINARY</Name>
-      <Value>1</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>SPECIFIC_TYPE_SCENE_SWITCH_BINARY</Name>
-      <Value>3</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>GENERIC_TYPE_SWITCH_MULTILEVEL</Name>
-      <Value>17</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>SPECIFIC_TYPE_POWER_SWITCH_MULTILEVEL</Name>
-      <Value>1</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>SPECIFIC_TYPE_MOTOR_MULTIPOSITION</Name>
-      <Value>3</Value>
-    </ProjectConstant>
-    <ProjectConstant>
-      <Name>SPECIFIC_TYPE_SCENE_SWITCH_MULTILEVEL</Name>
-      <Value>4</Value>
-    </ProjectConstant>
-  </ProjectConstants>
   <ProjectItems>
     <ProjectItem IdGuid="005990f6-6e4e-41a0-b1ac-6bda0abb4a78" Location="ZWave_CTT_CommandClasses.cttxml" Name="ZWave_CTT_CommandClasses" ParentId="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" EndPointId="9614ddf6-5fc2-445b-b6b6-f146ad7e41cd" Active="false" Rev="0" SubRev="0" Original="false" Custom="false" Expanded="false" ItemType="CommandClassesDefinition" IsHidden="false">
       <Items />
@@ -68,12 +14,12 @@
     </ProjectItem>
   </ProjectItems>
   <EndPointLinks>
-    <EndPointLink IdGuid="63e99c25-71e5-4d9a-bb58-15d713d3ef78" Location="Root Device\Root Device.cttproj" Name="Root Device" Included="true" />
+    <EndPointLink IdGuid="63e99c25-71e5-4d9a-bb58-15d713d3ef78" Location="root device/Root Device.cttproj" Name="Root Device" Included="true" />
   </EndPointLinks>
-  <ProjectSystemVersion>4</ProjectSystemVersion>
+  <ProjectSystemVersion>5</ProjectSystemVersion>
   <MinimumCTTVersion>3.10.4.0</MinimumCTTVersion>
-  <CTTVersion>3.10.10.0</CTTVersion>
-  <ScriptVersion>42</ScriptVersion>
+  <CTTVersion>4.0.3.1</CTTVersion>
+  <ScriptVersion>47</ScriptVersion>
   <ZcpCert Id="1201" FormName="Z-Wave Plus v2 Certification" FormVersion="17" Number="Pre-Cert" UpdatedAt="2025-02-18 12:37:30" Phase="Initial Selection" State="Pre-Certification" ProductName="Z-Wave JS / Home Assistant" ProductLine="" ModelNumber="Z-Wave JS / Home Assistant" BrandName="" CustomerName="Nabu Casa, Inc." OwnerEmail="dominic.griesel@openhomefoundation.org" TesthouseName="Trident IoT Test Lab" ProductDescription="" Checksum="6b612e3e47843b6c3763ab76b86c7df3">
     <Sections Id="50240" Number="PI" Title="Product Information">
       <Items Id="664775" SectionId="50240" Number="PI.1" Title="Certification Data" Description="The information provided on the &quot;Certification Data&quot; overview page MUST match the product." Level="0" ItemType="checkbox" Selfcert="-" SelfcertType="select" VerificationType="select" AdhocType="select" Select="true" Support="false" Control="false" HoldsPortalResult="false" UploadResult="false">
@@ -10499,7 +10445,6 @@
     </Devices>
   </DeviceConfiguration>
   <PreviousDUTTestCases />
-  <ExternalZatsFilePath>X:\Project</ExternalZatsFilePath>
   <UploadItemIds />
   <IsLongRange>false</IsLongRange>
 </Project>

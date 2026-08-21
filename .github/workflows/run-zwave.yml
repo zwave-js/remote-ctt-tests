@@ -1,0 +1,126 @@
+name: Run Z-Wave Stack (Linux)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-zwave:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    ## Runtime prerequisites
+    - name: Setup .NET 10 runtime
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.x'
+
+    - name: Verify .NET runtime
+      run: dotnet --list-runtimes
+
+    - name: Enable 32-bit architecture and install libraries
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y libc6:i386 libstdc++6:i386
+
+    ## Set up repo scripts etc.
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Z-Wave JS dependencies
+      run: npm ci
+      working-directory: dut/zwave-js
+
+    ## Set up CTT
+    - name: Download CTT setup archive
+      env:
+        GH_TOKEN: ${{ secrets.CTT_ARCHIVE_TOKEN }}
+      run: ./setup/download-ctt-archive.ts
+
+    - name: Extract CTT setup files
+      run: ./setup/unpack-ctt-archive.ts
+
+    ## Set up Z-Wave stack
+    - name: Download Z-Wave stack binaries
+      env:
+        GH_TOKEN: ${{ secrets.ZW_STACK_TOKEN }}
+      run: ./setup/download-zwave-stack.ts
+
+    - name: Make binaries executable
+      run: |
+        chmod +x zwave_stack/bin/*.elf
+        chmod +x ctt/bin/ZWaveCTT
+
+    ## Restore network state for CTT project
+    - name: Extract network state
+      run: ./setup/unpack-network-state-archive.ts
+
+    ## Do the testing stuff
+    - name: Run CTT tests
+      run: |
+        npm start -- \
+          --group=Automatic \
+          --group=Interactive \
+          --exclude=CCT_CRC16EncapsulationCmdClassV1_Rev02 \
+          --exclude=PI_CertificationData_Rev01 \
+          --exclude=DD_ManufacturerSpecificCCData_Rev01 \
+          --exclude=DD_VersionCCData_Rev01 \
+          --exclude=CSR_LifelineMandatoryReports_Rev03 \
+          --verbose
+      env:
+        CI: true
+
+    - name: Package CTT test logs
+      if: always()
+      run: |
+        logPath="ctt/project/Log"
+        outputPath="ctt-test-logs"
+        if [ -d "$logPath" ]; then
+          mkdir -p "$outputPath"
+          for dir in "$logPath"/*/; do
+            resultFile="$dir/TestResult.xml"
+            if [ -f "$resultFile" ]; then
+              suiteName=$(node -e "const fs=require('fs');const x=fs.readFileSync(process.argv[1],'utf8');const m=x.match(/<testsuite[^>]*\bname=\"([^\"]+)\"/);process.stdout.write(m?m[1]:'')" "$resultFile")
+              if [ -n "$suiteName" ]; then
+                (cd "$logPath" && zip -r -q "../../../$outputPath/$suiteName.zip" "$(basename "$dir")")
+                echo "Created: $suiteName.zip"
+              fi
+            fi
+          done
+        fi
+
+    - name: Upload CTT test logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ctt-test-logs
+        path: ctt-test-logs/
+        if-no-files-found: ignore
+
+    - name: Upload CTT project file
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: "Root Device.cttproj"
+        path: ctt/project/Root Device/Root Device.cttproj
+        if-no-files-found: ignore
+
+    - name: Upload Z-Wave JS logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zwave-js-logs
+        path: dut/zwave-js/log/
+        if-no-files-found: ignore
