@@ -8,6 +8,7 @@ import type {
   VerifyNotificationMessage,
   VerifySceneMessage,
   DUTCapabilityQueryMessage,
+  CheckDUTMetadataMessage,
   CCCapabilityQueryMessage,
   ActivateNetworkModeMessage,
   OpenUIMessage,
@@ -761,6 +762,71 @@ export function parsePrompt(
         responseOptions: ["Ok"],
       },
     };
+  }
+  const manufacturerMetadataMatch =
+    /Does (?<property>Manufacturer ID|Product Type ID|Product ID)\s*=\s*(?<expected>[0-9a-f]{2}\s+[0-9a-f]{2}) match the actual device/i.exec(
+      promptText
+    );
+  if (manufacturerMetadataMatch?.groups) {
+    const property = {
+      "Manufacturer ID": "MANUFACTURER_ID",
+      "Product Type ID": "PRODUCT_TYPE_ID",
+      "Product ID": "PRODUCT_ID",
+    }[manufacturerMetadataMatch.groups.property!] as
+      | "MANUFACTURER_ID"
+      | "PRODUCT_TYPE_ID"
+      | "PRODUCT_ID";
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property,
+      expected: Number.parseInt(
+        manufacturerMetadataMatch.groups.expected!.replace(/\s/g, ""),
+        16
+      ),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const hardwareVersionMatch =
+    /Does Hardware Version\s*=\s*(?<expected>0x[0-9a-f]+).+match the actual device/i.exec(
+      promptText
+    );
+  if (hardwareVersionMatch?.groups) {
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property: "HARDWARE_VERSION",
+      expected: Number.parseInt(hardwareVersionMatch.groups.expected!, 16),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const firmwareVersionMatch =
+    /Does Firmware (?<firmwareIndex>\d+) (?<component>Version|Sub-?Version)\s*=\s*(?<expected>0x[0-9a-f]+).+match the actual device/i.exec(
+      promptText
+    );
+  if (firmwareVersionMatch?.groups) {
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property: "FIRMWARE_VERSION",
+      firmwareIndex: Number.parseInt(
+        firmwareVersionMatch.groups.firmwareIndex!,
+        10
+      ),
+      component: firmwareVersionMatch.groups.component!
+        .toLowerCase()
+        .startsWith("sub")
+        ? "SUB_VERSION"
+        : "VERSION",
+      expected: Number.parseInt(firmwareVersionMatch.groups.expected!, 16),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/issue new bursts within less than 30 seconds/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (/observe the dut.+does (?:it|the dut).+\?/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
   }
   if (promptText.toLowerCase().includes("observe the dut")) {
     return { action: "auto_answer", answer: "Ok" };

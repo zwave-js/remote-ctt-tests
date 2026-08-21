@@ -382,6 +382,26 @@ export interface DUTCapabilityQueryMessage {
   capabilityId: DUTCapabilityId;
 }
 
+export type CheckDUTMetadataMessage =
+  | {
+      type: "CHECK_DUT_METADATA";
+      responseOptions: ["Yes", "No"];
+      property:
+        | "MANUFACTURER_ID"
+        | "PRODUCT_TYPE_ID"
+        | "PRODUCT_ID"
+        | "HARDWARE_VERSION";
+      expected: number;
+    }
+  | {
+      type: "CHECK_DUT_METADATA";
+      responseOptions: ["Yes", "No"];
+      property: "FIRMWARE_VERSION";
+      firmwareIndex: number;
+      component: "VERSION" | "SUB_VERSION";
+      expected: number;
+    };
+
 // =============================================================================
 // CC_CAPABILITY_QUERY - Answer about CC-specific DUT capabilities
 // =============================================================================
@@ -733,6 +753,7 @@ export type DUTMessage =
   | VerifyNotificationMessage
   | VerifySceneMessage
   | DUTCapabilityQueryMessage
+  | CheckDUTMetadataMessage
   | CCCapabilityQueryMessage
   | ActivateNetworkModeMessage
   | OpenUIMessage

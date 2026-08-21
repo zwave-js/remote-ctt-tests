@@ -43,7 +43,7 @@ registerHandler(/.*/, {
             msg.targetValue === "any"
               ? Math.round(Math.random() * 99)
               : msg.targetValue;
-          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
+          await node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
           return true;
         }
         break;
