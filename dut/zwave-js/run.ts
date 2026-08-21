@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import {
   Driver,
   type Endpoint,
+  type ZWaveController,
   type ZWaveNode,
   type ZWaveNodeValueNotificationArgs,
 } from "zwave-js";
@@ -30,6 +31,8 @@ import type {
   ErrorResponse,
   ReadyNotification,
   NoHandlerNotification,
+  NodeAddedNotification,
+  NodeRemovedNotification,
 } from "../../src/runner-ipc.ts";
 import {
   getHandlersForTest,
@@ -59,6 +62,7 @@ const SERVER_PORT = 3000;
 let driver: Driver | undefined;
 let server: ZwavejsServer | undefined;
 let ws: WebSocket | undefined;
+let nodeLifecycleController: ZWaveController | undefined;
 
 // Test case state for prompt handlers
 let testContext: Map<string, unknown> = new Map();
@@ -128,6 +132,49 @@ function sendNoHandlerNotification(): void {
   ws?.send(JSON.stringify(notification));
 }
 
+function sendNodeAddedNotification(nodeId: number): void {
+  const notification: NodeAddedNotification = {
+    jsonrpc: "2.0",
+    method: "nodeAdded",
+    params: { nodeId },
+  };
+  ws?.send(JSON.stringify(notification));
+}
+
+function sendNodeRemovedNotification(nodeId: number): void {
+  const notification: NodeRemovedNotification = {
+    jsonrpc: "2.0",
+    method: "nodeRemoved",
+    params: { nodeId },
+  };
+  ws?.send(JSON.stringify(notification));
+}
+
+function handleNodeAdded(node: ZWaveNode): void {
+  if (!includedNodes.some((includedNode) => includedNode.id === node.id)) {
+    includedNodes.push(node);
+  }
+  sendNodeAddedNotification(node.id);
+}
+
+function handleNodeRemoved(node: ZWaveNode): void {
+  includedNodes = includedNodes.filter(
+    (includedNode) => includedNode.id !== node.id
+  );
+  sendNodeRemovedNotification(node.id);
+}
+
+function attachNodeLifecycleListeners(): void {
+  if (!driver || nodeLifecycleController === driver.controller) return;
+
+  nodeLifecycleController?.off("node added", handleNodeAdded);
+  nodeLifecycleController?.off("node removed", handleNodeRemoved);
+
+  nodeLifecycleController = driver.controller;
+  nodeLifecycleController.on("node added", handleNodeAdded);
+  nodeLifecycleController.on("node removed", handleNodeRemoved);
+}
+
 // === Request Handlers ===
 
 async function handleStart(id: number, params: StartParams): Promise<void> {
@@ -189,6 +236,7 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
         userIcon: 0x0500,
       },
     });
+    driver.on("driver ready", attachNodeLifecycleListeners);
 
     // Wait for driver to be ready
     await new Promise<void>((resolve, reject) => {
@@ -249,6 +297,7 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
           valueNotifications.push({ node, args });
         });
 
+        // Track added and removed nodes
         resolve();
       });
 
@@ -288,6 +337,7 @@ async function handleStop(id: number): Promise<void> {
     if (driver) {
       await driver.destroy();
       driver = undefined;
+      nodeLifecycleController = undefined;
     }
 
     console.log("Z-Wave JS stopped successfully");

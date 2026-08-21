@@ -528,8 +528,37 @@ export interface WaitForInterviewMessage {
 export interface CheckNetworkStatusMessage {
   type: "CHECK_NETWORK_STATUS";
   responseOptions: ["Yes", "No"];
-  check: "RESET_AND_LEFT" | "REMOVED_FROM_LIST";
+  check:
+    // The node reset itself and left the network
+    | "RESET_AND_LEFT"
+    // The controller lists the specified node
+    | "INCLUDED"
+    // The controller does not list the specified node
+    | "NOT_INCLUDED"
+    // The controller marks the specified node as dead
+    | "FAILED";
   nodeId: number;
+}
+
+export type SecurityClassCheck =
+  // The node is included without security
+  | "INSECURE"
+  // The node uses S0
+  | "S0"
+  // The node uses any S2 security class
+  | "S2"
+  // The node uses S2 Unauthenticated
+  | "S2_UNAUTHENTICATED"
+  // The node uses S2 Authenticated
+  | "S2_AUTHENTICATED"
+  // The node uses S2 Access Control
+  | "S2_ACCESS_CONTROL";
+
+export interface CheckSecurityClassMessage {
+  type: "CHECK_SECURITY_CLASS";
+  responseOptions: ["Yes", "No"];
+  nodeId: number;
+  securityClass: SecurityClassCheck;
 }
 
 // =============================================================================
@@ -641,6 +670,7 @@ export type DUTMessage =
   | OpenUIMessage
   | WaitForInterviewMessage
   | CheckNetworkStatusMessage
+  | CheckSecurityClassMessage
   | StartStopLevelChangeMessage
   | CheckEndpointCapabilityMessage
   | TrySetConfigParameterMessage
@@ -654,6 +684,8 @@ export type DUTMessage =
 // =============================================================================
 
 export interface OrchestratorState {
+  lastAddedNodeId?: number;
+  lastRemovedNodeId?: number;
   forceS0?: boolean;
   verifyUIContext?: {
     commandClass: string;

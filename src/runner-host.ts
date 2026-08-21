@@ -22,6 +22,8 @@ import {
   isErrorResponse,
   isReadyNotification,
   isNoHandlerNotification,
+  isNodeAddedNotification,
+  isNodeRemovedNotification,
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
@@ -203,10 +205,10 @@ export class RunnerHost {
     testName: string,
     executionMode: CttExecutionMode
   ): Promise<void> {
+    // Reset orchestrator state before the runner can emit events for this test
+    this.testContext = {};
     const params: TestCaseStartedParams = { testName, executionMode };
     await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
-    // Reset orchestrator state for new test
-    this.testContext = {};
   }
 
   /**
@@ -583,6 +585,23 @@ export class RunnerHost {
     // Check for no-handler notification (no prompt handler matched)
     if (isNoHandlerNotification(msg)) {
       this.handleNoHandler();
+      return;
+    }
+
+    // Keep track of the most recently added/removed nodes
+    if (isNodeAddedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastAddedNodeId: msg.params.nodeId,
+      };
+      return;
+    }
+
+    if (isNodeRemovedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastRemovedNodeId: msg.params.nodeId,
+      };
       return;
     }
 

@@ -128,7 +128,25 @@ export interface NoHandlerNotification extends JsonRpcMethodMessage {
   method: "noHandler";
 }
 
-export type IpcNotification = ReadyNotification | NoHandlerNotification;
+export interface NodeAddedNotification extends JsonRpcMethodMessage {
+  method: "nodeAdded";
+  params: {
+    nodeId: number;
+  };
+}
+
+export interface NodeRemovedNotification extends JsonRpcMethodMessage {
+  method: "nodeRemoved";
+  params: {
+    nodeId: number;
+  };
+}
+
+export type IpcNotification =
+  | ReadyNotification
+  | NoHandlerNotification
+  | NodeAddedNotification
+  | NodeRemovedNotification;
 
 // === Type Guards ===
 
@@ -159,6 +177,32 @@ export function isReadyNotification(msg: unknown): msg is ReadyNotification {
 
 export function isNoHandlerNotification(msg: unknown): msg is NoHandlerNotification {
   return isJsonRpcMethodMessage(msg) && msg.method === "noHandler";
+}
+
+export function isNodeAddedNotification(msg: unknown): msg is NodeAddedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "nodeAdded" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "nodeId" in msg.params &&
+    typeof msg.params.nodeId === "number"
+  );
+}
+
+export function isNodeRemovedNotification(
+  msg: unknown
+): msg is NodeRemovedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "nodeRemoved" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "nodeId" in msg.params &&
+    typeof msg.params.nodeId === "number"
+  );
 }
 
 // === Constants ===

@@ -13,6 +13,7 @@ import type {
   OpenUIMessage,
   WaitForInterviewMessage,
   CheckNetworkStatusMessage,
+  CheckSecurityClassMessage,
   StartStopLevelChangeMessage,
   CheckEndpointCapabilityMessage,
   TrySetConfigParameterMessage,
@@ -826,12 +827,193 @@ export function parsePrompt(
     const message: CheckNetworkStatusMessage = {
       type: "CHECK_NETWORK_STATUS",
       responseOptions: ["Yes", "No"],
-      check: "REMOVED_FROM_LIST",
+      check: "NOT_INCLUDED",
       nodeId: parseInt(removedMatch.groups.nodeId!),
     };
     return { action: "send_to_dut", message };
   }
-
+  if (/Is the CTT End Device removed from the DUT's device list/i.test(promptText)) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: 2,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const s0NodeRemoved =
+    /Has the S0 Node \(Node ID = (?<nodeId>\d+)\) been removed from DUT’s device list/i.exec(
+      promptText
+    );
+  if (s0NodeRemoved?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: parseInt(s0NodeRemoved.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const s2NodeRemoved =
+    /Has the S2 Node \(Node ID = (?<nodeId>\d+)\) been removed from DUT’s device list/i.exec(
+      promptText
+    );
+  if (s2NodeRemoved?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: parseInt(s2NodeRemoved.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const includedMatch =
+    /Has the End Device (?<nodeId>\d+) been included.+NO request to start an exclusion/i.exec(
+      promptText
+    );
+  if (includedMatch?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "INCLUDED",
+      nodeId: parseInt(includedMatch.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Is (?:the )?CTT Controller (?:shown as )?(?:non-securely included|included non-securely)/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT Controller listed as a non-secure device/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const s2NodeShown =
+    /Is the S2 Node \(Node ID = (?<nodeId>\d+)\) shown.+as added with S2 security/is.exec(
+      promptText
+    );
+  if (s2NodeShown?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S2",
+      nodeId: parseInt(s2NodeShown.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const insecureS2NodeShown =
+    /Is the S2 Node \(Node ID = (?<nodeId>\d+)\) shown.+as non-securely added/is.exec(
+      promptText
+    );
+  if (insecureS2NodeShown?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: parseInt(insecureS2NodeShown.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/DUT UI shows the included device as 'non-secure'/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /listed as a device with S2_AUTHENTICATED as highest granted security scheme/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S2_AUTHENTICATED",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const shownNonSecure =
+    /S0 Node \(Node ID = (?<nodeId>\d+)\).+non-securely added/i.exec(
+      promptText
+    );
+  if (shownNonSecure?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: parseInt(shownNonSecure.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT End Device shown as failed device/i.test(promptText)) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "FAILED",
+      nodeId: 2,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT End Device shown in the DUT's device list/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "INCLUDED",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Has the CTT End Device been removed from the DUT's device list/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastRemovedNodeId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: state.lastRemovedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /joining node has been granted the S0 key only|joining node has been included with S0 security|listed as an S0 device/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S0",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
   // VERIFY_STATE patterns
   const verifyState = parseVerifyState(promptText);
   if (verifyState) {
