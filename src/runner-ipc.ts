@@ -142,11 +142,28 @@ export interface NodeRemovedNotification extends JsonRpcMethodMessage {
   };
 }
 
+export interface ProvisioningEntryAddedNotification extends JsonRpcMethodMessage {
+  method: "provisioningEntryAdded";
+  params: {
+    dsk: string;
+  };
+}
+
+export interface ProvisioningEntryRemovedNotification
+  extends JsonRpcMethodMessage {
+  method: "provisioningEntryRemoved";
+  params: {
+    dsk: string;
+  };
+}
+
 export type IpcNotification =
   | ReadyNotification
   | NoHandlerNotification
   | NodeAddedNotification
-  | NodeRemovedNotification;
+  | NodeRemovedNotification
+  | ProvisioningEntryAddedNotification
+  | ProvisioningEntryRemovedNotification;
 
 // === Type Guards ===
 
@@ -202,6 +219,34 @@ export function isNodeRemovedNotification(
     msg.params !== null &&
     "nodeId" in msg.params &&
     typeof msg.params.nodeId === "number"
+  );
+}
+
+export function isProvisioningEntryAddedNotification(
+  msg: unknown
+): msg is ProvisioningEntryAddedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "provisioningEntryAdded" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "dsk" in msg.params &&
+    typeof msg.params.dsk === "string"
+  );
+}
+
+export function isProvisioningEntryRemovedNotification(
+  msg: unknown
+): msg is ProvisioningEntryRemovedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "provisioningEntryRemoved" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "dsk" in msg.params &&
+    typeof msg.params.dsk === "string"
   );
 }
 

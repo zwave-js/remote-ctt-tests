@@ -4,6 +4,7 @@ import {
   Duration,
   MultilevelSwitchCCValues,
   SubsystemType,
+  type ZWaveNode,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 import type {
@@ -25,7 +26,11 @@ registerHandler(/.*/, {
     if (ctx.message?.type !== "SEND_COMMAND") return;
 
     const msg = ctx.message as SendCommandMessage;
-    const node = ctx.includedNodes.at(-1);
+    let node: ZWaveNode | undefined;
+    if (msg.nodeId !== undefined) {
+      node = ctx.driver.controller.nodes.get(msg.nodeId);
+    }
+    node ??= ctx.includedNodes.at(-1);
     if (!node) return;
 
     const endpoint = msg.endpoint ?? 0;
@@ -48,7 +53,6 @@ registerHandler(/.*/, {
         if (msg.action === "SET") {
           const targetValue =
             msg.targetValue === "any" ? Math.random() > 0.5 : msg.targetValue;
-          ep?.commandClasses["Binary Switch"].set(targetValue);
           node.setValue(
             BinarySwitchCCValues.targetValue.endpoint(endpoint),
             targetValue
@@ -125,14 +129,54 @@ registerHandler(/.*/, {
     if (ctx.message?.type !== "SEND_COMMAND") return;
 
     const msg = ctx.message as SendCommandMessage;
-    const node = ctx.includedNodes.at(-1);
+    let node: ZWaveNode | undefined;
+    if (msg.nodeId !== undefined) {
+      node = ctx.driver.controller.nodes.get(msg.nodeId);
+    }
+    node ??= ctx.includedNodes.at(-1);
     if (!node) return;
+
+    if (msg.commandClass === "Basic" && msg.action === "SET") {
+      const targetValue =
+        msg.targetValue === "any"
+          ? Math.round(Math.random() * 99)
+          : msg.targetValue;
+      setTimeout(() => {
+        void node
+          .setValue(
+            BasicCCValues.targetValue.endpoint(msg.endpoint ?? 0),
+            targetValue
+          )
+          .catch((error) => {
+            console.error("Failed to send requested Basic Set:", error);
+          });
+      }, 100);
+      return "Ok";
+    }
 
     // For "any" commands (like "send any S2 command"), send and respond Ok
     if (msg.commandClass === "any" && msg.action === "any") {
-      setTimeout(() => {
-        node.commandClasses.Basic.set(Math.round(Math.random() * 99));
-      }, 100);
+      if (msg.nodeId !== undefined) {
+        setTimeout(() => {
+          void node.commandClasses.Basic.set(Math.round(Math.random() * 99)).catch(
+            (error) => {
+              const message =
+                error instanceof Error ? error.message : String(error);
+              console.log(
+                `Command to test node ${msg.nodeId} failed as expected: ${message}`
+              );
+            }
+          );
+        }, 100);
+      } else {
+        setTimeout(() => {
+          void node.commandClasses.Basic.set(
+            Math.round(Math.random() * 99)
+          ).catch((error) => {
+            console.error("Failed to send requested Basic command:", error);
+          });
+        }, 100);
+      }
       return "Ok";
     }
 

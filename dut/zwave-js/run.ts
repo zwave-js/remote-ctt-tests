@@ -31,8 +31,7 @@ import type {
   ErrorResponse,
   ReadyNotification,
   NoHandlerNotification,
-  NodeAddedNotification,
-  NodeRemovedNotification,
+  IpcNotification,
 } from "../../src/runner-ipc.ts";
 import {
   getHandlersForTest,
@@ -115,13 +114,44 @@ function sendError(id: number, code: number, message: string): void {
   ws?.send(JSON.stringify(response));
 }
 
+function sendNotification(notification: IpcNotification): void {
+  ws?.send(JSON.stringify(notification));
+}
+
+const handlerNotifications = {
+  nodeAdded: (nodeId: number) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "nodeAdded",
+      params: { nodeId },
+    }),
+  nodeRemoved: (nodeId: number) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "nodeRemoved",
+      params: { nodeId },
+    }),
+  provisioningEntryAdded: (dsk: string) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "provisioningEntryAdded",
+      params: { dsk },
+    }),
+  provisioningEntryRemoved: (dsk: string) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "provisioningEntryRemoved",
+      params: { dsk },
+    }),
+};
+
 function sendReady(): void {
   const notification: ReadyNotification = {
     jsonrpc: "2.0",
     method: "ready",
     params: { name: RUNNER_NAME },
   };
-  ws?.send(JSON.stringify(notification));
+  sendNotification(notification);
 }
 
 function sendNoHandlerNotification(): void {
@@ -129,39 +159,21 @@ function sendNoHandlerNotification(): void {
     jsonrpc: "2.0",
     method: "noHandler",
   };
-  ws?.send(JSON.stringify(notification));
-}
-
-function sendNodeAddedNotification(nodeId: number): void {
-  const notification: NodeAddedNotification = {
-    jsonrpc: "2.0",
-    method: "nodeAdded",
-    params: { nodeId },
-  };
-  ws?.send(JSON.stringify(notification));
-}
-
-function sendNodeRemovedNotification(nodeId: number): void {
-  const notification: NodeRemovedNotification = {
-    jsonrpc: "2.0",
-    method: "nodeRemoved",
-    params: { nodeId },
-  };
-  ws?.send(JSON.stringify(notification));
+  sendNotification(notification);
 }
 
 function handleNodeAdded(node: ZWaveNode): void {
   if (!includedNodes.some((includedNode) => includedNode.id === node.id)) {
     includedNodes.push(node);
   }
-  sendNodeAddedNotification(node.id);
+  handlerNotifications.nodeAdded(node.id);
 }
 
 function handleNodeRemoved(node: ZWaveNode): void {
   includedNodes = includedNodes.filter(
     (includedNode) => includedNode.id !== node.id
   );
-  sendNodeRemovedNotification(node.id);
+  handlerNotifications.nodeRemoved(node.id);
 }
 
 function attachNodeLifecycleListeners(): void {
@@ -377,6 +389,7 @@ async function handleTestCaseStarted(
             includedNodes,
             nodeNotifications,
             valueNotifications,
+            notifications: handlerNotifications,
           });
         } catch (error) {
           console.error(`[Handler] onTestStart error:`, error);
@@ -405,6 +418,7 @@ async function handleCttPrompt(
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      notifications: handlerNotifications,
       message,
     };
 
@@ -440,6 +454,7 @@ async function handleCttLog(id: number | undefined, params: CttLogParams): Promi
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      notifications: handlerNotifications,
       message,
     };
 

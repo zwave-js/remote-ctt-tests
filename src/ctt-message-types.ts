@@ -19,6 +19,7 @@ export interface DUTMessageBase {
 interface SendCommandBase {
   type: "SEND_COMMAND";
   // responseOptions: undefined - fire and forget
+  nodeId?: number;
   endpoint?: number;
   encapsulation?: ("S0" | "S2")[];
 }
@@ -493,7 +494,7 @@ export type CCCapabilityQueryMessage = CCCapabilityQueryBase &
 export interface ActivateNetworkModeMessage {
   type: "ACTIVATE_NETWORK_MODE";
   responseOptions: ["Ok"];
-  mode: "ADD" | "REMOVE" | "LEARN";
+  mode: "ADD" | "REMOVE" | "LEARN" | "STOP_ADD";
   forceS0?: boolean;
 }
 
@@ -519,6 +520,13 @@ export interface WaitForInterviewMessage {
     commandClass: string;
     nodeId: number;
   };
+}
+
+// This also succeeds when inclusion aborts before the interview completes
+// WaitForInterviewMessage requires a successfully completed interview
+export interface WaitForInclusionIdleMessage {
+  type: "WAIT_FOR_INCLUSION_IDLE";
+  responseOptions: ["Ok"];
 }
 
 // =============================================================================
@@ -559,6 +567,17 @@ export interface CheckSecurityClassMessage {
   responseOptions: ["Yes", "No"];
   nodeId: number;
   securityClass: SecurityClassCheck;
+}
+
+export interface FactoryResetMessage {
+  type: "FACTORY_RESET";
+  responseOptions: ["Ok"];
+}
+
+export interface RemoveFailedNodeMessage {
+  type: "REMOVE_FAILED_NODE";
+  responseOptions: ["Ok"];
+  nodeId: number;
 }
 
 // =============================================================================
@@ -655,6 +674,54 @@ export interface VerifyIndicatorIdentifyMessage {
 }
 
 // =============================================================================
+// MANAGE_PROVISIONING - Add or remove a SmartStart provisioning entry
+// =============================================================================
+
+interface ManageProvisioningMessageBase {
+  type: "MANAGE_PROVISIONING";
+}
+
+export type ProvisioningSecurityClass =
+  | "S2_AccessControl"
+  | "S2_Authenticated"
+  | "S2_Unauthenticated";
+
+export type ManageProvisioningMessage = ManageProvisioningMessageBase &
+  (
+    | {
+        action: "ADD";
+        dsk: string;
+        protocol?: "ZWAVE" | "LONG_RANGE";
+        responseOptions: ["Ok"];
+      }
+    | { action: "REMOVE"; dsk: string; responseOptions: ["Ok"] }
+    | { action: "REMOVE_ALL"; responseOptions: ["Ok"] }
+    | {
+        action: "SET_KEYS";
+        dsk: string;
+        securityClasses: ProvisioningSecurityClass[];
+        responseOptions: ["Ok"];
+      }
+    | {
+        action: "SET_STATUS";
+        dsk: string;
+        status: "ACTIVE" | "INACTIVE";
+        responseOptions: ["Ok"];
+      }
+    | {
+        action:
+          | "CHECK_EXISTS"
+          | "CHECK_ABSENT"
+          | "CHECK_PENDING"
+          | "CHECK_INCLUDED"
+          | "CHECK_ACTIVE"
+          | "CHECK_INACTIVE";
+        dsk: string;
+        responseOptions: ["Yes", "No"];
+      }
+  );
+
+// =============================================================================
 // Union of all DUT message types
 // =============================================================================
 
@@ -669,15 +736,19 @@ export type DUTMessage =
   | ActivateNetworkModeMessage
   | OpenUIMessage
   | WaitForInterviewMessage
+  | WaitForInclusionIdleMessage
   | CheckNetworkStatusMessage
   | CheckSecurityClassMessage
+  | FactoryResetMessage
+  | RemoveFailedNodeMessage
   | StartStopLevelChangeMessage
   | CheckEndpointCapabilityMessage
   | TrySetConfigParameterMessage
   | ShouldDisregardRecommendationMessage
   | TriggerReInterviewMessage
   | QueryUserCodesMessage
-  | VerifyIndicatorIdentifyMessage;
+  | VerifyIndicatorIdentifyMessage
+  | ManageProvisioningMessage;
 
 // =============================================================================
 // Orchestrator-only state (not sent to DUT)
@@ -686,7 +757,13 @@ export type DUTMessage =
 export interface OrchestratorState {
   lastAddedNodeId?: number;
   lastRemovedNodeId?: number;
+  lastAddedProvisioningDsk?: string;
+  lastRemovedProvisioningDsk?: string;
   forceS0?: boolean;
+  // The preceding log line defines how to handle the next DSK-only box
+  provisioningAction?: "ADD" | "REMOVE";
+  // The preceding log line identifies the next blank Ok box as an interview wait
+  waitForInterviewPrompt?: boolean;
   verifyUIContext?: {
     commandClass: string;
     nodeId: number;

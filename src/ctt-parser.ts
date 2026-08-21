@@ -12,6 +12,7 @@ import type {
   ActivateNetworkModeMessage,
   OpenUIMessage,
   WaitForInterviewMessage,
+  WaitForInclusionIdleMessage,
   CheckNetworkStatusMessage,
   CheckSecurityClassMessage,
   StartStopLevelChangeMessage,
@@ -21,6 +22,8 @@ import type {
   TriggerReInterviewMessage,
   QueryUserCodesMessage,
   VerifyIndicatorIdentifyMessage,
+  ManageProvisioningMessage,
+  ProvisioningSecurityClass,
   OrchestratorState,
   DUTCapabilityId,
   DurationValue,
@@ -72,6 +75,24 @@ export function parseLog(
     )
   ) {
     return { action: "modify_context", stateUpdate: { forceS0: true } };
+  }
+  if (/Wait until the DUT has finished interviewing/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { waitForInterviewPrompt: true },
+    };
+  }
+  if (/Please add .+DSK.+Node Provisioning List/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { provisioningAction: "ADD" },
+    };
+  }
+  if (/Please remove .+DSK.+Node Provisioning List/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { provisioningAction: "REMOVE" },
+    };
   }
 
   // Verify UI state detection (for later prompt answer)
@@ -397,6 +418,15 @@ function parseLogSendCommand(logText: string): SendCommandMessage | null {
     };
   }
 
+  if (/trigger a Binary Switch Set OR a Basic Set/i.test(logText)) {
+    return {
+      type: "SEND_COMMAND",
+      commandClass: "Binary Switch",
+      action: "SET",
+      targetValue: "any",
+    };
+  }
+
   // Multilevel Switch trigger any
   if (/trigger Multilevel Switch On or Off/i.test(logText)) {
     return {
@@ -675,6 +705,20 @@ function parseEndpoint(text: string): { endpoint?: number } {
   return match?.groups?.ep ? { endpoint: parseInt(match.groups.ep) } : {};
 }
 
+function parseProvisioningSecurityClass(
+  value: string
+): ProvisioningSecurityClass | undefined {
+  switch (value.toLowerCase()) {
+    case "s2_access":
+    case "s2_accesscontrol":
+      return "S2_AccessControl";
+    case "s2_authenticated":
+      return "S2_Authenticated";
+    case "s2_unauthenticated":
+      return "S2_Unauthenticated";
+  }
+}
+
 // =============================================================================
 // Prompt Parsing
 // =============================================================================
@@ -687,18 +731,206 @@ export function parsePrompt(
     executionMode: "Classic",
   }
 ): PromptParseResult {
+  const { testName } = testInstance;
   // Orchestrator-only auto-answers
+  if (state.waitForInterviewPrompt && !promptText.trim()) {
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "WAIT_FOR_INTERVIEW",
+        responseOptions: ["Ok"],
+      },
+    };
+  }
   if (/Prepare the DUT to send any.+command/i.test(promptText)) {
     return { action: "auto_answer", answer: "Ok" };
   }
   if (/Include.+into the DUT network/i.test(promptText)) {
     return { action: "auto_answer", answer: "Ok" };
   }
+  if (
+    /Reset (?:the )?DUT(?:!| and)|perform a factory reset as stated|Please reset the DUT/i.test(
+      promptText
+    )
+  ) {
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "FACTORY_RESET",
+        responseOptions: ["Ok"],
+      },
+    };
+  }
   if (promptText.toLowerCase().includes("observe the dut")) {
     return { action: "auto_answer", answer: "Ok" };
   }
   if (/Retry\?/i.test(promptText)) {
     return { action: "auto_answer", answer: "No" };
+  }
+  const longRangeProvisioningEntry =
+    /configure the Bootstrapping Mode TLV to 'Z-Wave Long Range\s+SmartStart inclusion'.+DSK:\s*(?<dsk>(?:\d{5}-){7}\d{5})/is.exec(
+      promptText
+    );
+  if (longRangeProvisioningEntry?.groups) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "ADD",
+      protocol: "LONG_RANGE",
+      dsk: longRangeProvisioningEntry.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const addProvisioningEntry =
+    /add (?:the following|this(?: modified)?) DSK to the DUT's Node Provisioning List:\s*(?<dsk>(?:\d{5}-){7}\d{5})/i.exec(
+      promptText
+    );
+  if (addProvisioningEntry?.groups) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "ADD",
+      dsk: addProvisioningEntry.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const pendingEntryDsk =
+    /(?<dsk>(?:\d{5}-){7}\d{5})/.exec(promptText);
+  if (
+    testName.includes("SSR_PendingNodeProvisioningListEntry") &&
+    pendingEntryDsk?.groups &&
+    state.provisioningAction
+  ) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: state.provisioningAction,
+      dsk: pendingEntryDsk.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const advancedJoiningKeys =
+    /Advanced Joining: Please select (?<key>S2_[A-Za-z]+) and deselect all other security keys/i.exec(
+      promptText
+    );
+  if (advancedJoiningKeys?.groups) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const securityClass = parseProvisioningSecurityClass(
+      advancedJoiningKeys.groups.key!
+    );
+    if (securityClass) {
+      const message: ManageProvisioningMessage = {
+        type: "MANAGE_PROVISIONING",
+        responseOptions: ["Ok"],
+        action: "SET_KEYS",
+        dsk: state.lastAddedProvisioningDsk,
+        securityClasses: [securityClass],
+      };
+      return { action: "send_to_dut", message };
+    }
+  }
+  if (/set the SmartStart Inclusion setting to 'ignored\/disabled'/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "SET_STATUS",
+      dsk: state.lastAddedProvisioningDsk,
+      status: "INACTIVE",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/entry shown as to be ignored when requesting SmartStart inclusion/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_INACTIVE",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Has the entry been added to the Node Provisioning List/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_EXISTS",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the node reported as not included \(pending\)/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_PENDING",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the node reported as included/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_INCLUDED",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Has the entry been removed from the Node Provisioning List|Is the entry removed from the DUT's Node Provisioning List/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastRemovedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_ABSENT",
+      dsk: state.lastRemovedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /remove (?:the DSK of the CTT End Device|this DSK|the entry|this entry) from the DUT's Node Provisioning List|remove the .+ from the Node Provisioning List and click 'OK'/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "REMOVE",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/remove both entries from the Node Provisioning List/i.test(promptText)) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "REMOVE_ALL",
+    };
+    return { action: "send_to_dut", message };
   }
   // Configuration CC - parameter numbers requirement (always yes)
   if (
@@ -714,23 +946,62 @@ export function parsePrompt(
   }
 
   // Send any S2 command (orchestrator clicks OK, then sends message to DUT)
-  if (/Click 'OK' and send any S2/i.test(promptText)) {
+  if (
+    /Click 'OK' and (?:send any S2|use the DUT's UI to send any secure command)/i.test(
+      promptText
+    )
+  ) {
     const message: SendCommandMessage = {
       type: "SEND_COMMAND",
       commandClass: "any",
       action: "any",
       encapsulation: ["S2"],
     };
-    return { action: "send_to_dut", message, answer: "Ok" };
+    return { action: "send_to_dut", message };
+  }
+  const sendAnyToNode =
+    /send any command to CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (sendAnyToNode?.groups) {
+    const message: SendCommandMessage = {
+      type: "SEND_COMMAND",
+      commandClass: "any",
+      action: "any",
+      nodeId: parseInt(sendAnyToNode.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const sendBasicToNode =
+    /send a Basic Set command (?:to CTT End Device \(Node ID = |from the DUT to Node ID )(?<nodeId>\d+)\)?/i.exec(
+      promptText
+    );
+  if (sendBasicToNode?.groups) {
+    const message: SendCommandMessage = {
+      type: "SEND_COMMAND",
+      commandClass: "Basic",
+      action: "SET",
+      targetValue: "any",
+      nodeId: parseInt(sendBasicToNode.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
   }
 
   // ACTIVATE_NETWORK_MODE
-  if (promptText.toLowerCase().includes("activate the add mode")) {
+  if (/activate the add mode|set (?:the )?dut into add mode/i.test(promptText)) {
     const message: ActivateNetworkModeMessage = {
       type: "ACTIVATE_NETWORK_MODE",
       responseOptions: ["Ok"],
       mode: "ADD",
       forceS0: state.forceS0,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/stop add mode on dut/i.test(promptText)) {
+    const message: ActivateNetworkModeMessage = {
+      type: "ACTIVATE_NETWORK_MODE",
+      responseOptions: ["Ok"],
+      mode: "STOP_ADD",
     };
     return { action: "send_to_dut", message };
   }
@@ -747,6 +1018,8 @@ export function parsePrompt(
   if (
     /wait for (the )?(node )?interview to (be )?finish/i.test(promptText) ||
     /inclusion (process )?(has )?finish(ed)?/i.test(promptText) ||
+    /inclusion process is done/i.test(promptText) ||
+    /inclusion and interview process has been finished/i.test(promptText) ||
     /inclusion.+finished.+click(ing)?.+OK/i.test(promptText) ||
     /Inclusion and interview passed/i.test(promptText) ||
     /wait.+dut is ready/i.test(promptText)
@@ -765,6 +1038,15 @@ export function parsePrompt(
             nodeId: parseInt(uiMatch.groups.nodeId!),
           }
         : undefined,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /wait for the DUT to finish or abort the Inclusion process/i.test(promptText)
+  ) {
+    const message: WaitForInclusionIdleMessage = {
+      type: "WAIT_FOR_INCLUSION_IDLE",
+      responseOptions: ["Ok"],
     };
     return { action: "send_to_dut", message };
   }
@@ -1014,6 +1296,21 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
+  const removeFailedNode =
+    /remove the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (removeFailedNode?.groups) {
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "REMOVE_FAILED_NODE",
+        responseOptions: ["Ok"],
+        nodeId: parseInt(removeFailedNode.groups.nodeId!),
+      },
+    };
+  }
+
   // VERIFY_STATE patterns
   const verifyState = parseVerifyState(promptText);
   if (verifyState) {

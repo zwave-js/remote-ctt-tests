@@ -36,6 +36,12 @@ interface BaseContext {
     node: ZWaveNode;
     args: ZWaveNodeValueNotificationArgs;
   }[];
+  notifications: {
+    nodeAdded: (nodeId: number) => void;
+    nodeRemoved: (nodeId: number) => void;
+    provisioningEntryAdded: (dsk: string) => void;
+    provisioningEntryRemoved: (dsk: string) => void;
+  };
 }
 
 // Context with required message (for prompts and logs)

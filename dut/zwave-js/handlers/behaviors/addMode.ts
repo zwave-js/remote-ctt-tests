@@ -3,13 +3,25 @@ import {
   type DeferredPromise,
 } from "alcalzone-shared/deferred-promise";
 import { registerHandler } from "../../prompt-handlers.ts";
-import { InclusionStrategy, type InclusionOptions } from "zwave-js";
+import {
+  InclusionStrategy,
+  InclusionState,
+  type InclusionOptions,
+} from "zwave-js";
 import { wait } from "alcalzone-shared/async";
 
 const PIN_PROMISE = "pin promise";
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
+    if (
+      ctx.message?.type === "ACTIVATE_NETWORK_MODE" &&
+      ctx.message.mode === "STOP_ADD"
+    ) {
+      await ctx.driver.controller.stopInclusion();
+      return "Ok";
+    }
+
     // Handle ACTIVATE_NETWORK_MODE for ADD mode
     if (
       ctx.message?.type === "ACTIVATE_NETWORK_MODE" &&
@@ -54,11 +66,26 @@ registerHandler(/.*/, {
         }
       }
 
-      // Remember all included nodes
-      driver.controller.on("node added", (node) => {
-        ctx.includedNodes.push(node);
-      });
+      return "Ok";
+    }
 
+    if (ctx.message?.type === "WAIT_FOR_INCLUSION_IDLE") {
+      const isActive = () =>
+        ctx.driver.controller.inclusionState === InclusionState.Including ||
+        ctx.driver.controller.inclusionState === InclusionState.Excluding ||
+        ctx.driver.controller.inclusionState === InclusionState.Busy;
+      if (!isActive()) return "Ok";
+
+      await new Promise<void>((resolve) => {
+        const onStateChanged = () => {
+          if (!isActive()) {
+            ctx.driver.controller.off("inclusion state changed", onStateChanged);
+            resolve();
+          }
+        };
+        ctx.driver.controller.on("inclusion state changed", onStateChanged);
+        onStateChanged();
+      });
       return "Ok";
     }
 

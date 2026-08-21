@@ -24,6 +24,8 @@ import {
   isNoHandlerNotification,
   isNodeAddedNotification,
   isNodeRemovedNotification,
+  isProvisioningEntryAddedNotification,
+  isProvisioningEntryRemovedNotification,
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
@@ -367,6 +369,27 @@ export class RunnerHost {
       if (this.testContext.recommendationContext && msg.type === "SHOULD_DISREGARD_RECOMMENDATION") {
         this.testContext = { ...this.testContext, recommendationContext: undefined };
       }
+      // In some tests, CTT logs the interview instruction separately, then opens a blank Ok box.
+      // This clears the flag after that box's WAIT_FOR_INTERVIEW action completes.
+      if (
+        this.testContext.waitForInterviewPrompt &&
+        msg.type === "WAIT_FOR_INTERVIEW"
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          waitForInterviewPrompt: undefined,
+        };
+      }
+      if (
+        this.testContext.provisioningAction &&
+        msg.type === "MANAGE_PROVISIONING" &&
+        msg.action === this.testContext.provisioningAction
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          provisioningAction: undefined,
+        };
+      }
     }
 
     return result;
@@ -601,6 +624,22 @@ export class RunnerHost {
       this.testContext = {
         ...this.testContext,
         lastRemovedNodeId: msg.params.nodeId,
+      };
+      return;
+    }
+
+    if (isProvisioningEntryAddedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastAddedProvisioningDsk: msg.params.dsk,
+      };
+      return;
+    }
+
+    if (isProvisioningEntryRemovedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastRemovedProvisioningDsk: msg.params.dsk,
       };
       return;
     }
