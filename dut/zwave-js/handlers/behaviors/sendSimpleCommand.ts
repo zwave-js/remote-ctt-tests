@@ -7,19 +7,11 @@ import {
   type ZWaveNode,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
-import {
-  scheduleDelayedCommand,
-  waitForDelayedCommands,
-} from "../delayedCommands.ts";
 import type {
   SendCommandMessage,
   DurationValue,
 } from "../../../../src/ctt-message-types.ts";
 
-// CTT arms its frame expectation only after the message box closes
-const PROMPT_RESPONSE_DELAY_MS = 100;
-
-// Helper to convert DurationValue to zwave-js Duration
 function toDuration(duration: DurationValue): Duration {
   if (duration === "default") {
     return Duration.default();
@@ -27,7 +19,6 @@ function toDuration(duration: DurationValue): Duration {
   return new Duration(duration.value, duration.unit);
 }
 
-// Handler for SEND_COMMAND messages (from logs - fire and forget)
 registerHandler(/.*/, {
   onLog: async (ctx) => {
     if (ctx.message?.type !== "SEND_COMMAND") return;
@@ -50,7 +41,10 @@ registerHandler(/.*/, {
             msg.targetValue === "any"
               ? Math.round(Math.random() * 99)
               : msg.targetValue;
-          await node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
+          await node.setValue(
+            BasicCCValues.targetValue.endpoint(endpoint),
+            targetValue
+          );
           return true;
         }
         break;
@@ -118,70 +112,14 @@ registerHandler(/.*/, {
       }
 
       case "any": {
-        // "Send any S2 command" - just send a Basic SET with random value
         if (msg.action === "any") {
-          node.commandClasses.Basic.set(Math.round(Math.random() * 99));
-          return true;
-        }
-        break;
-      }
-    }
-
-    // Let other command types fall through
-    return undefined;
-  },
-
-  // Also handle SEND_COMMAND messages from prompts (some require response after sending)
-  onPrompt: async (ctx) => {
-    if (ctx.message?.type === "WAIT_FOR_COMMAND_IDLE") {
-      await waitForDelayedCommands(ctx.state);
-      return "Ok";
-    }
-
-    if (ctx.message?.type !== "SEND_COMMAND") return;
-
-    const msg = ctx.message as SendCommandMessage;
-    let node: ZWaveNode | undefined;
-    if (msg.nodeId !== undefined) {
-      node = ctx.driver.controller.nodes.get(msg.nodeId);
-    }
-    node ??= ctx.includedNodes.at(-1);
-    if (!node) return;
-
-    if (msg.commandClass === "Basic" && msg.action === "SET") {
-      const targetValue =
-        msg.targetValue === "any"
-          ? Math.round(Math.random() * 99)
-          : msg.targetValue;
-      scheduleDelayedCommand(
-        ctx.state,
-        PROMPT_RESPONSE_DELAY_MS,
-        async () => {
           try {
-            await node.setValue(
-              BasicCCValues.targetValue.endpoint(msg.endpoint ?? 0),
-              targetValue
+            await node.commandClasses.Basic.set(
+              Math.round(Math.random() * 99)
             );
-          } catch (error) {
-            console.error("Failed to send requested Basic Set:", error);
-          }
-        }
-      );
-      return "Ok";
-    }
-
-    // For "any" commands (like "send any S2 command"), send and respond Ok
-    if (msg.commandClass === "any" && msg.action === "any") {
-      scheduleDelayedCommand(
-        ctx.state,
-        PROMPT_RESPONSE_DELAY_MS,
-        async () => {
-          try {
-            await node.commandClasses.Basic.set(Math.round(Math.random() * 99));
           } catch (error) {
             const message =
               error instanceof Error ? error.message : String(error);
-            // A prompt that names the target node is testing that the command fails
             if (msg.nodeId !== undefined) {
               console.log(
                 `Command to test node ${msg.nodeId} failed as expected: ${message}`
@@ -190,9 +128,10 @@ registerHandler(/.*/, {
               console.error("Failed to send requested Basic command:", message);
             }
           }
+          return true;
         }
-      );
-      return "Ok";
+        break;
+      }
     }
 
     return undefined;

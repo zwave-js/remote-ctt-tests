@@ -7,9 +7,8 @@ import {
 } from "zwave-js";
 import {
   registerHandler,
-  type PromptContext,
+  type HandlerContext,
 } from "../../prompt-handlers.ts";
-import { scheduleDelayedCommand } from "../delayedCommands.ts";
 import { isNodeStillRespondingError } from "../behaviors/nodeReset.ts";
 import {
   grantS2SecurityClasses,
@@ -18,7 +17,6 @@ import {
   waitForS2Pin,
 } from "../behaviors/addMode.ts";
 
-const REPLACEMENT_DELAY_MS = 100;
 const REPLACEMENT_START_TIMEOUT_MS = 45_000;
 const REPLACEMENT_COMPLETION_TIMEOUT_MS = 120_000;
 const REPLACEMENT_RUNNING = "replace failed node running";
@@ -67,7 +65,7 @@ async function waitForReplacementNode(
 
 async function replaceFailedNode(
   nodeId: number,
-  ctx: PromptContext
+  ctx: HandlerContext
 ): Promise<void> {
   if (!ctx.driver.controller.nodes.has(nodeId)) {
     throw new Error(`Cannot replace unknown node ${nodeId}`);
@@ -100,7 +98,7 @@ async function replaceFailedNode(
 
 async function cancelReplacement(
   nodeId: number,
-  ctx: PromptContext
+  ctx: HandlerContext
 ): Promise<void> {
   const { controller } = ctx.driver;
   if (controller.inclusionState === InclusionState.Including) {
@@ -121,7 +119,7 @@ async function cancelReplacement(
 
 async function runReplacement(
   nodeId: number,
-  ctx: PromptContext
+  ctx: HandlerContext
 ): Promise<void> {
   try {
     await replaceFailedNode(nodeId, ctx);
@@ -150,7 +148,7 @@ async function runReplacement(
 }
 
 registerHandler("RT_SISReplaceFailingNode_Rev02", {
-  async onPrompt(ctx) {
+  async onLog(ctx) {
     if (ctx.message.type !== "REPLACE_FAILED_NODE") return;
 
     if (ctx.state.get(REPLACEMENT_RUNNING)) {
@@ -159,13 +157,9 @@ registerHandler("RT_SISReplaceFailingNode_Rev02", {
     ctx.state.set(REPLACEMENT_RUNNING, true);
 
     const nodeId = ctx.message.nodeId;
-    scheduleDelayedCommand(ctx.state, REPLACEMENT_DELAY_MS, async () => {
-      await runReplacement(nodeId, ctx);
-      // A failed cancellation leaves the controller in an unknown state, so the guard
-      // must stay set to keep a second replacement from starting
-      ctx.state.delete(REPLACEMENT_RUNNING);
-    });
-
-    return "Ok";
+    await runReplacement(nodeId, ctx);
+    // The guard must stay set after a failed cancellation
+    ctx.state.delete(REPLACEMENT_RUNNING);
+    return true;
   },
 });

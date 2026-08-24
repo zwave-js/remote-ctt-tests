@@ -39,6 +39,10 @@ import type { OrchestratorState } from "./ctt-message-types.ts";
 import { abortTestRun } from "./ctt-client.ts";
 import c from "ansi-colors";
 import * as readline from "readline";
+import { setTimeout as wait } from "node:timers/promises";
+
+// CTT needs 100 ms to arm its frame expectation after the prompt closes
+const PROMPT_DUT_DISPATCH_DELAY_MS = 100;
 
 /**
  * Outcome of a prompt:
@@ -51,6 +55,8 @@ import * as readline from "readline";
 type PromptResult = {
   source: "user" | "auto" | "timeout" | "unhandled" | "closed" | "skip";
   value: string;
+  /** Sends the parsed message to the DUT; call once the answer is submitted */
+  dispatch?: () => void;
 };
 
 export interface RunnerHostOptions {
@@ -96,6 +102,8 @@ export class RunnerHost {
       reject: (error: Error) => void;
     }
   >();
+  /** Commands sent to the DUT after a prompt was answered, keyed so each entry can remove itself */
+  private pendingDutDispatches = new Map<symbol, Promise<void>>();
 
   // Readline interface for user input prompts
   private rl?: readline.Interface;
@@ -195,14 +203,35 @@ export class RunnerHost {
       // No message to send to DUT
     } else if (result.action === "send_to_dut") {
       // Send structured message to runner
-      const params: CttLogParams = {
+      await this.sendCttLogToRunner({
         testName,
         executionMode,
         message: result.message,
-      };
-      await this.sendRequest("handleCttLog", params as unknown as Record<string, unknown>);
+      });
     }
     // action === "none" - nothing to send to runner
+  }
+
+  /**
+   * Sends `params` to the runner once CTT has had time to close the message box
+   * and arm its frame expectation.
+   */
+  private scheduleDutDispatch(params: CttLogParams): void {
+    const key = Symbol();
+    const completion = wait(PROMPT_DUT_DISPATCH_DELAY_MS)
+      .then(() => this.sendCttLogToRunner(params))
+      .catch((error: unknown) => {
+        console.error("Delayed DUT dispatch failed:", error);
+      })
+      .finally(() => this.pendingDutDispatches.delete(key));
+    this.pendingDutDispatches.set(key, completion);
+  }
+
+  private async sendCttLogToRunner(params: CttLogParams): Promise<void> {
+    await this.sendRequest(
+      "handleCttLog",
+      params as unknown as Record<string, unknown>
+    );
   }
 
   /**
@@ -250,14 +279,33 @@ export class RunnerHost {
       };
     }
 
-    // Handle orchestrator auto-answers (no DUT involvement)
+    // CTT waits until scheduled DUT commands finish
+    if (parseResult.action === "wait_for_pending_dispatches") {
+      await Promise.all(this.pendingDutDispatches.values());
+      return { source: "auto", value: parseResult.answer };
+    }
+
+    // The handler returns the CTT answer with a DUT command to schedule after submission
+    if (parseResult.action === "answer_then_dispatch") {
+      const params: CttLogParams = {
+        testName,
+        executionMode,
+        message: parseResult.message,
+      };
+      return {
+        source: "auto",
+        value: parseResult.answer,
+        dispatch: () => this.scheduleDutDispatch(params),
+      };
+    }
+
+    // The handler answers CTT without involving the DUT
     if (parseResult.action === "auto_answer") {
       return { source: "auto", value: parseResult.answer };
     }
 
-    // Handle send_to_dut with optional auto-answer
+    // The handler sends a fire-and-forget DUT message before returning the parser-provided CTT answer
     if (parseResult.action === "send_to_dut" && parseResult.answer) {
-      // Send message to DUT (fire-and-forget, no response expected)
       if (this.runnerSocket?.readyState === WebSocket.OPEN) {
         const params: CttLogParams = {
           testName,
@@ -372,7 +420,7 @@ export class RunnerHost {
     const result = await promise;
     this.activePrompt = undefined;
 
-    // Clear consumed state after successful response
+    // The handler clears state consumed by the successful response
     if (parseResult.action === "send_to_dut") {
       const msg = parseResult.message;
       if (this.testContext.forceS0 && msg.type === "ACTIVATE_NETWORK_MODE" && msg.mode === "ADD") {

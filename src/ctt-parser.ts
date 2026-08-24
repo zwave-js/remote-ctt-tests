@@ -14,7 +14,6 @@ import type {
   OpenUIMessage,
   WaitForInterviewMessage,
   WaitForInclusionIdleMessage,
-  WaitForCommandIdleMessage,
   WaitForNodeRemovalMessage,
   CheckNetworkStatusMessage,
   CheckCCVisibilityMessage,
@@ -48,6 +47,8 @@ export type LogParseResult =
 
 export type PromptParseResult = (
   | { action: "send_to_dut"; message: DUTMessage; answer?: string }
+  | { action: "answer_then_dispatch"; answer: string; message: DUTMessage }
+  | { action: "wait_for_pending_dispatches"; answer: string }
   | { action: "auto_answer"; answer: string }
   | { action: "none" }
 ) & { stateUpdate?: Partial<OrchestratorState> };
@@ -840,11 +841,10 @@ export function parsePrompt(
       promptText
     )
   ) {
-    const message: WaitForCommandIdleMessage = {
-      type: "WAIT_FOR_COMMAND_IDLE",
-      responseOptions: ["Ok"],
+    return {
+      action: "wait_for_pending_dispatches",
+      answer: "Ok",
     };
-    return { action: "send_to_dut", message };
   }
   if (
     /^Is it possible to set the SmartStart Inclusion setting to 'ignored\/disabled'\?$/i.test(
@@ -1273,7 +1273,11 @@ export function parsePrompt(
       action: "any",
       encapsulation: ["S2"],
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
   }
   const sendAnyToNode =
     /send any command to CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
@@ -1288,7 +1292,8 @@ export function parsePrompt(
       nodeId,
     };
     return {
-      action: "send_to_dut",
+      action: "answer_then_dispatch",
+      answer: "Ok",
       message,
       stateUpdate: { failedNodeTargetId: nodeId },
     };
@@ -1305,7 +1310,11 @@ export function parsePrompt(
       targetValue: "any",
       nodeId: parseInt(sendBasicToNode.groups.nodeId!),
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
   }
 
   // ACTIVATE_NETWORK_MODE
@@ -1708,7 +1717,11 @@ export function parsePrompt(
       responseOptions: ["Ok"],
       nodeId: parseInt(replaceFailedNode.groups.nodeId!),
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
   }
 
   // VERIFY_STATE patterns

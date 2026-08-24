@@ -556,11 +556,6 @@ export interface WaitForInclusionIdleMessage {
   responseOptions: ["Ok"];
 }
 
-export interface WaitForCommandIdleMessage {
-  type: "WAIT_FOR_COMMAND_IDLE";
-  responseOptions: ["Ok"];
-}
-
 export interface WaitForNodeRemovalMessage {
   type: "WAIT_FOR_NODE_REMOVAL";
   responseOptions: ["Ok"];
@@ -816,7 +811,6 @@ export type DUTMessage =
   | OpenUIMessage
   | WaitForInterviewMessage
   | WaitForInclusionIdleMessage
-  | WaitForCommandIdleMessage
   | WaitForNodeRemovalMessage
   | CheckNetworkStatusMessage
   | CheckCCVisibilityMessage

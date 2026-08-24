@@ -305,6 +305,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           id: message.id,
         };
         let responseSent = false;
+        let dispatchToDut: (() => void) | undefined;
 
         if (message.method === 'generalLogMsg' && message.params?.output) {
           // Emit event for external listeners
@@ -567,6 +568,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                   if (mapped) {
                     console.log(`[Auto] ${mapped}`);
                     responseData.result = mapped;
+                    dispatchToDut = result.dispatch;
                   } else {
                     // The handler produced something that isn't an offered
                     // button - we can't answer correctly, so abort the run
@@ -611,10 +613,26 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           responseData.result !== '' &&
           responseData.result !== 'null'
         ) {
-          await submitTestCaseMessageBoxResult(responseData.result);
+          try {
+            await submitTestCaseMessageBoxResult(responseData.result);
+            dispatchToDut?.();
+          } catch (error) {
+            console.error(
+              `[MsgBox] Failed to submit result "${responseData.result}" for prompt ${message.id}; aborting active test run:`,
+              error
+            );
+            try {
+              await abortTestRun('failed to submit prompt answer');
+            } catch (abortError) {
+              console.error(
+                '[MsgBox] Failed to abort test run after prompt submission error:',
+                abortError
+              );
+            }
+          }
         }
-      } catch {
-        // Ignore JSON parse errors
+      } catch (error) {
+        console.error('[WebSocket] Failed to process message:', error);
       }
     });
 
