@@ -17,6 +17,7 @@ import type {
   WaitForCommandIdleMessage,
   WaitForNodeRemovalMessage,
   CheckNetworkStatusMessage,
+  CheckCCVisibilityMessage,
   CheckSecurityClassMessage,
   CheckS2GrantRequestMessage,
   CheckS2PinRequestMessage,
@@ -946,6 +947,20 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
+  if (
+    /Are the following command classes also listed as securely supported in the documentation/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /= S2 Commands Supported Report =.+COMMAND_CLASS_ASSOCIATION/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
   if (/Has the End Device \d+ been placed in a special section/i.test(promptText)) {
     return { action: "auto_answer", answer: "No" };
   }
@@ -969,6 +984,16 @@ export function parsePrompt(
     )
   ) {
     return { action: "auto_answer", answer: "No" };
+  }
+  if (/\bIs this correct\?\s*$/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /Do the Chip Vendor.+Chipset Generation.+Z-Wave Chip.+match the DUT each/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
   }
   const manufacturerMetadataMatch =
     /Does (?<property>Manufacturer ID|Product Type ID|Product ID)\s*=\s*(?<expected>[0-9a-f]{2}\s+[0-9a-f]{2}) match the actual device/i.exec(
@@ -1045,6 +1070,10 @@ export function parsePrompt(
     return { action: "auto_answer", answer: "No" };
   }
   if (/Click 'OK' to start the Command Class response tests/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Ok" };
+  }
+  // Acknowledging this prompt starts the full 65-minute SSR_PendingNodeProvisioningListEntry_Rev02 sequence
+  if (/This test takes at least 65 minutes/i.test(promptText)) {
     return { action: "auto_answer", answer: "Ok" };
   }
   const longRangeProvisioningEntry =
@@ -1211,6 +1240,13 @@ export function parsePrompt(
       action: "REMOVE_ALL",
     };
     return { action: "send_to_dut", message };
+  }
+  if (
+    /inform the user that the Switch On\/Off will stay in the network until manually excluded or reset to default/is.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
   }
   // Configuration CC - parameter numbers requirement (always yes)
   if (
@@ -1631,6 +1667,21 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
+  if (
+    /^The DUT is allowed to show that the CTT Controller supports e\.g\. Notification CC \(e\.g\. Heat Alarm\)\. But does the DUT show any hints or control elements considering that the CTT Controller supports\s*- Battery CC \(e\.g\. battery level\) or\s*- Switch Binary CC \(e\.g\. on\/off\) or\s*- Sensor Multilevel CC \(e\.g\. air temperature\)\?$/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckCCVisibilityMessage = {
+      type: "CHECK_CC_VISIBILITY",
+      responseOptions: ["Yes", "No"],
+      nodeId: state.lastAddedNodeId,
+      commandClasses: ["Battery", "Binary Switch", "Multilevel Sensor"],
+      expectedVisible: false,
+    };
+    return { action: "send_to_dut", message };
+  }
   const removeFailedNode =
     /remove the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
       promptText
@@ -1647,7 +1698,6 @@ export function parsePrompt(
       stateUpdate: { failedNodeTargetId: nodeId },
     };
   }
-
   const replaceFailedNode =
     /use the DUT's UI to replace the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
       promptText
@@ -2136,6 +2186,10 @@ function parseDUTCapabilityQuery(
     [
       /^Is the Bootstrapping Mode setting \(Security 2 or SmartStart\) available for provisioning list entries\?$/i,
       "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE",
+    ],
+    [
+      /^Does the DUT have a special password-protected menu,\s+dedicated to allow S0 bootstrapping as SIS\s+when an S0 Node is included by a non-secure Inclusion Controller, \(hereafter 'special menu'\)\?(?:\s+If yes, do NOT access that special menu!)?$/i,
+      "HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU",
     ],
   ];
 

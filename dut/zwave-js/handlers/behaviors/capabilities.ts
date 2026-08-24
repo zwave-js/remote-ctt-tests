@@ -45,6 +45,7 @@ const dutCapabilityResponses: Record<
   // zwave-js provisioning entries expose no per-entry bootstrapping-mode field
   CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE: "No",
   CONFIGURE_PROVISIONING_ENTRY_STATUS: "Yes",
+  HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU: "No",
   // zwave-js does not request S0 bootstrapping after an Inclusion Controller adds a node
   INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER: "Yes",
 };

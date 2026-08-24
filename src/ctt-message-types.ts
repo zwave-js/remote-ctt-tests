@@ -379,6 +379,7 @@ export type DUTCapabilityId =
   | "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES"
   | "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE"
   | "CONFIGURE_PROVISIONING_ENTRY_STATUS"
+  | "HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU"
   | "INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER";
 
 export interface DUTCapabilityQueryMessage {
@@ -583,6 +584,19 @@ export interface CheckNetworkStatusMessage {
     // The controller marks the specified node as dead
     | "FAILED";
   nodeId: number;
+}
+
+export type CCVisibilityCommandClass =
+  | "Battery"
+  | "Binary Switch"
+  | "Multilevel Sensor";
+
+export interface CheckCCVisibilityMessage {
+  type: "CHECK_CC_VISIBILITY";
+  responseOptions: ["Yes", "No"];
+  nodeId: number;
+  commandClasses: CCVisibilityCommandClass[];
+  expectedVisible: boolean;
 }
 
 export type SecurityClassCheck =
@@ -805,6 +819,7 @@ export type DUTMessage =
   | WaitForCommandIdleMessage
   | WaitForNodeRemovalMessage
   | CheckNetworkStatusMessage
+  | CheckCCVisibilityMessage
   | CheckSecurityClassMessage
   | CheckS2GrantRequestMessage
   | CheckS2PinRequestMessage
