@@ -36,6 +36,7 @@ const dutCapabilityResponses: Record<
     return "No";
   },
   MAINS_POWERED: "Yes",
+  SELECT_GRANTED_SECURITY_CLASSES: "Yes",
   // zwave-js does not request S0 bootstrapping after an Inclusion Controller adds a node
   INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER: "Yes",
 };

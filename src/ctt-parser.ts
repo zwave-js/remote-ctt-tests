@@ -804,10 +804,17 @@ export function parsePrompt(
       stateUpdate: { readinessContext: { operation: "INCLUSION" } },
     };
   }
+  if (/^\s*Ready for Inclusion\?\s*$/i.test(promptText)) {
+    const message: WaitForInclusionIdleMessage = {
+      type: "WAIT_FOR_INCLUSION_IDLE",
+      responseOptions: ["Ok"],
+    };
+    return { action: "send_to_dut", message };
+  }
   // `Make sure the DUT has been reset` confirms the preceding prompt's factory reset in
   // CDR_WhenNodeReset_Rev01, so acknowledge it without triggering a second reset
   if (
-    /Make sure the DUT is SIS|Make sure the DUT has been reset before continuing|Ready for inclusion/i.test(
+    /Make sure the DUT is SIS|Make sure the DUT has been reset before continuing/i.test(
       promptText
     )
   ) {
@@ -2000,6 +2007,10 @@ function parseDUTCapabilityQuery(
       "ALL_DOCUMENTED_AS_CONTROLLED",
     ],
     [/Is the DUT mains-powered/i, "MAINS_POWERED"],
+    [
+      /^Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping\?$/i,
+      "SELECT_GRANTED_SECURITY_CLASSES",
+    ],
   ];
 
   for (const [pattern, capabilityId] of patterns) {

@@ -41,6 +41,10 @@ import {
 
 // Load all registered handlers
 import "./handlers/index.ts";
+import {
+  grantS2SecurityClasses,
+  waitForS2Pin,
+} from "./handlers/behaviors/addMode.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -239,6 +243,15 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
       },
       securityKeys,
       securityKeysLongRange,
+      inclusionUserCallbacks: {
+        abort() {},
+        async grantSecurityClasses(requested) {
+          return grantS2SecurityClasses(testContext, requested);
+        },
+        async validateDSKAndEnterPIN() {
+          return waitForS2Pin(testContext);
+        },
+      },
       vendor: {
         manufacturerId: 0x0466,
         productType: 0x0001,
