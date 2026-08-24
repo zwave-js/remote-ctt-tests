@@ -846,6 +846,18 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
   if (
+    /^Is it possible to set the SmartStart Inclusion setting to 'ignored\/disabled'\?$/i.test(
+      promptText
+    )
+  ) {
+    const message: DUTCapabilityQueryMessage = {
+      type: "DUT_CAPABILITY_QUERY",
+      responseOptions: ["Yes", "No"],
+      capabilityId: "CONFIGURE_PROVISIONING_ENTRY_STATUS",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
     testName.includes("S2_WarningHighestKeyNotGranted") &&
     /Does the DUT present a warning message informing the user that the\s*CTT Controller has NOT been included with the highest security\?/is.test(
       promptText
@@ -900,6 +912,17 @@ export function parsePrompt(
   if (
     testName.includes("S2_SISMustHaveS2ClassInputAndDisplay_Rev01") &&
     /Did the DUT present a dialog for entering the PIN portion.+DSK.+show the rest/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2PinRequestMessage = {
+      type: "CHECK_S2_PIN_REQUEST",
+      responseOptions: ["Yes", "No"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /^(?:Did the DUT prompt the user for a PIN code\?|Did the PIN input dialog pop up automatically in the DUT UI\s+during S2 bootstrapping of the joining S2 Node\?)$/i.test(
       promptText
     )
   ) {
@@ -2101,6 +2124,14 @@ function parseDUTCapabilityQuery(
     [
       /^(?:Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping|Is the DUT able to confirm \(or adjust\) the requested keys before granting them to a joining node)\?$/i,
       "SELECT_GRANTED_SECURITY_CLASSES",
+    ],
+    [
+      /^Is the Advanced Joining setting(?:\s*\(selecting which keys shall be granted\))?\s+available for provisioning list entries\?$/i,
+      "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES",
+    ],
+    [
+      /^Is the Bootstrapping Mode setting \(Security 2 or SmartStart\) available for provisioning list entries\?$/i,
+      "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE",
     ],
   ];
 
