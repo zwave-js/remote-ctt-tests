@@ -18,6 +18,8 @@ import type {
   WaitForNodeRemovalMessage,
   CheckNetworkStatusMessage,
   CheckSecurityClassMessage,
+  CheckS2GrantRequestMessage,
+  CheckS2PinRequestMessage,
   StartStopLevelChangeMessage,
   CheckEndpointCapabilityMessage,
   TrySetConfigParameterMessage,
@@ -123,7 +125,8 @@ export function parseLog(
     /handles commands from a supporting node with S0 security level/i.test(
       logText
     ) ||
-    /S0 bootstrapping, highest scheme:\s*S0/i.test(logText)
+    /S0 bootstrapping, highest scheme:\s*S0/i.test(logText) ||
+    /--- Test \d+: S0 Bootstrapping ---/i.test(logText)
   ) {
     return { action: "modify_context", stateUpdate: { forceS0: true } };
   }
@@ -842,6 +845,84 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
+  if (
+    testName.includes("S2_WarningHighestKeyNotGranted") &&
+    /Does the DUT present a warning message informing the user that the\s*CTT Controller has NOT been included with the highest security\?/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_HIGHEST_SECURITY_WARNING",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_WarningHighestKeyNotGranted") &&
+    /Does the DUT present a warning message informing the user that the CTT Controller\s*has NOT been granted ANY security key\?/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "NO_SECURITY_WARNING",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_ConfirmForAuthenticated_Rev01") &&
+    /Did the DUT present a dialog with the requested security classes\?/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "REQUEST_OBSERVED",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_ConfirmForAuthenticated_Rev01") &&
+    /Did the DUT ask for confirmation before granting S2 Authenticated Class\?/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "REQUESTED_S2_AUTHENTICATED",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_SISMustHaveS2ClassInputAndDisplay_Rev01") &&
+    /Did the DUT present a dialog for entering the PIN portion.+DSK.+show the rest/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2PinRequestMessage = {
+      type: "CHECK_S2_PIN_REQUEST",
+      responseOptions: ["Yes", "No"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    (testName.includes("S2_GrantedS2Classes_Rev01") ||
+      testName.includes("S2_SISMustSupportAnyS2ClassCombination_Rev01")) &&
+    /Have all keys been pre-selected\?|Have all Security Classes been preselected automatically/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "ALL_REQUESTED_GRANTED",
+    };
+    return { action: "send_to_dut", message };
+  }
   if (/Has the End Device \d+ been placed in a special section/i.test(promptText)) {
     return { action: "auto_answer", answer: "No" };
   }
@@ -936,6 +1017,12 @@ export function parsePrompt(
   }
   if (/Retry\?/i.test(promptText)) {
     return { action: "auto_answer", answer: "No" };
+  }
+  if (/pause on requests that were answered incorrectly/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (/Click 'OK' to start the Command Class response tests/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Ok" };
   }
   const longRangeProvisioningEntry =
     /configure the Bootstrapping Mode TLV to 'Z-Wave Long Range\s+SmartStart inclusion'.+DSK:\s*(?<dsk>(?:\d{5}-){7}\d{5})/is.exec(
@@ -2008,7 +2095,11 @@ function parseDUTCapabilityQuery(
     ],
     [/Is the DUT mains-powered/i, "MAINS_POWERED"],
     [
-      /^Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping\?$/i,
+      /Is it possible to actively deselect the S2_ACCESS key in the DUT UI/i,
+      "SELECT_GRANTED_SECURITY_CLASSES",
+    ],
+    [
+      /^(?:Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping|Is the DUT able to confirm \(or adjust\) the requested keys before granting them to a joining node)\?$/i,
       "SELECT_GRANTED_SECURITY_CLASSES",
     ],
   ];

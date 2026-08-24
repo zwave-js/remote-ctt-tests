@@ -603,6 +603,27 @@ export interface CheckSecurityClassMessage {
   securityClass: SecurityClassCheck;
 }
 
+export interface CheckS2GrantRequestMessage {
+  type: "CHECK_S2_GRANT_REQUEST";
+  responseOptions: ["Yes", "No"];
+  check:
+    // The application received the requested security classes
+    | "REQUEST_OBSERVED"
+    // The joining node requested S2 Authenticated
+    | "REQUESTED_S2_AUTHENTICATED"
+    // The application granted every requested class
+    | "ALL_REQUESTED_GRANTED"
+    // The application warned that it did not grant the highest requested class
+    | "NOT_HIGHEST_SECURITY_WARNING"
+    // The application warned that it granted no security class at all
+    | "NO_SECURITY_WARNING";
+}
+
+export interface CheckS2PinRequestMessage {
+  type: "CHECK_S2_PIN_REQUEST";
+  responseOptions: ["Yes", "No"];
+}
+
 export interface FactoryResetMessage {
   type: "FACTORY_RESET";
   responseOptions: ["Ok"];
@@ -782,6 +803,8 @@ export type DUTMessage =
   | WaitForNodeRemovalMessage
   | CheckNetworkStatusMessage
   | CheckSecurityClassMessage
+  | CheckS2GrantRequestMessage
+  | CheckS2PinRequestMessage
   | FactoryResetMessage
   | RemoveFailedNodeMessage
   | ReplaceFailedNodeMessage

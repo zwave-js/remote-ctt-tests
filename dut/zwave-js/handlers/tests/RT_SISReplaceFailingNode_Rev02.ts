@@ -13,6 +13,7 @@ import { scheduleDelayedCommand } from "../delayedCommands.ts";
 import { isNodeStillRespondingError } from "../behaviors/nodeReset.ts";
 import {
   grantS2SecurityClasses,
+  resetS2InteractionObservations,
   waitForInclusionIdle,
   waitForS2Pin,
 } from "../behaviors/addMode.ts";
@@ -72,6 +73,7 @@ async function replaceFailedNode(
     throw new Error(`Cannot replace unknown node ${nodeId}`);
   }
 
+  resetS2InteractionObservations(ctx.state);
   const started = await withTimeout(
     ctx.driver.controller.replaceFailedNode(nodeId, {
       strategy: InclusionStrategy.Security_S2,
