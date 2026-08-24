@@ -368,6 +368,7 @@ export type DUTCapabilityId =
   | "LEARN_MODE_ACCESSIBLE"
   | "FACTORY_RESET"
   | "REMOVE_FAILED_NODE"
+  | "REPLACE_FAILED_NODE"
   | "ICON_TYPE_MATCH"
   | "IDENTIFY_OTHER_PURPOSE"
   | "PARTIAL_CONTROL_DOCUMENTED"
@@ -550,6 +551,17 @@ export interface WaitForInclusionIdleMessage {
   responseOptions: ["Ok"];
 }
 
+export interface WaitForCommandIdleMessage {
+  type: "WAIT_FOR_COMMAND_IDLE";
+  responseOptions: ["Ok"];
+}
+
+export interface WaitForNodeRemovalMessage {
+  type: "WAIT_FOR_NODE_REMOVAL";
+  responseOptions: ["Ok"];
+  nodeId: number;
+}
+
 // =============================================================================
 // CHECK_NETWORK_STATUS - Check node status
 // =============================================================================
@@ -597,6 +609,12 @@ export interface FactoryResetMessage {
 
 export interface RemoveFailedNodeMessage {
   type: "REMOVE_FAILED_NODE";
+  responseOptions: ["Ok"];
+  nodeId: number;
+}
+
+export interface ReplaceFailedNodeMessage {
+  type: "REPLACE_FAILED_NODE";
   responseOptions: ["Ok"];
   nodeId: number;
 }
@@ -759,10 +777,13 @@ export type DUTMessage =
   | OpenUIMessage
   | WaitForInterviewMessage
   | WaitForInclusionIdleMessage
+  | WaitForCommandIdleMessage
+  | WaitForNodeRemovalMessage
   | CheckNetworkStatusMessage
   | CheckSecurityClassMessage
   | FactoryResetMessage
   | RemoveFailedNodeMessage
+  | ReplaceFailedNodeMessage
   | StartStopLevelChangeMessage
   | CheckEndpointCapabilityMessage
   | TrySetConfigParameterMessage
@@ -779,6 +800,7 @@ export type DUTMessage =
 export interface OrchestratorState {
   lastAddedNodeId?: number;
   lastRemovedNodeId?: number;
+  failedNodeTargetId?: number;
   lastAddedProvisioningDsk?: string;
   lastRemovedProvisioningDsk?: string;
   forceS0?: boolean;
@@ -791,4 +813,11 @@ export interface OrchestratorState {
     nodeId: number;
   };
   recommendationContext?: string;
+  // CTT asks the same vague `Wait until the DUT is ready` question after inclusion, removal, reset, setup, and an expected abort
+  // The question does not say whether to wait for inclusion, removal, or restart/setup completion
+  // The parser remembers the preceding DUT action, plus the node change that happened during it
+  readinessContext?:
+    | { operation: "INCLUSION"; addedNodeId?: number }
+    | { operation: "NODE_REMOVAL"; removedNodeId?: number }
+    | { operation: "DUT_READY" };
 }

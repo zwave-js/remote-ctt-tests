@@ -14,6 +14,8 @@ import type {
   OpenUIMessage,
   WaitForInterviewMessage,
   WaitForInclusionIdleMessage,
+  WaitForCommandIdleMessage,
+  WaitForNodeRemovalMessage,
   CheckNetworkStatusMessage,
   CheckSecurityClassMessage,
   StartStopLevelChangeMessage,
@@ -24,6 +26,7 @@ import type {
   QueryUserCodesMessage,
   VerifyIndicatorIdentifyMessage,
   ManageProvisioningMessage,
+  ReplaceFailedNodeMessage,
   ProvisioningSecurityClass,
   OrchestratorState,
   DUTCapabilityId,
@@ -40,10 +43,56 @@ export type LogParseResult =
   | { action: "modify_context"; stateUpdate: Partial<OrchestratorState> }
   | { action: "none" };
 
-export type PromptParseResult =
+export type PromptParseResult = (
   | { action: "send_to_dut"; message: DUTMessage; answer?: string }
   | { action: "auto_answer"; answer: string }
-  | { action: "none" };
+  | { action: "none" }
+) & { stateUpdate?: Partial<OrchestratorState> };
+
+export function nodeAddedStateUpdate(
+  state: OrchestratorState,
+  nodeId: number
+): Partial<OrchestratorState> {
+  const context = state.readinessContext;
+  return {
+    lastAddedNodeId: nodeId,
+    readinessContext:
+      context?.operation === "NODE_REMOVAL"
+        ? context
+        : { operation: "INCLUSION", addedNodeId: nodeId },
+  };
+}
+
+export function nodeRemovedStateUpdate(
+  state: OrchestratorState,
+  nodeId: number
+): Partial<OrchestratorState> {
+  const context = state.readinessContext;
+  let readinessContext = context;
+  if (context?.operation === "INCLUSION") {
+    // A node added and removed again during the same inclusion leaves nothing to interview
+    if (context.addedNodeId === nodeId) {
+      readinessContext = { operation: "INCLUSION" };
+    }
+  } else if (context?.operation !== "DUT_READY") {
+    readinessContext = { operation: "NODE_REMOVAL", removedNodeId: nodeId };
+  }
+  return { lastRemovedNodeId: nodeId, readinessContext };
+}
+
+// Only the branch that sends nothing has to clear readinessContext, because
+// dispatching a wait message already clears it
+function nodeRemovalWait(nodeId: number | undefined): PromptParseResult {
+  if (nodeId === undefined) {
+    return { action: "none", stateUpdate: { readinessContext: undefined } };
+  }
+  const message: WaitForNodeRemovalMessage = {
+    type: "WAIT_FOR_NODE_REMOVAL",
+    responseOptions: ["Ok"],
+    nodeId,
+  };
+  return { action: "send_to_dut", message };
+}
 
 export interface CttTestInstance {
   testName: string;
@@ -56,7 +105,7 @@ export interface CttTestInstance {
 
 export function parseLog(
   logText: string,
-  state: OrchestratorState
+  _state: OrchestratorState
 ): LogParseResult {
   // S2 PIN Code detection
   const pinMatch = /PIN( Code)?: (?<pin>\d{5})/i.exec(logText);
@@ -73,7 +122,8 @@ export function parseLog(
   if (
     /handles commands from a supporting node with S0 security level/i.test(
       logText
-    )
+    ) ||
+    /S0 bootstrapping, highest scheme:\s*S0/i.test(logText)
   ) {
     return { action: "modify_context", stateUpdate: { forceS0: true } };
   }
@@ -735,7 +785,7 @@ export function parsePrompt(
   const { testName } = testInstance;
   // Orchestrator-only auto-answers
   // CTT's blank Ok box still contains separator formatting
-  if (state.waitForInterviewPrompt && !/[a-z]/?i.test(promptText)) {
+  if (state.waitForInterviewPrompt && !/[a-z]/i.test(promptText)) {
     return {
       action: "send_to_dut",
       message: {
@@ -748,7 +798,45 @@ export function parsePrompt(
     return { action: "auto_answer", answer: "Ok" };
   }
   if (/Include.+into the DUT network/i.test(promptText)) {
-    return { action: "auto_answer", answer: "Ok" };
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "INCLUSION" } },
+    };
+  }
+  // `Make sure the DUT has been reset` confirms the preceding prompt's factory reset in
+  // CDR_WhenNodeReset_Rev01, so acknowledge it without triggering a second reset
+  if (
+    /Make sure the DUT is SIS|Make sure the DUT has been reset before continuing|Ready for inclusion/i.test(
+      promptText
+    )
+  ) {
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "DUT_READY" } },
+    };
+  }
+  if (/Ready for exclusion\?/i.test(promptText)) {
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "NODE_REMOVAL" } },
+    };
+  }
+  if (
+    /wait for the DUT not sending (?:any commands|commands anymore)/i.test(
+      promptText
+    )
+  ) {
+    const message: WaitForCommandIdleMessage = {
+      type: "WAIT_FOR_COMMAND_IDLE",
+      responseOptions: ["Ok"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Has the End Device \d+ been placed in a special section/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
   }
   if (
     /Reset (?:the )?DUT(?:!| and)|perform a factory reset as stated|Please reset the DUT/i.test(
@@ -761,7 +849,15 @@ export function parsePrompt(
         type: "FACTORY_RESET",
         responseOptions: ["Ok"],
       },
+      stateUpdate: { readinessContext: { operation: "DUT_READY" } },
     };
+  }
+  if (
+    /Does the NIF of the DUT contain any Command Classes that are controlled but NOT supported/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "No" };
   }
   const manufacturerMetadataMatch =
     /Does (?<property>Manufacturer ID|Product Type ID|Product ID)\s*=\s*(?<expected>[0-9a-f]{2}\s+[0-9a-f]{2}) match the actual device/i.exec(
@@ -1031,13 +1127,18 @@ export function parsePrompt(
       promptText
     );
   if (sendAnyToNode?.groups) {
+    const nodeId = parseInt(sendAnyToNode.groups.nodeId!);
     const message: SendCommandMessage = {
       type: "SEND_COMMAND",
       commandClass: "any",
       action: "any",
-      nodeId: parseInt(sendAnyToNode.groups.nodeId!),
+      nodeId,
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { failedNodeTargetId: nodeId },
+    };
   }
   const sendBasicToNode =
     /send a Basic Set command (?:to CTT End Device \(Node ID = |from the DUT to Node ID )(?<nodeId>\d+)\)?/i.exec(
@@ -1062,7 +1163,11 @@ export function parsePrompt(
       mode: "ADD",
       forceS0: state.forceS0,
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { readinessContext: { operation: "INCLUSION" } },
+    };
   }
   if (/stop add mode on dut/i.test(promptText)) {
     const message: ActivateNetworkModeMessage = {
@@ -1078,13 +1183,17 @@ export function parsePrompt(
       responseOptions: ["Ok"],
       mode: "REMOVE",
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { readinessContext: { operation: "NODE_REMOVAL" } },
+    };
   }
 
-  // The long-delay subcase aborts S0, so readiness means inclusion is idle
   if (
-    testName === "S0_DelaySchemeReportAfterSchemeInherit_Rev01" &&
-    /wait until the DUT is ready/i.test(promptText)
+    /wait for the DUT to finish or abort the Inclusion process|wait until the Inclusion process has finished or abort it on DUT side|wait until the DUT is ready \(after having aborted S2 bootstrapping\)|wait until the DUT is ready to start inclusion/i.test(
+      promptText
+    )
   ) {
     const message: WaitForInclusionIdleMessage = {
       type: "WAIT_FOR_INCLUSION_IDLE",
@@ -1093,15 +1202,40 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
 
+  if (/Exclusion process has been finished/i.test(promptText)) {
+    const context = state.readinessContext;
+    return nodeRemovalWait(
+      context?.operation === "NODE_REMOVAL" ? context.removedNodeId : undefined
+    );
+  }
+
+  if (
+    /^(?:abort interview or )?(?:please )?wait until (?:the )?DUT is ready(?:!| and click 'OK'\.)$/i.test(
+      promptText
+    )
+  ) {
+    const context = state.readinessContext;
+    if (!context) return { action: "none" };
+    if (context.operation === "NODE_REMOVAL") {
+      return nodeRemovalWait(context.removedNodeId);
+    }
+    // A node that survived the inclusion still has to finish its interview
+    // Anything else only has to reach an idle controller
+    const message: WaitForInterviewMessage | WaitForInclusionIdleMessage =
+      context.operation === "INCLUSION" && context.addedNodeId !== undefined
+        ? { type: "WAIT_FOR_INTERVIEW", responseOptions: ["Ok"] }
+        : { type: "WAIT_FOR_INCLUSION_IDLE", responseOptions: ["Ok"] };
+    return { action: "send_to_dut", message };
+  }
+
   // WAIT_FOR_INTERVIEW
   if (
     /wait for (the )?(node )?interview to (be )?finish/i.test(promptText) ||
-    /inclusion (process )?(has )?finish(ed)?/i.test(promptText) ||
-    /inclusion process is done/i.test(promptText) ||
+    /wait until (?:the )?Inclusion process is done/i.test(promptText) ||
+    /inclusion (?:process )?(?:has )?finished/i.test(promptText) ||
+    /inclusion.+finished.+click(?:ing)?.+OK/i.test(promptText) ||
     /inclusion and interview process has been finished/i.test(promptText) ||
-    /inclusion.+finished.+click(ing)?.+OK/i.test(promptText) ||
-    /Inclusion and interview passed/i.test(promptText) ||
-    /wait.+dut is ready/i.test(promptText)
+    /Inclusion and interview passed/i.test(promptText)
   ) {
     // Also check for embedded UI context (e.g., "visit the Basic Command Class visualisation")
     const uiMatch =
@@ -1120,16 +1254,6 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
-  if (
-    /wait for the DUT to finish or abort the Inclusion process/i.test(promptText)
-  ) {
-    const message: WaitForInclusionIdleMessage = {
-      type: "WAIT_FOR_INCLUSION_IDLE",
-      responseOptions: ["Ok"],
-    };
-    return { action: "send_to_dut", message };
-  }
-
   // OPEN_UI
   const visitMatch =
     /visit the (?<cc>[\w\s]+) Command Class visuali[sz]ation for node (?<nodeId>\d+)/i.exec(
@@ -1194,13 +1318,18 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
   if (/Is the CTT End Device removed from the DUT's device list/i.test(promptText)) {
+    if (state.failedNodeTargetId === undefined) return { action: "none" };
     const message: CheckNetworkStatusMessage = {
       type: "CHECK_NETWORK_STATUS",
       responseOptions: ["Yes", "No"],
       check: "NOT_INCLUDED",
-      nodeId: 2,
+      nodeId: state.failedNodeTargetId,
     };
-    return { action: "send_to_dut", message };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { failedNodeTargetId: undefined },
+    };
   }
   const s0NodeRemoved =
     /Has the S0 Node \(Node ID = (?<nodeId>\d+)\) been removed from DUT’s device list/i.exec(
@@ -1338,11 +1467,12 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
   if (/Is the CTT End Device shown as failed device/i.test(promptText)) {
+    if (state.failedNodeTargetId === undefined) return { action: "none" };
     const message: CheckNetworkStatusMessage = {
       type: "CHECK_NETWORK_STATUS",
       responseOptions: ["Yes", "No"],
       check: "FAILED",
-      nodeId: 2,
+      nodeId: state.failedNodeTargetId,
     };
     return { action: "send_to_dut", message };
   }
@@ -1389,14 +1519,29 @@ export function parsePrompt(
       promptText
     );
   if (removeFailedNode?.groups) {
+    const nodeId = parseInt(removeFailedNode.groups.nodeId!);
     return {
       action: "send_to_dut",
       message: {
         type: "REMOVE_FAILED_NODE",
         responseOptions: ["Ok"],
-        nodeId: parseInt(removeFailedNode.groups.nodeId!),
+        nodeId,
       },
+      stateUpdate: { failedNodeTargetId: nodeId },
     };
+  }
+
+  const replaceFailedNode =
+    /use the DUT's UI to replace the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (replaceFailedNode?.groups) {
+    const message: ReplaceFailedNodeMessage = {
+      type: "REPLACE_FAILED_NODE",
+      responseOptions: ["Ok"],
+      nodeId: parseInt(replaceFailedNode.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
   }
 
   // VERIFY_STATE patterns
@@ -1836,6 +1981,10 @@ function parseDUTCapabilityQuery(
     [/Is the Learn Mode accessible/i, "LEARN_MODE_ACCESSIBLE"],
     [/can be reset to factory settings/i, "FACTORY_RESET"],
     [/offering a possibility to remove the failed/i, "REMOVE_FAILED_NODE"],
+    [
+      /Does the DUT support the 'Replace Failed Node' function/i,
+      "REPLACE_FAILED_NODE",
+    ],
     [/icon type.+match the actual device/i, "ICON_TYPE_MATCH"],
     [
       /Does the DUT use the identify command for any other purpose/i,

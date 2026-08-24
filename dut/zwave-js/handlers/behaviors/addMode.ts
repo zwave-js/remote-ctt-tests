@@ -6,11 +6,61 @@ import { registerHandler } from "../../prompt-handlers.ts";
 import {
   InclusionStrategy,
   InclusionState,
+  type InclusionGrant,
+  type Driver,
   type InclusionOptions,
 } from "zwave-js";
 import { wait } from "alcalzone-shared/async";
 
 const PIN_PROMISE = "pin promise";
+const PIN_CODE = "pin code";
+
+export async function waitForS2Pin(
+  state: Map<string, unknown>
+): Promise<string> {
+  const bufferedPin = state.get(PIN_CODE);
+  if (typeof bufferedPin === "string") {
+    state.delete(PIN_CODE);
+    return bufferedPin;
+  }
+
+  let pinPromise = state.get(PIN_PROMISE) as
+    | DeferredPromise<string>
+    | undefined;
+  if (!pinPromise) {
+    pinPromise = createDeferredPromise<string>();
+    state.set(PIN_PROMISE, pinPromise);
+  }
+  const pin = await pinPromise;
+  state.delete(PIN_PROMISE);
+  return pin;
+}
+
+export async function grantS2SecurityClasses(
+  _state: Map<string, unknown>,
+  requested: InclusionGrant
+): Promise<InclusionGrant> {
+  return requested;
+}
+
+export function waitForInclusionIdle(driver: Driver): Promise<void> {
+  const { controller } = driver;
+  const isActive = () =>
+    controller.inclusionState === InclusionState.Including ||
+    controller.inclusionState === InclusionState.Excluding ||
+    controller.inclusionState === InclusionState.Busy;
+  if (!isActive()) return Promise.resolve();
+
+  return new Promise<void>((resolve) => {
+    const onStateChanged = () => {
+      if (!isActive()) {
+        controller.off("inclusion state changed", onStateChanged);
+        resolve();
+      }
+    };
+    controller.on("inclusion state changed", onStateChanged);
+  });
+}
 
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
@@ -44,11 +94,10 @@ registerHandler(/.*/, {
           userCallbacks: {
             abort() {},
             async grantSecurityClasses(requested) {
-              return requested;
+              return grantS2SecurityClasses(state, requested);
             },
-            async validateDSKAndEnterPIN(dsk) {
-              const pin = await (state.get(PIN_PROMISE) as Promise<string>);
-              return pin;
+            async validateDSKAndEnterPIN() {
+              return waitForS2Pin(state);
             },
           },
         };
@@ -73,22 +122,7 @@ registerHandler(/.*/, {
     }
 
     if (ctx.message?.type === "WAIT_FOR_INCLUSION_IDLE") {
-      const isActive = () =>
-        ctx.driver.controller.inclusionState === InclusionState.Including ||
-        ctx.driver.controller.inclusionState === InclusionState.Excluding ||
-        ctx.driver.controller.inclusionState === InclusionState.Busy;
-      if (!isActive()) return "Ok";
-
-      await new Promise<void>((resolve) => {
-        const onStateChanged = () => {
-          if (!isActive()) {
-            ctx.driver.controller.off("inclusion state changed", onStateChanged);
-            resolve();
-          }
-        };
-        ctx.driver.controller.on("inclusion state changed", onStateChanged);
-        onStateChanged();
-      });
+      await waitForInclusionIdle(ctx.driver);
       return "Ok";
     }
 
@@ -101,7 +135,10 @@ registerHandler(/.*/, {
       const pinPromise = ctx.state.get(PIN_PROMISE) as
         | DeferredPromise<string>
         | undefined;
-      if (!pinPromise) return;
+      if (!pinPromise) {
+        ctx.state.set(PIN_CODE, ctx.message.pin);
+        return true;
+      }
 
       console.log("Detected PIN code:", ctx.message.pin);
       pinPromise.resolve(ctx.message.pin);

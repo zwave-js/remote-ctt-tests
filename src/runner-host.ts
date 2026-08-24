@@ -29,7 +29,12 @@ import {
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
-import { parseLog, parsePrompt } from "./ctt-parser.ts";
+import {
+  nodeAddedStateUpdate,
+  nodeRemovedStateUpdate,
+  parseLog,
+  parsePrompt,
+} from "./ctt-parser.ts";
 import type { OrchestratorState } from "./ctt-message-types.ts";
 import { abortTestRun } from "./ctt-client.ts";
 import c from "ansi-colors";
@@ -238,6 +243,13 @@ export class RunnerHost {
       executionMode,
     });
 
+    if (parseResult.stateUpdate) {
+      this.testContext = {
+        ...this.testContext,
+        ...parseResult.stateUpdate,
+      };
+    }
+
     // Handle orchestrator auto-answers (no DUT involvement)
     if (parseResult.action === "auto_answer") {
       return { source: "auto", value: parseResult.answer };
@@ -378,6 +390,17 @@ export class RunnerHost {
         this.testContext = {
           ...this.testContext,
           waitForInterviewPrompt: undefined,
+        };
+      }
+      if (
+        this.testContext.readinessContext &&
+        (msg.type === "WAIT_FOR_INTERVIEW" ||
+          msg.type === "WAIT_FOR_INCLUSION_IDLE" ||
+          msg.type === "WAIT_FOR_NODE_REMOVAL")
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          readinessContext: undefined,
         };
       }
       if (
@@ -611,11 +634,11 @@ export class RunnerHost {
       return;
     }
 
-    // Keep track of the most recently added/removed nodes
+    // Record each add or remove notification with its node ID
     if (isNodeAddedNotification(msg)) {
       this.testContext = {
         ...this.testContext,
-        lastAddedNodeId: msg.params.nodeId,
+        ...nodeAddedStateUpdate(this.testContext, msg.params.nodeId),
       };
       return;
     }
@@ -623,7 +646,7 @@ export class RunnerHost {
     if (isNodeRemovedNotification(msg)) {
       this.testContext = {
         ...this.testContext,
-        lastRemovedNodeId: msg.params.nodeId,
+        ...nodeRemovedStateUpdate(this.testContext, msg.params.nodeId),
       };
       return;
     }

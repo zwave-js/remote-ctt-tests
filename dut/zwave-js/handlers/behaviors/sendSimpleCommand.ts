@@ -7,10 +7,17 @@ import {
   type ZWaveNode,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
+import {
+  scheduleDelayedCommand,
+  waitForDelayedCommands,
+} from "../delayedCommands.ts";
 import type {
   SendCommandMessage,
   DurationValue,
 } from "../../../../src/ctt-message-types.ts";
+
+// CTT arms its frame expectation only after the message box closes
+const PROMPT_RESPONSE_DELAY_MS = 100;
 
 // Helper to convert DurationValue to zwave-js Duration
 function toDuration(duration: DurationValue): Duration {
@@ -126,6 +133,11 @@ registerHandler(/.*/, {
 
   // Also handle SEND_COMMAND messages from prompts (some require response after sending)
   onPrompt: async (ctx) => {
+    if (ctx.message?.type === "WAIT_FOR_COMMAND_IDLE") {
+      await waitForDelayedCommands(ctx.state);
+      return "Ok";
+    }
+
     if (ctx.message?.type !== "SEND_COMMAND") return;
 
     const msg = ctx.message as SendCommandMessage;
@@ -141,42 +153,45 @@ registerHandler(/.*/, {
         msg.targetValue === "any"
           ? Math.round(Math.random() * 99)
           : msg.targetValue;
-      setTimeout(() => {
-        void node
-          .setValue(
-            BasicCCValues.targetValue.endpoint(msg.endpoint ?? 0),
-            targetValue
-          )
-          .catch((error) => {
+      scheduleDelayedCommand(
+        ctx.state,
+        PROMPT_RESPONSE_DELAY_MS,
+        async () => {
+          try {
+            await node.setValue(
+              BasicCCValues.targetValue.endpoint(msg.endpoint ?? 0),
+              targetValue
+            );
+          } catch (error) {
             console.error("Failed to send requested Basic Set:", error);
-          });
-      }, 100);
+          }
+        }
+      );
       return "Ok";
     }
 
     // For "any" commands (like "send any S2 command"), send and respond Ok
     if (msg.commandClass === "any" && msg.action === "any") {
-      if (msg.nodeId !== undefined) {
-        setTimeout(() => {
-          void node.commandClasses.Basic.set(Math.round(Math.random() * 99)).catch(
-            (error) => {
-              const message =
-                error instanceof Error ? error.message : String(error);
+      scheduleDelayedCommand(
+        ctx.state,
+        PROMPT_RESPONSE_DELAY_MS,
+        async () => {
+          try {
+            await node.commandClasses.Basic.set(Math.round(Math.random() * 99));
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            // A prompt that names the target node is testing that the command fails
+            if (msg.nodeId !== undefined) {
               console.log(
                 `Command to test node ${msg.nodeId} failed as expected: ${message}`
               );
+            } else {
+              console.error("Failed to send requested Basic command:", message);
             }
-          );
-        }, 100);
-      } else {
-        setTimeout(() => {
-          void node.commandClasses.Basic.set(
-            Math.round(Math.random() * 99)
-          ).catch((error) => {
-            console.error("Failed to send requested Basic command:", error);
-          });
-        }, 100);
-      }
+          }
+        }
+      );
       return "Ok";
     }
 

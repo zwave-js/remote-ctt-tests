@@ -4,6 +4,18 @@ import {
 } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
 
+// The controller pings a node before removing or replacing it, so a node that answers cancels the operation
+export function isNodeStillRespondingError(
+  error: unknown,
+  code: ZWaveErrorCodes
+): boolean {
+  return (
+    isZWaveError(error) &&
+    error.code === code &&
+    error.message.includes("responded to a ping")
+  );
+}
+
 registerHandler(/.*/, {
   onPrompt: async (ctx) => {
     if (ctx.message?.type === "FACTORY_RESET") {
@@ -23,9 +35,10 @@ registerHandler(/.*/, {
         await ctx.driver.controller.removeFailedNode(ctx.message.nodeId);
       } catch (error) {
         if (
-          !isZWaveError(error) ||
-          error.code !== ZWaveErrorCodes.RemoveFailedNode_Failed ||
-          !error.message.includes("responded to a ping")
+          !isNodeStillRespondingError(
+            error,
+            ZWaveErrorCodes.RemoveFailedNode_Failed
+          )
         ) {
           throw error;
         }

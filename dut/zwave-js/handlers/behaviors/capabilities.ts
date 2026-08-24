@@ -20,6 +20,7 @@ const dutCapabilityResponses: Record<
   LEARN_MODE_ACCESSIBLE: "No",
   FACTORY_RESET: "Yes",
   REMOVE_FAILED_NODE: "Yes",
+  REPLACE_FAILED_NODE: "Yes",
   ICON_TYPE_MATCH: "Yes",
   IDENTIFY_OTHER_PURPOSE: "No",
   CONTROLS_UNLISTED_CCS: "No",
