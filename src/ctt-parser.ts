@@ -2104,6 +2104,10 @@ function parseDUTCapabilityQuery(
     ],
     [/icon type.+match the actual device/i, "ICON_TYPE_MATCH"],
     [
+      /Are the reported Icon Types \(Installer: 0x[0-9a-f]{4} - User: 0x[0-9a-f]{4}\) valid\?/i,
+      "ICON_TYPE_MATCH",
+    ],
+    [
       /Does the DUT use the identify command for any other purpose/i,
       "IDENTIFY_OTHER_PURPOSE",
     ],

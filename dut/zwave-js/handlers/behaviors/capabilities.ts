@@ -21,7 +21,11 @@ const dutCapabilityResponses: Record<
   FACTORY_RESET: "Yes",
   REMOVE_FAILED_NODE: "Yes",
   REPLACE_FAILED_NODE: "Yes",
-  ICON_TYPE_MATCH: "Yes",
+  ICON_TYPE_MATCH: (ctx) =>
+    ctx.driver.options.vendor?.installerIcon === 0x0500 &&
+    ctx.driver.options.vendor?.userIcon === 0x0500
+      ? "Yes"
+      : "No",
   IDENTIFY_OTHER_PURPOSE: "No",
   CONTROLS_UNLISTED_CCS: "No",
   ALL_DOCUMENTED_AS_CONTROLLED: "Yes",
