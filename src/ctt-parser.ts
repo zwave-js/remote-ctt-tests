@@ -55,7 +55,8 @@ export type PromptParseResult = (
 
 export function nodeAddedStateUpdate(
   state: OrchestratorState,
-  nodeId: number
+  nodeId: number,
+  failedS2Bootstrapping: boolean
 ): Partial<OrchestratorState> {
   const context = state.readinessContext;
   return {
@@ -63,7 +64,11 @@ export function nodeAddedStateUpdate(
     readinessContext:
       context?.operation === "NODE_REMOVAL"
         ? context
-        : { operation: "INCLUSION", addedNodeId: nodeId },
+        : {
+            operation: "INCLUSION",
+            // A node that failed S2 bootstrapping has no interview to wait for
+            addedNodeId: failedS2Bootstrapping ? undefined : nodeId,
+          },
   };
 }
 
@@ -802,6 +807,19 @@ export function parsePrompt(
   if (/Prepare the DUT to send any.+command/i.test(promptText)) {
     return { action: "auto_answer", answer: "Ok" };
   }
+  if (/https?:\/\/\S+[\s\S]*Open .+web browser/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Open" };
+  }
+  if (/Did the DUT pass the test\?/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /Does the '[^']+' shown on the 'Certification Data' page match the DUT\?/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
   if (/Include.+into the DUT network/i.test(promptText)) {
     return {
       action: "auto_answer",
@@ -809,7 +827,9 @@ export function parsePrompt(
       stateUpdate: { readinessContext: { operation: "INCLUSION" } },
     };
   }
-  if (/^\s*Ready for Inclusion\?\s*$/i.test(promptText)) {
+  if (
+    /\bReady for inclusion(?: of .+ by the DUT)?\?\s*$/i.test(promptText)
+  ) {
     const message: WaitForInclusionIdleMessage = {
       type: "WAIT_FOR_INCLUSION_IDLE",
       responseOptions: ["Ok"],
@@ -847,7 +867,7 @@ export function parsePrompt(
     };
   }
   if (
-    /^Is it possible to set the SmartStart Inclusion setting to 'ignored\/disabled'\?$/i.test(
+    /Is it possible to set the SmartStart Inclusion setting to 'ignored\/disabled'\?\s*$/i.test(
       promptText
     )
   ) {
@@ -923,7 +943,7 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
   if (
-    /^(?:Did the DUT prompt the user for a PIN code\?|Did the PIN input dialog pop up automatically in the DUT UI\s+during S2 bootstrapping of the joining S2 Node\?)$/i.test(
+    /(?:Did the DUT prompt the user for a PIN code\?|Did the PIN input dialog pop up automatically in the DUT UI\s+during S2 bootstrapping of the joining S2 Node\?)\s*$/i.test(
       promptText
     )
   ) {
@@ -1324,6 +1344,8 @@ export function parsePrompt(
       responseOptions: ["Ok"],
       mode: "ADD",
       forceS0: state.forceS0,
+      grantNoSecurityClasses:
+        /DESELECT ALL SECURITY KEYS|do not accept any key/i.test(promptText),
     };
     return {
       action: "send_to_dut",
@@ -1372,19 +1394,18 @@ export function parsePrompt(
   }
 
   if (
-    /^(?:abort interview or )?(?:please )?wait until (?:the )?DUT is ready(?:!| and click 'OK'\.)$/i.test(
+    /(?:abort interview or )?(?:please )?wait until (?:the )?DUT is ready(?:!| and click 'OK'\.)\s*$/i.test(
       promptText
     )
   ) {
     const context = state.readinessContext;
-    if (!context) return { action: "none" };
-    if (context.operation === "NODE_REMOVAL") {
+    if (context?.operation === "NODE_REMOVAL") {
       return nodeRemovalWait(context.removedNodeId);
     }
     // A node that survived the inclusion still has to finish its interview
     // Anything else only has to reach an idle controller
     const message: WaitForInterviewMessage | WaitForInclusionIdleMessage =
-      context.operation === "INCLUSION" && context.addedNodeId !== undefined
+      context?.operation === "INCLUSION" && context.addedNodeId !== undefined
         ? { type: "WAIT_FOR_INTERVIEW", responseOptions: ["Ok"] }
         : { type: "WAIT_FOR_INCLUSION_IDLE", responseOptions: ["Ok"] };
     return { action: "send_to_dut", message };
@@ -1677,7 +1698,7 @@ export function parsePrompt(
     return { action: "send_to_dut", message };
   }
   if (
-    /^The DUT is allowed to show that the CTT Controller supports e\.g\. Notification CC \(e\.g\. Heat Alarm\)\. But does the DUT show any hints or control elements considering that the CTT Controller supports\s*- Battery CC \(e\.g\. battery level\) or\s*- Switch Binary CC \(e\.g\. on\/off\) or\s*- Sensor Multilevel CC \(e\.g\. air temperature\)\?$/i.test(
+    /The DUT is allowed to show that the CTT Controller supports e\.g\. Notification CC \(e\.g\. Heat Alarm\)\.\s*But does the DUT show any hints or control elements considering that the CTT Controller supports\s*- Battery CC \(e\.g\. battery level\) or\s*- Switch Binary CC \(e\.g\. on\/off\) or\s*- Sensor Multilevel CC \(e\.g\. air temperature\)\?\s*$/i.test(
       promptText
     )
   ) {
@@ -1687,7 +1708,6 @@ export function parsePrompt(
       responseOptions: ["Yes", "No"],
       nodeId: state.lastAddedNodeId,
       commandClasses: ["Battery", "Binary Switch", "Multilevel Sensor"],
-      expectedVisible: false,
     };
     return { action: "send_to_dut", message };
   }
@@ -2189,19 +2209,23 @@ function parseDUTCapabilityQuery(
       "SELECT_GRANTED_SECURITY_CLASSES",
     ],
     [
-      /^(?:Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping|Is the DUT able to confirm \(or adjust\) the requested keys before granting them to a joining node)\?$/i,
+      /(?:Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping|Is the DUT able to confirm \(or adjust\) the requested keys before granting them to a joining node)\?\s*$/i,
       "SELECT_GRANTED_SECURITY_CLASSES",
     ],
     [
-      /^Is the Advanced Joining setting(?:\s*\(selecting which keys shall be granted\))?\s+available for provisioning list entries\?$/i,
+      /Is the Advanced Joining setting(?:\s*\(selecting which keys shall be granted\))?\s+available for provisioning list entries\?\s*$/i,
       "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES",
     ],
     [
-      /^Is the Bootstrapping Mode setting \(Security 2 or SmartStart\) available for provisioning list entries\?$/i,
+      /Is the Bootstrapping Mode setting \(Security 2 or SmartStart\) available for provisioning list entries\?\s*$/i,
       "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE",
     ],
     [
-      /^Does the DUT have a special password-protected menu,\s+dedicated to allow S0 bootstrapping as SIS\s+when an S0 Node is included by a non-secure Inclusion Controller, \(hereafter 'special menu'\)\?(?:\s+If yes, do NOT access that special menu!)?$/i,
+      /Is the DUT able to manage the full SPAN table\?/i,
+      "MANAGE_FULL_SPAN_TABLE",
+    ],
+    [
+      /Does the DUT have a special password-protected menu,\s+dedicated to allow S0 bootstrapping as SIS\s+when an S0 Node is included by a non-secure Inclusion Controller, \(hereafter 'special menu'\)\?(?:\s+If yes, do NOT access that special menu!)?\s*$/i,
       "HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU",
     ],
   ];

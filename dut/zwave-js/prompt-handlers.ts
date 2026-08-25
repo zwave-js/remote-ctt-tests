@@ -37,7 +37,7 @@ interface BaseContext {
     args: ZWaveNodeValueNotificationArgs;
   }[];
   notifications: {
-    nodeAdded: (nodeId: number) => void;
+    nodeAdded: (nodeId: number, failedS2Bootstrapping: boolean) => void;
     nodeRemoved: (nodeId: number) => void;
     provisioningEntryAdded: (dsk: string) => void;
     provisioningEntryRemoved: (dsk: string) => void;

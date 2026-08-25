@@ -43,6 +43,8 @@ import { setTimeout as wait } from "node:timers/promises";
 
 // CTT needs 100 ms to arm its frame expectation after the prompt closes
 const PROMPT_DUT_DISPATCH_DELAY_MS = 100;
+// Limit node-added IPC synchronization so security checks fail before the prompt timeout
+const NODE_ADDED_SYNC_TIMEOUT_MS = 10_000;
 
 /**
  * Outcome of a prompt:
@@ -104,6 +106,7 @@ export class RunnerHost {
   >();
   /** Commands sent to the DUT after a prompt was answered, keyed so each entry can remove itself */
   private pendingDutDispatches = new Map<symbol, Promise<void>>();
+  private pendingNodeAddition?: PromiseWithResolvers<void>;
 
   // Readline interface for user input prompts
   private rl?: readline.Interface;
@@ -243,8 +246,32 @@ export class RunnerHost {
   ): Promise<void> {
     // Reset orchestrator state before the runner can emit events for this test
     this.testContext = {};
+    this.pendingNodeAddition?.resolve();
+    this.pendingNodeAddition = undefined;
     const params: TestCaseStartedParams = { testName, executionMode };
     await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
+  }
+
+  private expectNodeAddition(): void {
+    // Release a waiter from an inclusion that never produced a node
+    this.pendingNodeAddition?.resolve();
+    this.pendingNodeAddition = Promise.withResolvers<void>();
+  }
+
+  private async waitForPendingNodeAddition(): Promise<void> {
+    const pending = this.pendingNodeAddition;
+    if (!pending) return;
+
+    const completed = await Promise.race([
+      pending.promise.then(() => true),
+      wait(NODE_ADDED_SYNC_TIMEOUT_MS, false, { ref: false }),
+    ]);
+    if (!completed) {
+      this.pendingNodeAddition = undefined;
+      throw new Error(
+        `Timed out waiting for the node-added state update after ${NODE_ADDED_SYNC_TIMEOUT_MS} ms`
+      );
+    }
   }
 
   /**
@@ -267,10 +294,33 @@ export class RunnerHost {
     const normalizedText = rawText.replace(/\s+/g, " ").trim();
 
     // Parse the prompt to check for auto-answers or structured messages
-    const parseResult = parsePrompt(normalizedText, this.testContext, {
-      testName,
-      executionMode,
-    });
+    const testInstance = { testName, executionMode };
+    let parseResult = parsePrompt(
+      normalizedText,
+      this.testContext,
+      testInstance
+    );
+
+    if (
+      parseResult.action === "send_to_dut" &&
+      parseResult.message.type === "CHECK_SECURITY_CLASS"
+    ) {
+      await this.waitForPendingNodeAddition();
+      // Re-parse so the check targets the node the wait just added
+      parseResult = parsePrompt(
+        normalizedText,
+        this.testContext,
+        testInstance
+      );
+    }
+
+    if (
+      parseResult.action === "send_to_dut" &&
+      parseResult.message.type === "ACTIVATE_NETWORK_MODE" &&
+      parseResult.message.mode === "ADD"
+    ) {
+      this.expectNodeAddition();
+    }
 
     if (parseResult.stateUpdate) {
       this.testContext = {
@@ -342,8 +392,10 @@ export class RunnerHost {
     // Only send to runner if we have a structured message. Otherwise the prompt
     // is "unhandled": no auto-answer matched and there is nothing for the runner
     // to act on, so only a human at the terminal could answer it.
+    const forwardedMessage =
+      parseResult.action === "send_to_dut" ? parseResult.message : undefined;
     const forwardedToRunner =
-      parseResult.action === "send_to_dut" &&
+      forwardedMessage !== undefined &&
       this.runnerSocket?.readyState === WebSocket.OPEN;
 
     if (forwardedToRunner) {
@@ -353,7 +405,7 @@ export class RunnerHost {
       const params: CttPromptParams = {
         testName,
         executionMode,
-        message: parseResult.message,
+        message: forwardedMessage,
       };
       this.runnerSocket?.send(
         JSON.stringify({
@@ -686,8 +738,14 @@ export class RunnerHost {
     if (isNodeAddedNotification(msg)) {
       this.testContext = {
         ...this.testContext,
-        ...nodeAddedStateUpdate(this.testContext, msg.params.nodeId),
+        ...nodeAddedStateUpdate(
+          this.testContext,
+          msg.params.nodeId,
+          msg.params.failedS2Bootstrapping
+        ),
       };
+      this.pendingNodeAddition?.resolve();
+      this.pendingNodeAddition = undefined;
       return;
     }
 

@@ -22,6 +22,6 @@ registerHandler(/.*/, {
       .getDefinedValueIDs()
       .some((valueId) => commandClasses.has(valueId.commandClass));
 
-    return visible === ctx.message.expectedVisible ? "Yes" : "No";
+    return visible ? "Yes" : "No";
   },
 });

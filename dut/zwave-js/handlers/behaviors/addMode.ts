@@ -18,6 +18,7 @@ const PIN_CODE = "pin code";
 const S2_REQUESTED_CLASSES = "S2 requested security classes";
 const S2_GRANTED_CLASSES = "S2 granted security classes";
 const S2_PIN_REQUESTED = "S2 PIN requested";
+const GRANT_NO_CLASSES = "grant no security classes";
 
 export function resetS2InteractionObservations(
   state: Map<string, unknown>
@@ -69,7 +70,9 @@ export async function grantS2SecurityClasses(
   await applyS2InteractionDelay(state);
 
   let granted = requested;
-  if (state.get("exclude S2 Access") === true) {
+  if (state.get(GRANT_NO_CLASSES) === true) {
+    granted = { ...requested, securityClasses: [] };
+  } else if (state.get("exclude S2 Access") === true) {
     granted = {
       ...requested,
       securityClasses: requested.securityClasses.filter(
@@ -121,6 +124,12 @@ registerHandler(/.*/, {
       const { driver, state, message } = ctx;
       state.delete(PIN_PROMISE);
       resetS2InteractionObservations(state);
+      // Keep the policy in state because run.ts also grants keys for inclusions this handler did not start
+      if (message.grantNoSecurityClasses) {
+        state.set(GRANT_NO_CLASSES, true);
+      } else {
+        state.delete(GRANT_NO_CLASSES);
+      }
 
       let inclusionOptions: InclusionOptions;
       if (

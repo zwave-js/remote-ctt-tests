@@ -1,4 +1,4 @@
-import { SecurityClass } from "@zwave-js/core";
+import { SecurityClass, securityClassIsS2 } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
 import type { SecurityClassCheck } from "../../../../src/ctt-message-types.ts";
 
@@ -20,16 +20,13 @@ registerHandler(/.*/, {
     if (!node) return "No";
 
     const actual = node.getHighestSecurityClass();
+    let matches: boolean;
     if (ctx.message.securityClass === "S2") {
-      return actual !== undefined &&
-        actual >= SecurityClass.S2_Unauthenticated &&
-        actual <= SecurityClass.S2_AccessControl
-        ? "Yes"
-        : "No";
+      matches = securityClassIsS2(actual);
+    } else {
+      matches = actual === concreteSecurityClasses[ctx.message.securityClass];
     }
 
-    return actual === concreteSecurityClasses[ctx.message.securityClass]
-      ? "Yes"
-      : "No";
+    return matches ? "Yes" : "No";
   },
 });

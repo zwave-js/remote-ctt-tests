@@ -375,6 +375,7 @@ export type DUTCapabilityId =
   | "CONTROLS_UNLISTED_CCS"
   | "ALL_DOCUMENTED_AS_CONTROLLED"
   | "MAINS_POWERED"
+  | "MANAGE_FULL_SPAN_TABLE"
   | "SELECT_GRANTED_SECURITY_CLASSES"
   | "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES"
   | "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE"
@@ -523,6 +524,7 @@ export interface ActivateNetworkModeMessage {
   responseOptions: ["Ok"];
   mode: "ADD" | "REMOVE" | "LEARN" | "STOP_ADD";
   forceS0?: boolean;
+  grantNoSecurityClasses?: boolean;
 }
 
 // =============================================================================
@@ -591,7 +593,6 @@ export interface CheckCCVisibilityMessage {
   responseOptions: ["Yes", "No"];
   nodeId: number;
   commandClasses: CCVisibilityCommandClass[];
-  expectedVisible: boolean;
 }
 
 export type SecurityClassCheck =

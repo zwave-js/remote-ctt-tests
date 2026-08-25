@@ -9,12 +9,11 @@ registerHandler(/.*/, {
     const { check, nodeId } = ctx.message;
 
     if (check === "RESET_AND_LEFT") {
-      // The node-removed event updates `includedNodes` asynchronously
+      // It can take a while for the node to be removed from the controller's node list, so poll for it.
       for (let attempt = 1; attempt <= 5; attempt++) {
-        if (!ctx.includedNodes.some((node) => node.id === nodeId)) {
+        if (!ctx.driver.controller.nodes.has(nodeId)) {
           return "Yes";
         }
-        // The delay increases while the controller processes the reset
         await wait(1000 * attempt);
       }
       return "No";

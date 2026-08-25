@@ -40,6 +40,7 @@ const dutCapabilityResponses: Record<
     return "No";
   },
   MAINS_POWERED: "Yes",
+  MANAGE_FULL_SPAN_TABLE: "Yes",
   SELECT_GRANTED_SECURITY_CLASSES: "Yes",
   CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES: "Yes",
   // zwave-js provisioning entries expose no per-entry bootstrapping-mode field

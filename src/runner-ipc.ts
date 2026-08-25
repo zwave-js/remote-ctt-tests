@@ -132,6 +132,7 @@ export interface NodeAddedNotification extends JsonRpcMethodMessage {
   method: "nodeAdded";
   params: {
     nodeId: number;
+    failedS2Bootstrapping: boolean;
   };
 }
 
@@ -204,7 +205,9 @@ export function isNodeAddedNotification(msg: unknown): msg is NodeAddedNotificat
     typeof msg.params === "object" &&
     msg.params !== null &&
     "nodeId" in msg.params &&
-    typeof msg.params.nodeId === "number"
+    typeof msg.params.nodeId === "number" &&
+    "failedS2Bootstrapping" in msg.params &&
+    typeof msg.params.failedS2Bootstrapping === "boolean"
   );
 }
 

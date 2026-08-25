@@ -123,11 +123,11 @@ function sendNotification(notification: IpcNotification): void {
 }
 
 const handlerNotifications = {
-  nodeAdded: (nodeId: number) =>
+  nodeAdded: (nodeId: number, failedS2Bootstrapping: boolean) =>
     sendNotification({
       jsonrpc: "2.0",
       method: "nodeAdded",
-      params: { nodeId },
+      params: { nodeId, failedS2Bootstrapping },
     }),
   nodeRemoved: (nodeId: number) =>
     sendNotification({
@@ -170,7 +170,7 @@ function handleNodeAdded(node: ZWaveNode): void {
   if (!includedNodes.some((includedNode) => includedNode.id === node.id)) {
     includedNodes.push(node);
   }
-  handlerNotifications.nodeAdded(node.id);
+  handlerNotifications.nodeAdded(node.id, node.failedS2Bootstrapping);
 }
 
 function handleNodeRemoved(node: ZWaveNode): void {
@@ -243,6 +243,13 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
       },
       securityKeys,
       securityKeysLongRange,
+      features: {
+        disableCommandClasses: [
+          // Basic Window Covering has no selection in the Certification portal
+          // so answering its version query would fail the test.
+          CommandClasses["Basic Window Covering"],
+        ],
+      },
       inclusionUserCallbacks: {
         abort() {},
         async grantSecurityClasses(requested) {

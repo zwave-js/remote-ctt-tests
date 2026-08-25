@@ -1,6 +1,7 @@
 import { BasicCCValues } from "zwave-js";
 import { CommandClasses } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
+import { waitForValueUpdate } from "../utils.ts";
 
 registerHandler("CCR_BasicCC_Rev02", {
   async onPrompt(ctx) {
@@ -18,8 +19,12 @@ registerHandler("CCR_BasicCC_Rev02", {
           ? ctx.message.expected
           : parseInt(String(ctx.message.expected));
 
-      // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
-      if (expectedValue === 255) expectedValue = 99;
+      if (expectedValue === 255) {
+        // Z-Wave JS refreshes the current value a few seconds after a Basic Set of 255
+        await waitForValueUpdate(node, BasicCCValues.currentValue.id);
+        // A report of 255 means 100%, which is mapped to 99 in Z-Wave JS
+        expectedValue = 99;
+      }
 
       const actualValue = node.getValue(BasicCCValues.currentValue.id);
       console.log(`Basic CC current value: ${actualValue}`);
