@@ -5,6 +5,10 @@ setup/zats-input-patch/**/obj/
 # Per-run state, generated projects, and logs
 .ctt-runs/
 
+# Known-good network-state capture directories
+zwave_stack/storage/
+dut/zwave-js/storage/
+
 # DUT dependencies
 dut/zwave-js/node_modules/
 

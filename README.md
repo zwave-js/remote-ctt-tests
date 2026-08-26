@@ -138,6 +138,7 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
     "name": "Your DUT Name",
     "runnerPath": "your-dut/run.ts",
     "homeId": "d34db33f",
+    "storageDir": "your-dut/storage",
     "storageFileFilter": ["%HOME_ID_LOWER%.jsonl"]
   }
 }
@@ -147,8 +148,10 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
 
 - `runnerPath`: Path to your DUT runner script. Supports Node.js (TypeScript/JavaScript), Python, or any executable that your system can handle running directly, e.g. with a shebang.
 - `homeId`: Must match the Home ID of your test network (from CTT setup)
-- `storageFileFilter`: Selects DUT files when updating the committed network
-  state archive. The filter patterns support placeholders:
+- `storageDir`: Known-good DUT storage used only when creating the committed
+  network-state archive.
+- `storageFileFilter`: Selects files from `storageDir` for that archive. The
+  filter patterns support placeholders:
   - `%HOME_ID_LOWER%` - homeId in lowercase
   - `%HOME_ID_UPPER%` - homeId in uppercase
 
@@ -156,13 +159,13 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
 
 ```bash
 ./setup/pack-network-state-archive.ts
-# Or choose an older run:
-./setup/pack-network-state-archive.ts --run-dir=.ctt-runs/<run-id>
 ```
 
-This regenerates `setup/network-state.zip` (emulated-device storage + DUT
-storage), which is committed and used by CI. Regenerate it whenever the network
-state changes.
+This reads the known-good capture state from `zwave_stack/storage/` and
+`config.dut.storageDir`. It never reads `.ctt-runs/`. The generated
+`setup/network-state.zip` is committed and becomes the immutable seed for CI
+and every individual test run. Regenerate it only after intentionally updating
+and validating the capture network.
 
 CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo
 downloads it from a private GitHub repository
