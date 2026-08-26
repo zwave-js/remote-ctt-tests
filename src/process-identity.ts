@@ -37,7 +37,7 @@ export function readProcessStartTime(pid: number): string | undefined {
   }
 }
 
-function processGroupHasMembers(processGroupId: number): boolean {
+export function processGroupHasMembers(processGroupId: number): boolean {
   for (const entry of fs.readdirSync("/proc", { withFileTypes: true })) {
     if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) continue;
     try {

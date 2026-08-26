@@ -28,6 +28,7 @@ import {
   cleanupStaleRuns,
   ProcessManifest,
 } from "./process-manifest.ts";
+import { processGroupHasMembers } from "./process-identity.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
@@ -111,6 +112,7 @@ interface ManagedProcess {
   name: string;
   process: ChildProcess;
   pid?: number;
+  processGroup: boolean;
 }
 
 class ProcessManager {
@@ -140,14 +142,13 @@ class ProcessManager {
   }
 
   private trackProcess(
-    managedProcess: ManagedProcess,
-    processGroup: boolean
+    managedProcess: ManagedProcess
   ): void {
     this.processes.push(managedProcess);
     this.manifest.register(
       managedProcess.name,
       managedProcess.pid,
-      processGroup
+      managedProcess.processGroup
     );
   }
 
@@ -231,7 +232,8 @@ class ProcessManager {
       name: "Z-Wave Stack",
       process: proc,
       pid: proc.pid,
-    }, true);
+      processGroup: true,
+    });
 
     console.log("Z-Wave stack started");
   }
@@ -354,15 +356,13 @@ class ProcessManager {
       onUnexpectedExit: () => {
         if (!this.isCleaningUp) this.cleanup(true);
       },
+      onSpawn: (pid) => {
+        this.manifest.register(`${config.dut.name} Runner`, pid, false);
+      },
     });
 
     // Initialize the runner (spawns process, waits for ready)
     await this.runnerHost.initialize();
-    this.manifest.register(
-      `${config.dut.name} Runner`,
-      this.runnerHost.getRunnerPid(),
-      false
-    );
 
     // Start the DUT
     await this.runnerHost.start({
@@ -479,9 +479,10 @@ class ProcessManager {
       name: "CTT",
       process: cttProcess,
       pid: cttProcess.pid,
+      processGroup: true,
     };
 
-    this.trackProcess(managedProcess, true);
+    this.trackProcess(managedProcess);
 
     return managedProcess;
   }
@@ -744,7 +745,7 @@ class ProcessManager {
     }
   }
 
-  private async terminateManagedProcesses(): Promise<void> {
+  private async terminateManagedProcesses(): Promise<boolean> {
     for (const managedProcess of this.processes) {
       this.killProcess(managedProcess);
     }
@@ -770,34 +771,41 @@ class ProcessManager {
       }
     }
 
-    await Promise.all(
+    const stoppedAfterKill = await Promise.all(
       survivors.map((managedProcess) =>
         this.waitForProcessExit(managedProcess, 2000)
       )
     );
+    return stoppedAfterKill.every(Boolean);
   }
 
   private waitForProcessExit(
     managedProcess: ManagedProcess,
     timeout: number
   ): Promise<boolean> {
-    const child = managedProcess.process;
-    if (child.exitCode !== null || child.signalCode !== null) {
-      return Promise.resolve(true);
-    }
+    return this.pollForProcessExit(managedProcess, Date.now() + timeout);
+  }
 
-    return new Promise((resolve) => {
-      const onExit = () => {
-        globalThis.clearTimeout(timer);
-        resolve(true);
-      };
-      const timer = globalThis.setTimeout(() => {
-        child.off("exit", onExit);
-        resolve(child.exitCode !== null || child.signalCode !== null);
-      }, timeout);
-      child.once("exit", onExit);
-      if (child.exitCode !== null || child.signalCode !== null) onExit();
-    });
+  private async pollForProcessExit(
+    managedProcess: ManagedProcess,
+    deadline: number
+  ): Promise<boolean> {
+    while (this.isManagedProcessRunning(managedProcess)) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return false;
+      await setTimeout(Math.min(100, remaining));
+    }
+    return true;
+  }
+
+  private isManagedProcessRunning(managedProcess: ManagedProcess): boolean {
+    if (managedProcess.processGroup && managedProcess.pid !== undefined) {
+      return processGroupHasMembers(managedProcess.pid);
+    }
+    return (
+      managedProcess.process.exitCode === null &&
+      managedProcess.process.signalCode === null
+    );
   }
 
   async cleanup(failed = false): Promise<void> {
@@ -836,10 +844,17 @@ class ProcessManager {
       await this.deviceProxy.close();
     }
 
-    await this.terminateManagedProcesses();
+    const allProcessesStopped = await this.terminateManagedProcesses();
 
     await this.context.reservations.releaseAll();
-    this.manifest.complete(this.hasTestFailures);
+    if (allProcessesStopped) {
+      this.manifest.complete(this.hasTestFailures);
+    } else {
+      console.error(
+        "Owned process groups did not exit; leaving the run marked as running for stale cleanup."
+      );
+      this.hasTestFailures = true;
+    }
 
     // Exit with non-zero code if any tests failed
     process.exit(this.hasTestFailures ? 1 : 0);

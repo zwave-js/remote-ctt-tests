@@ -71,6 +71,8 @@ export interface RunnerHostOptions {
   readyTimeout?: number;
   /** Callback when runner process exits unexpectedly */
   onUnexpectedExit?: () => void;
+  /** Callback immediately after the runner process is spawned */
+  onSpawn?: (pid: number) => void;
   /** CI mode - cancel test run on unhandled prompts (default: auto-detect via CI env var) */
   ciMode?: boolean;
   /**
@@ -87,6 +89,7 @@ export class RunnerHost {
   private runnerEnv: NodeJS.ProcessEnv;
   private readyTimeout: number;
   private onUnexpectedExit?: () => void;
+  private onSpawn?: (pid: number) => void;
   private ciMode: boolean;
   private promptTimeout: number;
 
@@ -125,6 +128,7 @@ export class RunnerHost {
     this.runnerEnv = options.runnerEnv ?? {};
     this.readyTimeout = options.readyTimeout ?? 30000;
     this.onUnexpectedExit = options.onUnexpectedExit;
+    this.onSpawn = options.onSpawn;
     this.ciMode = options.ciMode ?? !!process.env.CI;
     this.promptTimeout = options.promptTimeout ?? 120000;
 
@@ -672,6 +676,9 @@ export class RunnerHost {
       },
       stdio: ["ignore", "inherit", "pipe"],
     });
+    if (this.runnerProcess.pid !== undefined) {
+      this.onSpawn?.(this.runnerProcess.pid);
+    }
 
     this.runnerProcess.stderr?.on("data", (data) => {
       const lines = data.toString().trim().split("\n");
