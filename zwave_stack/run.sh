@@ -47,7 +47,7 @@ start_process() {
   process_names[$!]="$name"
 }
 
-echo "Starting Controller 1 (Z-Wave JS) on port $ZWAVE_CONTROLLER1_PORT..."
+echo "Starting Controller 1 (DUT) on port $ZWAVE_CONTROLLER1_PORT..."
 start_process "Controller1" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER1_PORT" --storage "$ZWAVE_STORAGE_DIR/controller1" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller1" --id 1 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting Controller 2 (CTT) on port $ZWAVE_CONTROLLER2_PORT..."
@@ -70,7 +70,7 @@ start_process "Zniffer" python3 "$BIN_DIR/zniffer.py" 1234 \
   --node-count 5
 
 echo "All Z-Wave binaries started!"
-echo "Controller 1: localhost:$ZWAVE_CONTROLLER1_PORT (Z-Wave JS FirstController)"
+echo "Controller 1: localhost:$ZWAVE_CONTROLLER1_PORT (DUT FirstController)"
 echo "Controller 2: localhost:$ZWAVE_CONTROLLER2_PORT (CTT SecondController)"
 echo "Controller 3: localhost:$ZWAVE_CONTROLLER3_PORT (CTT ThirdController)"
 echo "End Device 1: localhost:$ZWAVE_ENDDEVICE1_PORT (CTT FirstEndDevice)"
