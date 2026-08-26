@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import {
   Driver,
   type Endpoint,
+  type ZWaveController,
   type ZWaveNode,
   type ZWaveNodeValueNotificationArgs,
 } from "zwave-js";
@@ -30,6 +31,7 @@ import type {
   ErrorResponse,
   ReadyNotification,
   NoHandlerNotification,
+  IpcNotification,
 } from "../../src/runner-ipc.ts";
 import {
   getHandlersForTest,
@@ -39,6 +41,10 @@ import {
 
 // Load all registered handlers
 import "./handlers/index.ts";
+import {
+  grantS2SecurityClasses,
+  waitForS2Pin,
+} from "./handlers/behaviors/addMode.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +65,7 @@ const SERVER_PORT = 3000;
 let driver: Driver | undefined;
 let server: ZwavejsServer | undefined;
 let ws: WebSocket | undefined;
+let nodeLifecycleController: ZWaveController | undefined;
 
 // Test case state for prompt handlers
 let testContext: Map<string, unknown> = new Map();
@@ -111,13 +118,44 @@ function sendError(id: number, code: number, message: string): void {
   ws?.send(JSON.stringify(response));
 }
 
+function sendNotification(notification: IpcNotification): void {
+  ws?.send(JSON.stringify(notification));
+}
+
+const handlerNotifications = {
+  nodeAdded: (nodeId: number, failedS2Bootstrapping: boolean) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "nodeAdded",
+      params: { nodeId, failedS2Bootstrapping },
+    }),
+  nodeRemoved: (nodeId: number) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "nodeRemoved",
+      params: { nodeId },
+    }),
+  provisioningEntryAdded: (dsk: string) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "provisioningEntryAdded",
+      params: { dsk },
+    }),
+  provisioningEntryRemoved: (dsk: string) =>
+    sendNotification({
+      jsonrpc: "2.0",
+      method: "provisioningEntryRemoved",
+      params: { dsk },
+    }),
+};
+
 function sendReady(): void {
   const notification: ReadyNotification = {
     jsonrpc: "2.0",
     method: "ready",
     params: { name: RUNNER_NAME },
   };
-  ws?.send(JSON.stringify(notification));
+  sendNotification(notification);
 }
 
 function sendNoHandlerNotification(): void {
@@ -125,7 +163,32 @@ function sendNoHandlerNotification(): void {
     jsonrpc: "2.0",
     method: "noHandler",
   };
-  ws?.send(JSON.stringify(notification));
+  sendNotification(notification);
+}
+
+function handleNodeAdded(node: ZWaveNode): void {
+  if (!includedNodes.some((includedNode) => includedNode.id === node.id)) {
+    includedNodes.push(node);
+  }
+  handlerNotifications.nodeAdded(node.id, node.failedS2Bootstrapping);
+}
+
+function handleNodeRemoved(node: ZWaveNode): void {
+  includedNodes = includedNodes.filter(
+    (includedNode) => includedNode.id !== node.id
+  );
+  handlerNotifications.nodeRemoved(node.id);
+}
+
+function attachNodeLifecycleListeners(): void {
+  if (!driver || nodeLifecycleController === driver.controller) return;
+
+  nodeLifecycleController?.off("node added", handleNodeAdded);
+  nodeLifecycleController?.off("node removed", handleNodeRemoved);
+
+  nodeLifecycleController = driver.controller;
+  nodeLifecycleController.on("node added", handleNodeAdded);
+  nodeLifecycleController.on("node removed", handleNodeRemoved);
 }
 
 // === Request Handlers ===
@@ -180,7 +243,32 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
       },
       securityKeys,
       securityKeysLongRange,
+      features: {
+        disableCommandClasses: [
+          // Basic Window Covering has no selection in the Certification portal
+          // so answering its version query would fail the test.
+          CommandClasses["Basic Window Covering"],
+        ],
+      },
+      inclusionUserCallbacks: {
+        abort() {},
+        async grantSecurityClasses(requested) {
+          return grantS2SecurityClasses(testContext, requested);
+        },
+        async validateDSKAndEnterPIN() {
+          return waitForS2Pin(testContext);
+        },
+      },
+      vendor: {
+        manufacturerId: 0x0466,
+        productType: 0x0001,
+        productId: 0x0001,
+        hardwareVersion: 0x00,
+        installerIcon: 0x0500,
+        userIcon: 0x0500,
+      },
     });
+    driver.on("driver ready", attachNodeLifecycleListeners);
 
     // Wait for driver to be ready
     await new Promise<void>((resolve, reject) => {
@@ -241,6 +329,7 @@ async function handleStart(id: number, params: StartParams): Promise<void> {
           valueNotifications.push({ node, args });
         });
 
+        // Track added and removed nodes
         resolve();
       });
 
@@ -280,6 +369,7 @@ async function handleStop(id: number): Promise<void> {
     if (driver) {
       await driver.destroy();
       driver = undefined;
+      nodeLifecycleController = undefined;
     }
 
     console.log("Z-Wave JS stopped successfully");
@@ -295,7 +385,7 @@ async function handleTestCaseStarted(
   id: number,
   params: TestCaseStartedParams
 ): Promise<void> {
-  const { testName } = params;
+  const { testName, executionMode } = params;
 
   // Clear previous test context
   testContext = new Map();
@@ -303,7 +393,7 @@ async function handleTestCaseStarted(
   nodeNotifications = [];
   valueNotifications = [];
 
-  console.log(`Test case started: ${testName}`);
+  console.log(`Test case started: ${testName} (${executionMode})`);
 
   // Get handlers for this test and call onTestStart hooks
   if (driver) {
@@ -313,11 +403,13 @@ async function handleTestCaseStarted(
         try {
           await handler.onTestStart({
             testName,
+            executionMode,
             driver,
             state: testContext,
             includedNodes,
             nodeNotifications,
             valueNotifications,
+            notifications: handlerNotifications,
           });
         } catch (error) {
           console.error(`[Handler] onTestStart error:`, error);
@@ -333,18 +425,20 @@ async function handleCttPrompt(
   id: number,
   params: CttPromptParams
 ): Promise<void> {
-  const { testName, message } = params;
+  const { testName, executionMode, message } = params;
 
   // Try registered handlers - only respond if one matches
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: PromptContext = {
       testName,
+      executionMode,
       driver,
       state: testContext,
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      notifications: handlerNotifications,
       message,
     };
 
@@ -368,17 +462,19 @@ async function handleCttPrompt(
 }
 
 async function handleCttLog(id: number | undefined, params: CttLogParams): Promise<void> {
-  const { testName, message } = params;
+  const { testName, executionMode, message } = params;
 
   if (driver && testName) {
     const handlers = getHandlersForTest(testName);
     const context: LogContext = {
       testName,
+      executionMode,
       driver,
       state: testContext,
       includedNodes,
       nodeNotifications,
       valueNotifications,
+      notifications: handlerNotifications,
       message,
     };
 

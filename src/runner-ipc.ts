@@ -7,6 +7,8 @@
 
 import type { DUTMessage } from "./ctt-message-types.ts";
 
+export type CttExecutionMode = "Classic" | "LR";
+
 // === Base JSON-RPC Types ===
 
 interface JsonRpcMessage {
@@ -43,6 +45,7 @@ export interface StartParams {
 
 export interface CttPromptParams {
   testName: string;
+  executionMode: CttExecutionMode;
   message: DUTMessage;
 }
 
@@ -50,6 +53,7 @@ export interface CttPromptParams {
 
 export interface CttLogParams {
   testName: string;
+  executionMode: CttExecutionMode;
   message: DUTMessage;
 }
 
@@ -57,6 +61,7 @@ export interface CttLogParams {
 
 export interface TestCaseStartedParams {
   testName: string;
+  executionMode: CttExecutionMode;
 }
 
 // === Request Messages (Orchestrator -> Runner) ===
@@ -123,7 +128,43 @@ export interface NoHandlerNotification extends JsonRpcMethodMessage {
   method: "noHandler";
 }
 
-export type IpcNotification = ReadyNotification | NoHandlerNotification;
+export interface NodeAddedNotification extends JsonRpcMethodMessage {
+  method: "nodeAdded";
+  params: {
+    nodeId: number;
+    failedS2Bootstrapping: boolean;
+  };
+}
+
+export interface NodeRemovedNotification extends JsonRpcMethodMessage {
+  method: "nodeRemoved";
+  params: {
+    nodeId: number;
+  };
+}
+
+export interface ProvisioningEntryAddedNotification extends JsonRpcMethodMessage {
+  method: "provisioningEntryAdded";
+  params: {
+    dsk: string;
+  };
+}
+
+export interface ProvisioningEntryRemovedNotification
+  extends JsonRpcMethodMessage {
+  method: "provisioningEntryRemoved";
+  params: {
+    dsk: string;
+  };
+}
+
+export type IpcNotification =
+  | ReadyNotification
+  | NoHandlerNotification
+  | NodeAddedNotification
+  | NodeRemovedNotification
+  | ProvisioningEntryAddedNotification
+  | ProvisioningEntryRemovedNotification;
 
 // === Type Guards ===
 
@@ -154,6 +195,62 @@ export function isReadyNotification(msg: unknown): msg is ReadyNotification {
 
 export function isNoHandlerNotification(msg: unknown): msg is NoHandlerNotification {
   return isJsonRpcMethodMessage(msg) && msg.method === "noHandler";
+}
+
+export function isNodeAddedNotification(msg: unknown): msg is NodeAddedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "nodeAdded" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "nodeId" in msg.params &&
+    typeof msg.params.nodeId === "number" &&
+    "failedS2Bootstrapping" in msg.params &&
+    typeof msg.params.failedS2Bootstrapping === "boolean"
+  );
+}
+
+export function isNodeRemovedNotification(
+  msg: unknown
+): msg is NodeRemovedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "nodeRemoved" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "nodeId" in msg.params &&
+    typeof msg.params.nodeId === "number"
+  );
+}
+
+export function isProvisioningEntryAddedNotification(
+  msg: unknown
+): msg is ProvisioningEntryAddedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "provisioningEntryAdded" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "dsk" in msg.params &&
+    typeof msg.params.dsk === "string"
+  );
+}
+
+export function isProvisioningEntryRemovedNotification(
+  msg: unknown
+): msg is ProvisioningEntryRemovedNotification {
+  return (
+    isJsonRpcMethodMessage(msg) &&
+    msg.method === "provisioningEntryRemoved" &&
+    "params" in msg &&
+    typeof msg.params === "object" &&
+    msg.params !== null &&
+    "dsk" in msg.params &&
+    typeof msg.params.dsk === "string"
+  );
 }
 
 // === Constants ===

@@ -14,6 +14,7 @@ import type {
 } from "zwave-js";
 import type { CommandClasses } from "@zwave-js/core";
 import type { DUTMessage } from "../../src/ctt-message-types.ts";
+import type { CttExecutionMode } from "../../src/runner-ipc.ts";
 
 // === Types ===
 
@@ -22,6 +23,7 @@ export type NodeNotificationArgs = Parameters<ZWaveNotificationCallback>[2];
 // Base context without message (for test start)
 interface BaseContext {
   testName: string;
+  executionMode: CttExecutionMode;
   driver: Driver;
   state: Map<string, unknown>;
   includedNodes: ZWaveNode[];
@@ -34,6 +36,12 @@ interface BaseContext {
     node: ZWaveNode;
     args: ZWaveNodeValueNotificationArgs;
   }[];
+  notifications: {
+    nodeAdded: (nodeId: number, failedS2Bootstrapping: boolean) => void;
+    nodeRemoved: (nodeId: number) => void;
+    provisioningEntryAdded: (dsk: string) => void;
+    provisioningEntryRemoved: (dsk: string) => void;
+  };
 }
 
 // Context with required message (for prompts and logs)

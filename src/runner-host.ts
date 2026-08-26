@@ -16,19 +16,35 @@ import {
   type CttPromptParams,
   type CttLogParams,
   type TestCaseStartedParams,
+  type CttExecutionMode,
   type IpcRequest,
   isSuccessResponse,
   isErrorResponse,
   isReadyNotification,
   isNoHandlerNotification,
+  isNodeAddedNotification,
+  isNodeRemovedNotification,
+  isProvisioningEntryAddedNotification,
+  isProvisioningEntryRemovedNotification,
   DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
-import { parseLog, parsePrompt } from "./ctt-parser.ts";
+import {
+  nodeAddedStateUpdate,
+  nodeRemovedStateUpdate,
+  parseLog,
+  parsePrompt,
+} from "./ctt-parser.ts";
 import type { OrchestratorState } from "./ctt-message-types.ts";
 import { abortTestRun } from "./ctt-client.ts";
 import c from "ansi-colors";
 import * as readline from "readline";
+import { setTimeout as wait } from "node:timers/promises";
+
+// CTT needs 100 ms to arm its frame expectation after the prompt closes
+const PROMPT_DUT_DISPATCH_DELAY_MS = 100;
+// Limit node-added IPC synchronization so security checks fail before the prompt timeout
+const NODE_ADDED_SYNC_TIMEOUT_MS = 10_000;
 
 /**
  * Outcome of a prompt:
@@ -41,6 +57,8 @@ import * as readline from "readline";
 type PromptResult = {
   source: "user" | "auto" | "timeout" | "unhandled" | "closed" | "skip";
   value: string;
+  /** Sends the parsed message to the DUT; call once the answer is submitted */
+  dispatch?: () => void;
 };
 
 export interface RunnerHostOptions {
@@ -86,6 +104,9 @@ export class RunnerHost {
       reject: (error: Error) => void;
     }
   >();
+  /** Commands sent to the DUT after a prompt was answered, keyed so each entry can remove itself */
+  private pendingDutDispatches = new Map<symbol, Promise<void>>();
+  private pendingNodeAddition?: PromiseWithResolvers<void>;
 
   // Readline interface for user input prompts
   private rl?: readline.Interface;
@@ -168,7 +189,11 @@ export class RunnerHost {
   /**
    * Handle a CTT log message by parsing and forwarding to the runner
    */
-  async handleCttLog(logText: string, testName: string): Promise<void> {
+  async handleCttLog(
+    logText: string,
+    testName: string,
+    executionMode: CttExecutionMode
+  ): Promise<void> {
     // Normalize whitespace: CTT sometimes formats with line breaks and multiple spaces
     const normalizedText = logText.replace(/\s+/g, " ").trim();
 
@@ -181,20 +206,72 @@ export class RunnerHost {
       // No message to send to DUT
     } else if (result.action === "send_to_dut") {
       // Send structured message to runner
-      const params: CttLogParams = { testName, message: result.message };
-      await this.sendRequest("handleCttLog", params as unknown as Record<string, unknown>);
+      await this.sendCttLogToRunner({
+        testName,
+        executionMode,
+        message: result.message,
+      });
     }
     // action === "none" - nothing to send to runner
   }
 
   /**
+   * Sends `params` to the runner once CTT has had time to close the message box
+   * and arm its frame expectation.
+   */
+  private scheduleDutDispatch(params: CttLogParams): void {
+    const key = Symbol();
+    const completion = wait(PROMPT_DUT_DISPATCH_DELAY_MS)
+      .then(() => this.sendCttLogToRunner(params))
+      .catch((error: unknown) => {
+        console.error("Delayed DUT dispatch failed:", error);
+      })
+      .finally(() => this.pendingDutDispatches.delete(key));
+    this.pendingDutDispatches.set(key, completion);
+  }
+
+  private async sendCttLogToRunner(params: CttLogParams): Promise<void> {
+    await this.sendRequest(
+      "handleCttLog",
+      params as unknown as Record<string, unknown>
+    );
+  }
+
+  /**
    * Notify the runner that a test case has started
    */
-  async testCaseStarted(testName: string): Promise<void> {
-    const params: TestCaseStartedParams = { testName };
-    await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
-    // Reset orchestrator state for new test
+  async testCaseStarted(
+    testName: string,
+    executionMode: CttExecutionMode
+  ): Promise<void> {
+    // Reset orchestrator state before the runner can emit events for this test
     this.testContext = {};
+    this.pendingNodeAddition?.resolve();
+    this.pendingNodeAddition = undefined;
+    const params: TestCaseStartedParams = { testName, executionMode };
+    await this.sendRequest("testCaseStarted", params as unknown as Record<string, unknown>);
+  }
+
+  private expectNodeAddition(): void {
+    // Release a waiter from an inclusion that never produced a node
+    this.pendingNodeAddition?.resolve();
+    this.pendingNodeAddition = Promise.withResolvers<void>();
+  }
+
+  private async waitForPendingNodeAddition(): Promise<void> {
+    const pending = this.pendingNodeAddition;
+    if (!pending) return;
+
+    const completed = await Promise.race([
+      pending.promise.then(() => true),
+      wait(NODE_ADDED_SYNC_TIMEOUT_MS, false, { ref: false }),
+    ]);
+    if (!completed) {
+      this.pendingNodeAddition = undefined;
+      throw new Error(
+        `Timed out waiting for the node-added state update after ${NODE_ADDED_SYNC_TIMEOUT_MS} ms`
+      );
+    }
   }
 
   /**
@@ -205,6 +282,7 @@ export class RunnerHost {
     userPromptText: string,
     rawText: string,
     testName: string,
+    executionMode: CttExecutionMode,
     options: { autoCloseable?: boolean } = {}
   ): Promise<PromptResult> {
     // A self-closing box like "Skip" is one CTT dismisses via CloseCurrentMsgBox
@@ -216,18 +294,74 @@ export class RunnerHost {
     const normalizedText = rawText.replace(/\s+/g, " ").trim();
 
     // Parse the prompt to check for auto-answers or structured messages
-    const parseResult = parsePrompt(normalizedText, this.testContext);
+    const testInstance = { testName, executionMode };
+    let parseResult = parsePrompt(
+      normalizedText,
+      this.testContext,
+      testInstance
+    );
 
-    // Handle orchestrator auto-answers (no DUT involvement)
+    if (
+      parseResult.action === "send_to_dut" &&
+      parseResult.message.type === "CHECK_SECURITY_CLASS"
+    ) {
+      await this.waitForPendingNodeAddition();
+      // Re-parse so the check targets the node the wait just added
+      parseResult = parsePrompt(
+        normalizedText,
+        this.testContext,
+        testInstance
+      );
+    }
+
+    if (
+      parseResult.action === "send_to_dut" &&
+      parseResult.message.type === "ACTIVATE_NETWORK_MODE" &&
+      parseResult.message.mode === "ADD"
+    ) {
+      this.expectNodeAddition();
+    }
+
+    if (parseResult.stateUpdate) {
+      this.testContext = {
+        ...this.testContext,
+        ...parseResult.stateUpdate,
+      };
+    }
+
+    // CTT waits until scheduled DUT commands finish
+    if (parseResult.action === "wait_for_pending_dispatches") {
+      await Promise.all(this.pendingDutDispatches.values());
+      return { source: "auto", value: parseResult.answer };
+    }
+
+    // The handler returns the CTT answer with a DUT command to schedule after submission
+    if (parseResult.action === "answer_then_dispatch") {
+      const params: CttLogParams = {
+        testName,
+        executionMode,
+        message: parseResult.message,
+      };
+      return {
+        source: "auto",
+        value: parseResult.answer,
+        dispatch: () => this.scheduleDutDispatch(params),
+      };
+    }
+
+    // The handler answers CTT without involving the DUT
     if (parseResult.action === "auto_answer") {
       return { source: "auto", value: parseResult.answer };
     }
 
-    // Handle send_to_dut with optional auto-answer
+    // The handler sends a fire-and-forget DUT message before returning the parser-provided CTT answer
     if (parseResult.action === "send_to_dut" && parseResult.answer) {
-      // Send message to DUT (fire-and-forget, no response expected)
       if (this.runnerSocket?.readyState === WebSocket.OPEN) {
-        const params: CttLogParams = { testName, message: parseResult.message };
+        const params: CttLogParams = {
+          testName,
+          executionMode,
+          message: parseResult.message,
+        };
         this.runnerSocket.send(
           JSON.stringify({
             jsonrpc: "2.0",
@@ -258,15 +392,21 @@ export class RunnerHost {
     // Only send to runner if we have a structured message. Otherwise the prompt
     // is "unhandled": no auto-answer matched and there is nothing for the runner
     // to act on, so only a human at the terminal could answer it.
+    const forwardedMessage =
+      parseResult.action === "send_to_dut" ? parseResult.message : undefined;
     const forwardedToRunner =
-      parseResult.action === "send_to_dut" &&
+      forwardedMessage !== undefined &&
       this.runnerSocket?.readyState === WebSocket.OPEN;
 
     if (forwardedToRunner) {
       const ipcRequestId = ++this.messageId;
       this.activePrompt = { resolve: settle!, ipcRequestId, autoCloseable };
 
-      const params: CttPromptParams = { testName, message: parseResult.message };
+      const params: CttPromptParams = {
+        testName,
+        executionMode,
+        message: forwardedMessage,
+      };
       this.runnerSocket?.send(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -332,7 +472,7 @@ export class RunnerHost {
     const result = await promise;
     this.activePrompt = undefined;
 
-    // Clear consumed state after successful response
+    // The handler clears state consumed by the successful response
     if (parseResult.action === "send_to_dut") {
       const msg = parseResult.message;
       if (this.testContext.forceS0 && msg.type === "ACTIVATE_NETWORK_MODE" && msg.mode === "ADD") {
@@ -340,6 +480,38 @@ export class RunnerHost {
       }
       if (this.testContext.recommendationContext && msg.type === "SHOULD_DISREGARD_RECOMMENDATION") {
         this.testContext = { ...this.testContext, recommendationContext: undefined };
+      }
+      // In some tests, CTT logs the interview instruction separately, then opens a blank Ok box.
+      // This clears the flag after that box's WAIT_FOR_INTERVIEW action completes.
+      if (
+        this.testContext.waitForInterviewPrompt &&
+        msg.type === "WAIT_FOR_INTERVIEW"
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          waitForInterviewPrompt: undefined,
+        };
+      }
+      if (
+        this.testContext.readinessContext &&
+        (msg.type === "WAIT_FOR_INTERVIEW" ||
+          msg.type === "WAIT_FOR_INCLUSION_IDLE" ||
+          msg.type === "WAIT_FOR_NODE_REMOVAL")
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          readinessContext: undefined,
+        };
+      }
+      if (
+        this.testContext.provisioningAction &&
+        msg.type === "MANAGE_PROVISIONING" &&
+        msg.action === this.testContext.provisioningAction
+      ) {
+        this.testContext = {
+          ...this.testContext,
+          provisioningAction: undefined,
+        };
       }
     }
 
@@ -559,6 +731,45 @@ export class RunnerHost {
     // Check for no-handler notification (no prompt handler matched)
     if (isNoHandlerNotification(msg)) {
       this.handleNoHandler();
+      return;
+    }
+
+    // Record each add or remove notification with its node ID
+    if (isNodeAddedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        ...nodeAddedStateUpdate(
+          this.testContext,
+          msg.params.nodeId,
+          msg.params.failedS2Bootstrapping
+        ),
+      };
+      this.pendingNodeAddition?.resolve();
+      this.pendingNodeAddition = undefined;
+      return;
+    }
+
+    if (isNodeRemovedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        ...nodeRemovedStateUpdate(this.testContext, msg.params.nodeId),
+      };
+      return;
+    }
+
+    if (isProvisioningEntryAddedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastAddedProvisioningDsk: msg.params.dsk,
+      };
+      return;
+    }
+
+    if (isProvisioningEntryRemovedNotification(msg)) {
+      this.testContext = {
+        ...this.testContext,
+        lastRemovedProvisioningDsk: msg.params.dsk,
+      };
       return;
     }
 

@@ -7,6 +7,7 @@ import {
 } from './ctt-client.ts';
 import { convertCttColorsToAnsi, stripCttColors } from './ctt-output.ts';
 import type { RunnerHost } from './runner-host.ts';
+import type { CttExecutionMode } from './runner-ipc.ts';
 
 // Global event emitter for test case events
 export const testCaseEvents = new EventEmitter();
@@ -49,6 +50,17 @@ export interface WebSocketServerOptions {
   fatalErrorPatterns?: string[];
   /** Runner host for handling CTT prompts via IPC */
   runnerHost?: RunnerHost;
+  /** Mode selected by the current run, when only one mode was requested. */
+  executionMode?: CttExecutionMode;
+}
+
+function getExecutionMode(
+  testCase: { IsLongRange?: unknown },
+  fallback: CttExecutionMode
+): CttExecutionMode {
+  if (testCase.IsLongRange === true) return 'LR';
+  if (testCase.IsLongRange === false) return 'Classic';
+  return fallback;
 }
 
 interface TestCaseDTO {
@@ -115,10 +127,18 @@ async function queryTestCases(): Promise<void> {
 }
 
 export function createWebSocketServer(options: WebSocketServerOptions): ManagedWebSocketServer {
-  const { port, onFatalError, onProjectLoaded, fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS, runnerHost } = options;
+  const {
+    port,
+    onFatalError,
+    onProjectLoaded,
+    fatalErrorPatterns = DEFAULT_FATAL_ERROR_PATTERNS,
+    runnerHost,
+  } = options;
 
   // Track current test case name for detecting test start
   let currentTestName: string | null = null;
+  let currentExecutionMode: CttExecutionMode =
+    options.executionMode ?? 'Classic';
   // Ensure the project-loaded sequence runs at most once
   let projectLoadHandled = false;
   // CTT 4 streams all test output via `generalLogMsg`; we parse the verdict from
@@ -149,9 +169,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
     const testCaseResult: TestCaseResult = {
       name,
       endPoint: '0',
-      executionMode: 'Classic',
+      executionMode:
+        currentExecutionMode === 'LR' ? 'LongRangeStar' : 'Classic',
       result,
-      isLongRange: false,
+      isLongRange: currentExecutionMode === 'LR',
       category: '',
       group: '',
     };
@@ -178,7 +199,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         currentTestName = headerName;
         awaitingVerdict = false;
         if (runnerHost) {
-          runnerHost.testCaseStarted(currentTestName).catch((error) => {
+          runnerHost.testCaseStarted(
+            currentTestName,
+            currentExecutionMode
+          ).catch((error) => {
             console.error('[TestCase] Failed to notify runner of test start:', error);
           });
         }
@@ -209,7 +233,11 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
 
     // Forward to the runner so its handlers can react (e.g. interactive tests).
     if (runnerHost && plain.trim()) {
-      runnerHost.handleCttLog(plain, currentTestName ?? '').catch((error) => {
+      runnerHost.handleCttLog(
+        plain,
+        currentTestName ?? '',
+        currentExecutionMode
+      ).catch((error) => {
         console.error('[Log] Failed to forward to runner:', error);
       });
     }
@@ -277,6 +305,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           id: message.id,
         };
         let responseSent = false;
+        let dispatchToDut: (() => void) | undefined;
 
         if (message.method === 'generalLogMsg' && message.params?.output) {
           // Emit event for external listeners
@@ -312,21 +341,36 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           // Detect test case start by tracking testCase.TestCaseName changes
           const testCase = message.params?.testCase || {};
           const testName = testCase.TestCaseName || '';
-          if (testName && testName !== currentTestName) {
+          const executionMode = getExecutionMode(
+            testCase,
+            currentExecutionMode
+          );
+          if (
+            testName &&
+            (testName !== currentTestName ||
+              executionMode !== currentExecutionMode)
+          ) {
             currentTestName = testName;
+            currentExecutionMode = executionMode;
             // Notify runner that a new test case has started
             if (runnerHost) {
-              runnerHost.testCaseStarted(testName).catch((error) => {
+              runnerHost.testCaseStarted(
+                testName,
+                currentExecutionMode
+              ).catch((error) => {
                 console.error('[TestCase] Failed to notify runner of test start:', error);
               });
             }
+          } else {
+            currentExecutionMode = executionMode;
           }
 
           // Forward log to runner for handler processing (strip colors for plain text matching)
           if (runnerHost && coloredOutput && (testName || currentTestName)) {
             runnerHost.handleCttLog(
               stripCttColors(logOutput),
-              testName || currentTestName || ''
+              testName || currentTestName || '',
+              currentExecutionMode
             ).catch((error) => {
               console.error('[Log] Failed to forward to runner:', error);
             });
@@ -334,6 +378,10 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
         } else if (message.method === 'testCaseFinished') {
           // Print test case result
           const params = message.params || {};
+          currentExecutionMode = getExecutionMode(
+            params,
+            currentExecutionMode
+          );
           const name = params.Name || 'Unknown';
           const result = params.Result || 'Unknown';
           const icon = result === 'PASSED' ? '✓' : '✗';
@@ -363,6 +411,26 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           const msgType = message.params?.type || '';
           const content = message.params?.content || '';
           const testCase = message.params?.testCase || {};
+          const promptTestName =
+            testCase.TestCaseName || currentTestName || '';
+          const executionMode = getExecutionMode(
+            testCase,
+            currentExecutionMode
+          );
+          if (
+            promptTestName &&
+            (promptTestName !== currentTestName ||
+              executionMode !== currentExecutionMode)
+          ) {
+            currentTestName = promptTestName;
+            currentExecutionMode = executionMode;
+            await runnerHost?.testCaseStarted(
+              currentTestName,
+              currentExecutionMode
+            );
+          } else {
+            currentExecutionMode = executionMode;
+          }
           const coloredContent = convertCttColorsToAnsi(content).trim();
 
           // Emit event for external listeners (e.g., discovery script)
@@ -457,7 +525,8 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                 const result = await runnerHost.promptForResponse(
                   userPrompt,
                   stripCttColors(content),
-                  testCase.TestCaseName || currentTestName || '',
+                  promptTestName,
+                  currentExecutionMode,
                   // "Skip" boxes are self-closing. CTT dismisses them once it
                   // observes the expected event.
                   { autoCloseable: msgType === 'Skip' }
@@ -499,6 +568,7 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
                   if (mapped) {
                     console.log(`[Auto] ${mapped}`);
                     responseData.result = mapped;
+                    dispatchToDut = result.dispatch;
                   } else {
                     // The handler produced something that isn't an offered
                     // button - we can't answer correctly, so abort the run
@@ -543,10 +613,26 @@ export function createWebSocketServer(options: WebSocketServerOptions): ManagedW
           responseData.result !== '' &&
           responseData.result !== 'null'
         ) {
-          await submitTestCaseMessageBoxResult(responseData.result);
+          try {
+            await submitTestCaseMessageBoxResult(responseData.result);
+            dispatchToDut?.();
+          } catch (error) {
+            console.error(
+              `[MsgBox] Failed to submit result "${responseData.result}" for prompt ${message.id}; aborting active test run:`,
+              error
+            );
+            try {
+              await abortTestRun('failed to submit prompt answer');
+            } catch (abortError) {
+              console.error(
+                '[MsgBox] Failed to abort test run after prompt submission error:',
+                abortError
+              );
+            }
+          }
         }
-      } catch {
-        // Ignore JSON parse errors
+      } catch (error) {
+        console.error('[WebSocket] Failed to process message:', error);
       }
     });
 

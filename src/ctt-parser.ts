@@ -8,11 +8,18 @@ import type {
   VerifyNotificationMessage,
   VerifySceneMessage,
   DUTCapabilityQueryMessage,
+  CheckDUTMetadataMessage,
   CCCapabilityQueryMessage,
   ActivateNetworkModeMessage,
   OpenUIMessage,
   WaitForInterviewMessage,
+  WaitForInclusionIdleMessage,
+  WaitForNodeRemovalMessage,
   CheckNetworkStatusMessage,
+  CheckCCVisibilityMessage,
+  CheckSecurityClassMessage,
+  CheckS2GrantRequestMessage,
+  CheckS2PinRequestMessage,
   StartStopLevelChangeMessage,
   CheckEndpointCapabilityMessage,
   TrySetConfigParameterMessage,
@@ -20,10 +27,14 @@ import type {
   TriggerReInterviewMessage,
   QueryUserCodesMessage,
   VerifyIndicatorIdentifyMessage,
+  ManageProvisioningMessage,
+  ReplaceFailedNodeMessage,
+  ProvisioningSecurityClass,
   OrchestratorState,
   DUTCapabilityId,
   DurationValue,
 } from "./ctt-message-types.ts";
+import type { CttExecutionMode } from "./runner-ipc.ts";
 
 // =============================================================================
 // Parse Result Types
@@ -34,10 +45,68 @@ export type LogParseResult =
   | { action: "modify_context"; stateUpdate: Partial<OrchestratorState> }
   | { action: "none" };
 
-export type PromptParseResult =
+export type PromptParseResult = (
   | { action: "send_to_dut"; message: DUTMessage; answer?: string }
+  | { action: "answer_then_dispatch"; answer: string; message: DUTMessage }
+  | { action: "wait_for_pending_dispatches"; answer: string }
   | { action: "auto_answer"; answer: string }
-  | { action: "none" };
+  | { action: "none" }
+) & { stateUpdate?: Partial<OrchestratorState> };
+
+export function nodeAddedStateUpdate(
+  state: OrchestratorState,
+  nodeId: number,
+  failedS2Bootstrapping: boolean
+): Partial<OrchestratorState> {
+  const context = state.readinessContext;
+  return {
+    lastAddedNodeId: nodeId,
+    readinessContext:
+      context?.operation === "NODE_REMOVAL"
+        ? context
+        : {
+            operation: "INCLUSION",
+            // A node that failed S2 bootstrapping has no interview to wait for
+            addedNodeId: failedS2Bootstrapping ? undefined : nodeId,
+          },
+  };
+}
+
+export function nodeRemovedStateUpdate(
+  state: OrchestratorState,
+  nodeId: number
+): Partial<OrchestratorState> {
+  const context = state.readinessContext;
+  let readinessContext = context;
+  if (context?.operation === "INCLUSION") {
+    // A node added and removed again during the same inclusion leaves nothing to interview
+    if (context.addedNodeId === nodeId) {
+      readinessContext = { operation: "INCLUSION" };
+    }
+  } else if (context?.operation !== "DUT_READY") {
+    readinessContext = { operation: "NODE_REMOVAL", removedNodeId: nodeId };
+  }
+  return { lastRemovedNodeId: nodeId, readinessContext };
+}
+
+// Only the branch that sends nothing has to clear readinessContext, because
+// dispatching a wait message already clears it
+function nodeRemovalWait(nodeId: number | undefined): PromptParseResult {
+  if (nodeId === undefined) {
+    return { action: "none", stateUpdate: { readinessContext: undefined } };
+  }
+  const message: WaitForNodeRemovalMessage = {
+    type: "WAIT_FOR_NODE_REMOVAL",
+    responseOptions: ["Ok"],
+    nodeId,
+  };
+  return { action: "send_to_dut", message };
+}
+
+export interface CttTestInstance {
+  testName: string;
+  executionMode: CttExecutionMode;
+}
 
 // =============================================================================
 // Log Parsing
@@ -45,7 +114,7 @@ export type PromptParseResult =
 
 export function parseLog(
   logText: string,
-  state: OrchestratorState
+  _state: OrchestratorState
 ): LogParseResult {
   // S2 PIN Code detection
   const pinMatch = /PIN( Code)?: (?<pin>\d{5})/i.exec(logText);
@@ -62,9 +131,29 @@ export function parseLog(
   if (
     /handles commands from a supporting node with S0 security level/i.test(
       logText
-    )
+    ) ||
+    /S0 bootstrapping, highest scheme:\s*S0/i.test(logText) ||
+    /--- Test \d+: S0 Bootstrapping ---/i.test(logText)
   ) {
     return { action: "modify_context", stateUpdate: { forceS0: true } };
+  }
+  if (/Wait until the DUT has finished interviewing/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { waitForInterviewPrompt: true },
+    };
+  }
+  if (/Please add .+DSK.+Node Provisioning List/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { provisioningAction: "ADD" },
+    };
+  }
+  if (/Please remove .+DSK.+Node Provisioning List/i.test(logText)) {
+    return {
+      action: "modify_context",
+      stateUpdate: { provisioningAction: "REMOVE" },
+    };
   }
 
   // Verify UI state detection (for later prompt answer)
@@ -390,6 +479,15 @@ function parseLogSendCommand(logText: string): SendCommandMessage | null {
     };
   }
 
+  if (/trigger a Binary Switch Set OR a Basic Set/i.test(logText)) {
+    return {
+      type: "SEND_COMMAND",
+      commandClass: "Binary Switch",
+      action: "SET",
+      targetValue: "any",
+    };
+  }
+
   // Multilevel Switch trigger any
   if (/trigger Multilevel Switch On or Off/i.test(logText)) {
     return {
@@ -668,26 +766,507 @@ function parseEndpoint(text: string): { endpoint?: number } {
   return match?.groups?.ep ? { endpoint: parseInt(match.groups.ep) } : {};
 }
 
+function parseProvisioningSecurityClass(
+  value: string
+): ProvisioningSecurityClass | undefined {
+  switch (value.toLowerCase()) {
+    case "s2_access":
+    case "s2_accesscontrol":
+      return "S2_AccessControl";
+    case "s2_authenticated":
+      return "S2_Authenticated";
+    case "s2_unauthenticated":
+      return "S2_Unauthenticated";
+  }
+}
+
 // =============================================================================
 // Prompt Parsing
 // =============================================================================
 
 export function parsePrompt(
   promptText: string,
-  state: OrchestratorState
+  state: OrchestratorState,
+  testInstance: CttTestInstance = {
+    testName: "",
+    executionMode: "Classic",
+  }
 ): PromptParseResult {
+  const { testName } = testInstance;
   // Orchestrator-only auto-answers
+  // CTT's blank Ok box still contains separator formatting
+  if (state.waitForInterviewPrompt && !/[a-z]/i.test(promptText)) {
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "WAIT_FOR_INTERVIEW",
+        responseOptions: ["Ok"],
+      },
+    };
+  }
   if (/Prepare the DUT to send any.+command/i.test(promptText)) {
     return { action: "auto_answer", answer: "Ok" };
   }
+  if (/https?:\/\/\S+[\s\S]*Open .+web browser/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Open" };
+  }
+  if (/Did the DUT pass the test\?/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /Does the '[^']+' shown on the 'Certification Data' page match the DUT\?/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
   if (/Include.+into the DUT network/i.test(promptText)) {
-    return { action: "auto_answer", answer: "Ok" };
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "INCLUSION" } },
+    };
+  }
+  if (
+    /\bReady for inclusion(?: of .+ by the DUT)?\?\s*$/i.test(promptText)
+  ) {
+    const message: WaitForInclusionIdleMessage = {
+      type: "WAIT_FOR_INCLUSION_IDLE",
+      responseOptions: ["Ok"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  // `Make sure the DUT has been reset` confirms the preceding prompt's factory reset in
+  // CDR_WhenNodeReset_Rev01, so acknowledge it without triggering a second reset
+  if (
+    /Make sure the DUT is SIS|Make sure the DUT has been reset before continuing/i.test(
+      promptText
+    )
+  ) {
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "DUT_READY" } },
+    };
+  }
+  if (/Ready for exclusion\?/i.test(promptText)) {
+    return {
+      action: "auto_answer",
+      answer: "Ok",
+      stateUpdate: { readinessContext: { operation: "NODE_REMOVAL" } },
+    };
+  }
+  if (
+    /wait for the DUT not sending (?:any commands|commands anymore)/i.test(
+      promptText
+    )
+  ) {
+    return {
+      action: "wait_for_pending_dispatches",
+      answer: "Ok",
+    };
+  }
+  if (
+    /Is it possible to set the SmartStart Inclusion setting to 'ignored\/disabled'\?\s*$/i.test(
+      promptText
+    )
+  ) {
+    const message: DUTCapabilityQueryMessage = {
+      type: "DUT_CAPABILITY_QUERY",
+      responseOptions: ["Yes", "No"],
+      capabilityId: "CONFIGURE_PROVISIONING_ENTRY_STATUS",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_WarningHighestKeyNotGranted") &&
+    /Does the DUT present a warning message informing the user that the\s*CTT Controller has NOT been included with the highest security\?/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_HIGHEST_SECURITY_WARNING",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_WarningHighestKeyNotGranted") &&
+    /Does the DUT present a warning message informing the user that the CTT Controller\s*has NOT been granted ANY security key\?/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "NO_SECURITY_WARNING",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_ConfirmForAuthenticated_Rev01") &&
+    /Did the DUT present a dialog with the requested security classes\?/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "REQUEST_OBSERVED",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_ConfirmForAuthenticated_Rev01") &&
+    /Did the DUT ask for confirmation before granting S2 Authenticated Class\?/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "REQUESTED_S2_AUTHENTICATED",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    testName.includes("S2_SISMustHaveS2ClassInputAndDisplay_Rev01") &&
+    /Did the DUT present a dialog for entering the PIN portion.+DSK.+show the rest/is.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2PinRequestMessage = {
+      type: "CHECK_S2_PIN_REQUEST",
+      responseOptions: ["Yes", "No"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /(?:Did the DUT prompt the user for a PIN code\?|Did the PIN input dialog pop up automatically in the DUT UI\s+during S2 bootstrapping of the joining S2 Node\?)\s*$/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2PinRequestMessage = {
+      type: "CHECK_S2_PIN_REQUEST",
+      responseOptions: ["Yes", "No"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    (testName.includes("S2_GrantedS2Classes_Rev01") ||
+      testName.includes("S2_SISMustSupportAnyS2ClassCombination_Rev01")) &&
+    /Have all keys been pre-selected\?|Have all Security Classes been preselected automatically/i.test(
+      promptText
+    )
+  ) {
+    const message: CheckS2GrantRequestMessage = {
+      type: "CHECK_S2_GRANT_REQUEST",
+      responseOptions: ["Yes", "No"],
+      check: "ALL_REQUESTED_GRANTED",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Are the following command classes also listed as securely supported in the documentation/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /= S2 Commands Supported Report =.+COMMAND_CLASS_ASSOCIATION/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (/Has the End Device \d+ been placed in a special section/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (
+    /Reset (?:the )?DUT(?:!| and)|perform a factory reset as stated|Please reset the DUT/i.test(
+      promptText
+    )
+  ) {
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "FACTORY_RESET",
+        responseOptions: ["Ok"],
+      },
+      stateUpdate: { readinessContext: { operation: "DUT_READY" } },
+    };
+  }
+  if (
+    /Does the NIF of the DUT contain any Command Classes that are controlled but NOT supported/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (/\bIs this correct\?\s*$/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  if (
+    /Do the Chip Vendor.+Chipset Generation.+Z-Wave Chip.+match the DUT each/i.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
+  }
+  const manufacturerMetadataMatch =
+    /Does (?<property>Manufacturer ID|Product Type ID|Product ID)\s*=\s*(?<expected>[0-9a-f]{2}\s+[0-9a-f]{2}) match the actual device/i.exec(
+      promptText
+    );
+  if (manufacturerMetadataMatch?.groups) {
+    const property = {
+      "Manufacturer ID": "MANUFACTURER_ID",
+      "Product Type ID": "PRODUCT_TYPE_ID",
+      "Product ID": "PRODUCT_ID",
+    }[manufacturerMetadataMatch.groups.property!] as
+      | "MANUFACTURER_ID"
+      | "PRODUCT_TYPE_ID"
+      | "PRODUCT_ID";
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property,
+      expected: Number.parseInt(
+        manufacturerMetadataMatch.groups.expected!.replace(/\s/g, ""),
+        16
+      ),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const hardwareVersionMatch =
+    /Does Hardware Version\s*=\s*(?<expected>0x[0-9a-f]+).+match the actual device/i.exec(
+      promptText
+    );
+  if (hardwareVersionMatch?.groups) {
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property: "HARDWARE_VERSION",
+      expected: Number.parseInt(hardwareVersionMatch.groups.expected!, 16),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const firmwareVersionMatch =
+    /Does Firmware (?<firmwareIndex>\d+) (?<component>Version|Sub-?Version)\s*=\s*(?<expected>0x[0-9a-f]+).+match the actual device/i.exec(
+      promptText
+    );
+  if (firmwareVersionMatch?.groups) {
+    const message: CheckDUTMetadataMessage = {
+      type: "CHECK_DUT_METADATA",
+      responseOptions: ["Yes", "No"],
+      property: "FIRMWARE_VERSION",
+      firmwareIndex: Number.parseInt(
+        firmwareVersionMatch.groups.firmwareIndex!,
+        10
+      ),
+      component: firmwareVersionMatch.groups.component!
+        .toLowerCase()
+        .startsWith("sub")
+        ? "SUB_VERSION"
+        : "VERSION",
+      expected: Number.parseInt(firmwareVersionMatch.groups.expected!, 16),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/issue new bursts within less than 30 seconds/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (/observe the dut.+does (?:it|the dut).+\?/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Yes" };
   }
   if (promptText.toLowerCase().includes("observe the dut")) {
     return { action: "auto_answer", answer: "Ok" };
   }
   if (/Retry\?/i.test(promptText)) {
     return { action: "auto_answer", answer: "No" };
+  }
+  if (/pause on requests that were answered incorrectly/i.test(promptText)) {
+    return { action: "auto_answer", answer: "No" };
+  }
+  if (/Click 'OK' to start the Command Class response tests/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Ok" };
+  }
+  // Acknowledging this prompt starts the full 65-minute SSR_PendingNodeProvisioningListEntry_Rev02 sequence
+  if (/This test takes at least 65 minutes/i.test(promptText)) {
+    return { action: "auto_answer", answer: "Ok" };
+  }
+  const longRangeProvisioningEntry =
+    /configure the Bootstrapping Mode TLV to 'Z-Wave Long Range\s+SmartStart inclusion'.+DSK:\s*(?<dsk>(?:\d{5}-){7}\d{5})/is.exec(
+      promptText
+    );
+  if (longRangeProvisioningEntry?.groups) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "ADD",
+      protocol: "LONG_RANGE",
+      dsk: longRangeProvisioningEntry.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const addProvisioningEntry =
+    /add (?:the following|this(?: modified)?) DSK to the DUT's Node Provisioning List:\s*(?<dsk>(?:\d{5}-){7}\d{5})/i.exec(
+      promptText
+    );
+  if (addProvisioningEntry?.groups) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "ADD",
+      dsk: addProvisioningEntry.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const pendingEntryDsk =
+    /(?<dsk>(?:\d{5}-){7}\d{5})/.exec(promptText);
+  if (
+    testName.includes("SSR_PendingNodeProvisioningListEntry") &&
+    pendingEntryDsk?.groups &&
+    state.provisioningAction
+  ) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: state.provisioningAction,
+      dsk: pendingEntryDsk.groups.dsk!,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const advancedJoiningKeys =
+    /Advanced Joining: Please select (?<key>S2_[A-Za-z]+) and deselect all other security keys/i.exec(
+      promptText
+    );
+  if (advancedJoiningKeys?.groups) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const securityClass = parseProvisioningSecurityClass(
+      advancedJoiningKeys.groups.key!
+    );
+    if (securityClass) {
+      const message: ManageProvisioningMessage = {
+        type: "MANAGE_PROVISIONING",
+        responseOptions: ["Ok"],
+        action: "SET_KEYS",
+        dsk: state.lastAddedProvisioningDsk,
+        securityClasses: [securityClass],
+      };
+      return { action: "send_to_dut", message };
+    }
+  }
+  if (/set the SmartStart Inclusion setting to 'ignored\/disabled'/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "SET_STATUS",
+      dsk: state.lastAddedProvisioningDsk,
+      status: "INACTIVE",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/entry shown as to be ignored when requesting SmartStart inclusion/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_INACTIVE",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Has the entry been added to the Node Provisioning List/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_EXISTS",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the node reported as not included \(pending\)/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_PENDING",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the node reported as included/i.test(promptText)) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_INCLUDED",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Has the entry been removed from the Node Provisioning List|Is the entry removed from the DUT's Node Provisioning List/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastRemovedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Yes", "No"],
+      action: "CHECK_ABSENT",
+      dsk: state.lastRemovedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /remove (?:the DSK of the CTT End Device|this DSK|the entry|this entry) from the DUT's Node Provisioning List|remove the .+ from the Node Provisioning List and click 'OK'/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedProvisioningDsk === undefined) {
+      return { action: "none" };
+    }
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "REMOVE",
+      dsk: state.lastAddedProvisioningDsk,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/remove both entries from the Node Provisioning List/i.test(promptText)) {
+    const message: ManageProvisioningMessage = {
+      type: "MANAGE_PROVISIONING",
+      responseOptions: ["Ok"],
+      action: "REMOVE_ALL",
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /inform the user that the Switch On\/Off will stay in the network until manually excluded or reset to default/is.test(
+      promptText
+    )
+  ) {
+    return { action: "auto_answer", answer: "Yes" };
   }
   // Configuration CC - parameter numbers requirement (always yes)
   if (
@@ -703,23 +1282,82 @@ export function parsePrompt(
   }
 
   // Send any S2 command (orchestrator clicks OK, then sends message to DUT)
-  if (/Click 'OK' and send any S2/i.test(promptText)) {
+  if (
+    /Click 'OK' and (?:send any S2|use the DUT's UI to send any secure command)/i.test(
+      promptText
+    )
+  ) {
     const message: SendCommandMessage = {
       type: "SEND_COMMAND",
       commandClass: "any",
       action: "any",
       encapsulation: ["S2"],
     };
-    return { action: "send_to_dut", message, answer: "Ok" };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
+  }
+  const sendAnyToNode =
+    /send any command to CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (sendAnyToNode?.groups) {
+    const nodeId = parseInt(sendAnyToNode.groups.nodeId!);
+    const message: SendCommandMessage = {
+      type: "SEND_COMMAND",
+      commandClass: "any",
+      action: "any",
+      nodeId,
+    };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+      stateUpdate: { failedNodeTargetId: nodeId },
+    };
+  }
+  const sendBasicToNode =
+    /send a Basic Set command (?:to CTT End Device \(Node ID = |from the DUT to Node ID )(?<nodeId>\d+)\)?/i.exec(
+      promptText
+    );
+  if (sendBasicToNode?.groups) {
+    const message: SendCommandMessage = {
+      type: "SEND_COMMAND",
+      commandClass: "Basic",
+      action: "SET",
+      targetValue: "any",
+      nodeId: parseInt(sendBasicToNode.groups.nodeId!),
+    };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
   }
 
   // ACTIVATE_NETWORK_MODE
-  if (promptText.toLowerCase().includes("activate the add mode")) {
+  if (/activate the add mode|set (?:the )?dut into add mode/i.test(promptText)) {
     const message: ActivateNetworkModeMessage = {
       type: "ACTIVATE_NETWORK_MODE",
       responseOptions: ["Ok"],
       mode: "ADD",
       forceS0: state.forceS0,
+      grantNoSecurityClasses:
+        /DESELECT ALL SECURITY KEYS|do not accept any key/i.test(promptText),
+    };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { readinessContext: { operation: "INCLUSION" } },
+    };
+  }
+  if (/stop add mode on dut/i.test(promptText)) {
+    const message: ActivateNetworkModeMessage = {
+      type: "ACTIVATE_NETWORK_MODE",
+      responseOptions: ["Ok"],
+      mode: "STOP_ADD",
     };
     return { action: "send_to_dut", message };
   }
@@ -729,16 +1367,58 @@ export function parsePrompt(
       responseOptions: ["Ok"],
       mode: "REMOVE",
     };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { readinessContext: { operation: "NODE_REMOVAL" } },
+    };
+  }
+
+  if (
+    /wait for the DUT to finish or abort the Inclusion process|wait until the Inclusion process has finished or abort it on DUT side|wait until the DUT is ready \(after having aborted S2 bootstrapping\)|wait until the DUT is ready to start inclusion/i.test(
+      promptText
+    )
+  ) {
+    const message: WaitForInclusionIdleMessage = {
+      type: "WAIT_FOR_INCLUSION_IDLE",
+      responseOptions: ["Ok"],
+    };
+    return { action: "send_to_dut", message };
+  }
+
+  if (/Exclusion process has been finished/i.test(promptText)) {
+    const context = state.readinessContext;
+    return nodeRemovalWait(
+      context?.operation === "NODE_REMOVAL" ? context.removedNodeId : undefined
+    );
+  }
+
+  if (
+    /(?:abort interview or )?(?:please )?wait until (?:the )?DUT is ready(?:!| and click 'OK'\.)\s*$/i.test(
+      promptText
+    )
+  ) {
+    const context = state.readinessContext;
+    if (context?.operation === "NODE_REMOVAL") {
+      return nodeRemovalWait(context.removedNodeId);
+    }
+    // A node that survived the inclusion still has to finish its interview
+    // Anything else only has to reach an idle controller
+    const message: WaitForInterviewMessage | WaitForInclusionIdleMessage =
+      context?.operation === "INCLUSION" && context.addedNodeId !== undefined
+        ? { type: "WAIT_FOR_INTERVIEW", responseOptions: ["Ok"] }
+        : { type: "WAIT_FOR_INCLUSION_IDLE", responseOptions: ["Ok"] };
     return { action: "send_to_dut", message };
   }
 
   // WAIT_FOR_INTERVIEW
   if (
     /wait for (the )?(node )?interview to (be )?finish/i.test(promptText) ||
-    /inclusion (process )?(has )?finish(ed)?/i.test(promptText) ||
-    /inclusion.+finished.+click(ing)?.+OK/i.test(promptText) ||
-    /Inclusion and interview passed/i.test(promptText) ||
-    /wait.+dut is ready/i.test(promptText)
+    /wait until (?:the )?Inclusion process is done/i.test(promptText) ||
+    /inclusion (?:process )?(?:has )?finished/i.test(promptText) ||
+    /inclusion.+finished.+click(?:ing)?.+OK/i.test(promptText) ||
+    /inclusion and interview process has been finished/i.test(promptText) ||
+    /Inclusion and interview passed/i.test(promptText)
   ) {
     // Also check for embedded UI context (e.g., "visit the Basic Command Class visualisation")
     const uiMatch =
@@ -757,7 +1437,6 @@ export function parsePrompt(
     };
     return { action: "send_to_dut", message };
   }
-
   // OPEN_UI
   const visitMatch =
     /visit the (?<cc>[\w\s]+) Command Class visuali[sz]ation for node (?<nodeId>\d+)/i.exec(
@@ -816,10 +1495,253 @@ export function parsePrompt(
     const message: CheckNetworkStatusMessage = {
       type: "CHECK_NETWORK_STATUS",
       responseOptions: ["Yes", "No"],
-      check: "REMOVED_FROM_LIST",
+      check: "NOT_INCLUDED",
       nodeId: parseInt(removedMatch.groups.nodeId!),
     };
     return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT End Device removed from the DUT's device list/i.test(promptText)) {
+    if (state.failedNodeTargetId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: state.failedNodeTargetId,
+    };
+    return {
+      action: "send_to_dut",
+      message,
+      stateUpdate: { failedNodeTargetId: undefined },
+    };
+  }
+  const s0NodeRemoved =
+    /Has the S0 Node \(Node ID = (?<nodeId>\d+)\) been removed from DUT’s device list/i.exec(
+      promptText
+    );
+  if (s0NodeRemoved?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: parseInt(s0NodeRemoved.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const s2NodeRemoved =
+    /Has the S2 Node \(Node ID = (?<nodeId>\d+)\) been removed from DUT’s device list/i.exec(
+      promptText
+    );
+  if (s2NodeRemoved?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: parseInt(s2NodeRemoved.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const includedMatch =
+    /Has the End Device (?<nodeId>\d+) been included.+NO request to start an exclusion/i.exec(
+      promptText
+    );
+  if (includedMatch?.groups) {
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "INCLUDED",
+      nodeId: parseInt(includedMatch.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Is (?:the )?CTT Controller (?:shown as )?(?:non-securely included|included non-securely)/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT Controller listed as a non-secure device/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/intended to include the S0 Node non-securely only/i.test(promptText)) {
+    const message: DUTCapabilityQueryMessage = {
+      type: "DUT_CAPABILITY_QUERY",
+      responseOptions: ["Yes", "No"],
+      capabilityId:
+        "INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER",
+    };
+    return { action: "send_to_dut", message };
+  }
+  const s2NodeShown =
+    /Is the S2 Node \(Node ID = (?<nodeId>\d+)\) shown.+as added with S2 security/is.exec(
+      promptText
+    );
+  if (s2NodeShown?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S2",
+      nodeId: parseInt(s2NodeShown.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  const insecureS2NodeShown =
+    /Is the S2 Node \(Node ID = (?<nodeId>\d+)\) shown.+as non-securely added/is.exec(
+      promptText
+    );
+  if (insecureS2NodeShown?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: parseInt(insecureS2NodeShown.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/DUT UI shows the included device as 'non-secure'/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /listed as a device with S2_AUTHENTICATED as highest granted security scheme/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S2_AUTHENTICATED",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  const shownNonSecure =
+    /S0 Node \(Node ID = (?<nodeId>\d+)\).+non-securely added/i.exec(
+      promptText
+    );
+  if (shownNonSecure?.groups) {
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "INSECURE",
+      nodeId: parseInt(shownNonSecure.groups.nodeId!),
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT End Device shown as failed device/i.test(promptText)) {
+    if (state.failedNodeTargetId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "FAILED",
+      nodeId: state.failedNodeTargetId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (/Is the CTT End Device shown in the DUT's device list/i.test(promptText)) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "INCLUDED",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /Has the CTT End Device been removed from the DUT's device list/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastRemovedNodeId === undefined) return { action: "none" };
+    const message: CheckNetworkStatusMessage = {
+      type: "CHECK_NETWORK_STATUS",
+      responseOptions: ["Yes", "No"],
+      check: "NOT_INCLUDED",
+      nodeId: state.lastRemovedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /joining node has been granted the S0 key only|joining node has been included with S0 security|listed as an S0 device/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckSecurityClassMessage = {
+      type: "CHECK_SECURITY_CLASS",
+      responseOptions: ["Yes", "No"],
+      securityClass: "S0",
+      nodeId: state.lastAddedNodeId,
+    };
+    return { action: "send_to_dut", message };
+  }
+  if (
+    /The DUT is allowed to show that the CTT Controller supports e\.g\. Notification CC \(e\.g\. Heat Alarm\)\.\s*But does the DUT show any hints or control elements considering that the CTT Controller supports\s*- Battery CC \(e\.g\. battery level\) or\s*- Switch Binary CC \(e\.g\. on\/off\) or\s*- Sensor Multilevel CC \(e\.g\. air temperature\)\?\s*$/i.test(
+      promptText
+    )
+  ) {
+    if (state.lastAddedNodeId === undefined) return { action: "none" };
+    const message: CheckCCVisibilityMessage = {
+      type: "CHECK_CC_VISIBILITY",
+      responseOptions: ["Yes", "No"],
+      nodeId: state.lastAddedNodeId,
+      commandClasses: ["Battery", "Binary Switch", "Multilevel Sensor"],
+    };
+    return { action: "send_to_dut", message };
+  }
+  const removeFailedNode =
+    /remove the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (removeFailedNode?.groups) {
+    const nodeId = parseInt(removeFailedNode.groups.nodeId!);
+    return {
+      action: "send_to_dut",
+      message: {
+        type: "REMOVE_FAILED_NODE",
+        responseOptions: ["Ok"],
+        nodeId,
+      },
+      stateUpdate: { failedNodeTargetId: nodeId },
+    };
+  }
+  const replaceFailedNode =
+    /use the DUT's UI to replace the failed CTT End Device \(Node ID = (?<nodeId>\d+)\)/i.exec(
+      promptText
+    );
+  if (replaceFailedNode?.groups) {
+    const message: ReplaceFailedNodeMessage = {
+      type: "REPLACE_FAILED_NODE",
+      responseOptions: ["Ok"],
+      nodeId: parseInt(replaceFailedNode.groups.nodeId!),
+    };
+    return {
+      action: "answer_then_dispatch",
+      answer: "Ok",
+      message,
+    };
   }
 
   // VERIFY_STATE patterns
@@ -1259,7 +2181,15 @@ function parseDUTCapabilityQuery(
     [/Is the Learn Mode accessible/i, "LEARN_MODE_ACCESSIBLE"],
     [/can be reset to factory settings/i, "FACTORY_RESET"],
     [/offering a possibility to remove the failed/i, "REMOVE_FAILED_NODE"],
+    [
+      /Does the DUT support the 'Replace Failed Node' function/i,
+      "REPLACE_FAILED_NODE",
+    ],
     [/icon type.+match the actual device/i, "ICON_TYPE_MATCH"],
+    [
+      /Are the reported Icon Types \(Installer: 0x[0-9a-f]{4} - User: 0x[0-9a-f]{4}\) valid\?/i,
+      "ICON_TYPE_MATCH",
+    ],
     [
       /Does the DUT use the identify command for any other purpose/i,
       "IDENTIFY_OTHER_PURPOSE",
@@ -1274,6 +2204,30 @@ function parseDUTCapabilityQuery(
       "ALL_DOCUMENTED_AS_CONTROLLED",
     ],
     [/Is the DUT mains-powered/i, "MAINS_POWERED"],
+    [
+      /Is it possible to actively deselect the S2_ACCESS key in the DUT UI/i,
+      "SELECT_GRANTED_SECURITY_CLASSES",
+    ],
+    [
+      /(?:Is it possible to deny or \(de-\)select what keys the DUT will grant to a non-Access node during S2 bootstrapping|Is the DUT able to confirm \(or adjust\) the requested keys before granting them to a joining node)\?\s*$/i,
+      "SELECT_GRANTED_SECURITY_CLASSES",
+    ],
+    [
+      /Is the Advanced Joining setting(?:\s*\(selecting which keys shall be granted\))?\s+available for provisioning list entries\?\s*$/i,
+      "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES",
+    ],
+    [
+      /Is the Bootstrapping Mode setting \(Security 2 or SmartStart\) available for provisioning list entries\?\s*$/i,
+      "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE",
+    ],
+    [
+      /Is the DUT able to manage the full SPAN table\?/i,
+      "MANAGE_FULL_SPAN_TABLE",
+    ],
+    [
+      /Does the DUT have a special password-protected menu,\s+dedicated to allow S0 bootstrapping as SIS\s+when an S0 Node is included by a non-secure Inclusion Controller, \(hereafter 'special menu'\)\?(?:\s+If yes, do NOT access that special menu!)?\s*$/i,
+      "HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU",
+    ],
   ];
 
   for (const [pattern, capabilityId] of patterns) {

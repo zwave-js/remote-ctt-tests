@@ -4,6 +4,7 @@ import {
   Duration,
   MultilevelSwitchCCValues,
   SubsystemType,
+  type ZWaveNode,
 } from "zwave-js";
 import { registerHandler } from "../../prompt-handlers.ts";
 import type {
@@ -11,7 +12,6 @@ import type {
   DurationValue,
 } from "../../../../src/ctt-message-types.ts";
 
-// Helper to convert DurationValue to zwave-js Duration
 function toDuration(duration: DurationValue): Duration {
   if (duration === "default") {
     return Duration.default();
@@ -19,13 +19,16 @@ function toDuration(duration: DurationValue): Duration {
   return new Duration(duration.value, duration.unit);
 }
 
-// Handler for SEND_COMMAND messages (from logs - fire and forget)
 registerHandler(/.*/, {
   onLog: async (ctx) => {
     if (ctx.message?.type !== "SEND_COMMAND") return;
 
     const msg = ctx.message as SendCommandMessage;
-    const node = ctx.includedNodes.at(-1);
+    let node: ZWaveNode | undefined;
+    if (msg.nodeId !== undefined) {
+      node = ctx.driver.controller.nodes.get(msg.nodeId);
+    }
+    node ??= ctx.includedNodes.at(-1);
     if (!node) return;
 
     const endpoint = msg.endpoint ?? 0;
@@ -38,7 +41,10 @@ registerHandler(/.*/, {
             msg.targetValue === "any"
               ? Math.round(Math.random() * 99)
               : msg.targetValue;
-          node.setValue(BasicCCValues.targetValue.endpoint(endpoint), targetValue);
+          await node.setValue(
+            BasicCCValues.targetValue.endpoint(endpoint),
+            targetValue
+          );
           return true;
         }
         break;
@@ -48,7 +54,6 @@ registerHandler(/.*/, {
         if (msg.action === "SET") {
           const targetValue =
             msg.targetValue === "any" ? Math.random() > 0.5 : msg.targetValue;
-          ep?.commandClasses["Binary Switch"].set(targetValue);
           node.setValue(
             BinarySwitchCCValues.targetValue.endpoint(endpoint),
             targetValue
@@ -107,33 +112,26 @@ registerHandler(/.*/, {
       }
 
       case "any": {
-        // "Send any S2 command" - just send a Basic SET with random value
         if (msg.action === "any") {
-          node.commandClasses.Basic.set(Math.round(Math.random() * 99));
+          try {
+            await node.commandClasses.Basic.set(
+              Math.round(Math.random() * 99)
+            );
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (msg.nodeId !== undefined) {
+              console.log(
+                `Command to test node ${msg.nodeId} failed as expected: ${message}`
+              );
+            } else {
+              console.error("Failed to send requested Basic command:", message);
+            }
+          }
           return true;
         }
         break;
       }
-    }
-
-    // Let other command types fall through
-    return undefined;
-  },
-
-  // Also handle SEND_COMMAND messages from prompts (some require response after sending)
-  onPrompt: async (ctx) => {
-    if (ctx.message?.type !== "SEND_COMMAND") return;
-
-    const msg = ctx.message as SendCommandMessage;
-    const node = ctx.includedNodes.at(-1);
-    if (!node) return;
-
-    // For "any" commands (like "send any S2 command"), send and respond Ok
-    if (msg.commandClass === "any" && msg.action === "any") {
-      setTimeout(() => {
-        node.commandClasses.Basic.set(Math.round(Math.random() * 99));
-      }, 100);
-      return "Ok";
     }
 
     return undefined;

@@ -249,6 +249,7 @@ npm run start -- [options]
 | `--category=<c1>,<c2>` | Run tests from multiple categories |
 | `--group=<grp>` | Run tests in a group (`Automatic` or `Interactive`) |
 | `--group=<g1>,<g2>` | Run tests from multiple groups |
+| `--mode=<Classic\|LR>` | Run tests in one Z-Wave execution mode |
 | `--exclude=<name>` | Exclude tests matching name |
 | `--dut=<path>` | Path to DUT runner (defaults to `config.json` runner path) |
 | `--devices-only` | Only start emulated Z-Wave devices, without CTT or the DUT runner |
@@ -268,6 +269,9 @@ npm run start -- --discover
 
 # Run a single test
 npm run start -- --test=CC_Binary_Switch_Set
+
+# Run one Long Range test instance
+npm run start -- --test=CSR_LifelineMandatoryReports_Rev03 --mode=LR
 
 # Run multiple specific tests
 npm run start -- --test=CC_Binary_Switch_Set,CC_Binary_Switch_Get

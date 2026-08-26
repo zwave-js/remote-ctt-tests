@@ -19,6 +19,7 @@ export interface DUTMessageBase {
 interface SendCommandBase {
   type: "SEND_COMMAND";
   // responseOptions: undefined - fire and forget
+  nodeId?: number;
   endpoint?: number;
   encapsulation?: ("S0" | "S2")[];
 }
@@ -367,18 +368,46 @@ export type DUTCapabilityId =
   | "LEARN_MODE_ACCESSIBLE"
   | "FACTORY_RESET"
   | "REMOVE_FAILED_NODE"
+  | "REPLACE_FAILED_NODE"
   | "ICON_TYPE_MATCH"
   | "IDENTIFY_OTHER_PURPOSE"
   | "PARTIAL_CONTROL_DOCUMENTED"
   | "CONTROLS_UNLISTED_CCS"
   | "ALL_DOCUMENTED_AS_CONTROLLED"
-  | "MAINS_POWERED";
+  | "MAINS_POWERED"
+  | "MANAGE_FULL_SPAN_TABLE"
+  | "SELECT_GRANTED_SECURITY_CLASSES"
+  | "CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES"
+  | "CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE"
+  | "CONFIGURE_PROVISIONING_ENTRY_STATUS"
+  | "HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU"
+  | "INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER";
 
 export interface DUTCapabilityQueryMessage {
   type: "DUT_CAPABILITY_QUERY";
   responseOptions: ["Yes", "No"];
   capabilityId: DUTCapabilityId;
 }
+
+export type CheckDUTMetadataMessage =
+  | {
+      type: "CHECK_DUT_METADATA";
+      responseOptions: ["Yes", "No"];
+      property:
+        | "MANUFACTURER_ID"
+        | "PRODUCT_TYPE_ID"
+        | "PRODUCT_ID"
+        | "HARDWARE_VERSION";
+      expected: number;
+    }
+  | {
+      type: "CHECK_DUT_METADATA";
+      responseOptions: ["Yes", "No"];
+      property: "FIRMWARE_VERSION";
+      firmwareIndex: number;
+      component: "VERSION" | "SUB_VERSION";
+      expected: number;
+    };
 
 // =============================================================================
 // CC_CAPABILITY_QUERY - Answer about CC-specific DUT capabilities
@@ -493,8 +522,9 @@ export type CCCapabilityQueryMessage = CCCapabilityQueryBase &
 export interface ActivateNetworkModeMessage {
   type: "ACTIVATE_NETWORK_MODE";
   responseOptions: ["Ok"];
-  mode: "ADD" | "REMOVE" | "LEARN";
+  mode: "ADD" | "REMOVE" | "LEARN" | "STOP_ADD";
   forceS0?: boolean;
+  grantNoSecurityClasses?: boolean;
 }
 
 // =============================================================================
@@ -521,6 +551,19 @@ export interface WaitForInterviewMessage {
   };
 }
 
+// This also succeeds when inclusion aborts before the interview completes
+// WaitForInterviewMessage requires a successfully completed interview
+export interface WaitForInclusionIdleMessage {
+  type: "WAIT_FOR_INCLUSION_IDLE";
+  responseOptions: ["Ok"];
+}
+
+export interface WaitForNodeRemovalMessage {
+  type: "WAIT_FOR_NODE_REMOVAL";
+  responseOptions: ["Ok"];
+  nodeId: number;
+}
+
 // =============================================================================
 // CHECK_NETWORK_STATUS - Check node status
 // =============================================================================
@@ -528,7 +571,86 @@ export interface WaitForInterviewMessage {
 export interface CheckNetworkStatusMessage {
   type: "CHECK_NETWORK_STATUS";
   responseOptions: ["Yes", "No"];
-  check: "RESET_AND_LEFT" | "REMOVED_FROM_LIST";
+  check:
+    // The node reset itself and left the network
+    | "RESET_AND_LEFT"
+    // The controller lists the specified node
+    | "INCLUDED"
+    // The controller does not list the specified node
+    | "NOT_INCLUDED"
+    // The controller marks the specified node as dead
+    | "FAILED";
+  nodeId: number;
+}
+
+export type CCVisibilityCommandClass =
+  | "Battery"
+  | "Binary Switch"
+  | "Multilevel Sensor";
+
+export interface CheckCCVisibilityMessage {
+  type: "CHECK_CC_VISIBILITY";
+  responseOptions: ["Yes", "No"];
+  nodeId: number;
+  commandClasses: CCVisibilityCommandClass[];
+}
+
+export type SecurityClassCheck =
+  // The node is included without security
+  | "INSECURE"
+  // The node uses S0
+  | "S0"
+  // The node uses any S2 security class
+  | "S2"
+  // The node uses S2 Unauthenticated
+  | "S2_UNAUTHENTICATED"
+  // The node uses S2 Authenticated
+  | "S2_AUTHENTICATED"
+  // The node uses S2 Access Control
+  | "S2_ACCESS_CONTROL";
+
+export interface CheckSecurityClassMessage {
+  type: "CHECK_SECURITY_CLASS";
+  responseOptions: ["Yes", "No"];
+  nodeId: number;
+  securityClass: SecurityClassCheck;
+}
+
+export interface CheckS2GrantRequestMessage {
+  type: "CHECK_S2_GRANT_REQUEST";
+  responseOptions: ["Yes", "No"];
+  check:
+    // The application received the requested security classes
+    | "REQUEST_OBSERVED"
+    // The joining node requested S2 Authenticated
+    | "REQUESTED_S2_AUTHENTICATED"
+    // The application granted every requested class
+    | "ALL_REQUESTED_GRANTED"
+    // The application warned that it did not grant the highest requested class
+    | "NOT_HIGHEST_SECURITY_WARNING"
+    // The application warned that it granted no security class at all
+    | "NO_SECURITY_WARNING";
+}
+
+export interface CheckS2PinRequestMessage {
+  type: "CHECK_S2_PIN_REQUEST";
+  responseOptions: ["Yes", "No"];
+}
+
+export interface FactoryResetMessage {
+  type: "FACTORY_RESET";
+  responseOptions: ["Ok"];
+}
+
+export interface RemoveFailedNodeMessage {
+  type: "REMOVE_FAILED_NODE";
+  responseOptions: ["Ok"];
+  nodeId: number;
+}
+
+export interface ReplaceFailedNodeMessage {
+  type: "REPLACE_FAILED_NODE";
+  responseOptions: ["Ok"];
   nodeId: number;
 }
 
@@ -626,6 +748,54 @@ export interface VerifyIndicatorIdentifyMessage {
 }
 
 // =============================================================================
+// MANAGE_PROVISIONING - Add or remove a SmartStart provisioning entry
+// =============================================================================
+
+interface ManageProvisioningMessageBase {
+  type: "MANAGE_PROVISIONING";
+}
+
+export type ProvisioningSecurityClass =
+  | "S2_AccessControl"
+  | "S2_Authenticated"
+  | "S2_Unauthenticated";
+
+export type ManageProvisioningMessage = ManageProvisioningMessageBase &
+  (
+    | {
+        action: "ADD";
+        dsk: string;
+        protocol?: "ZWAVE" | "LONG_RANGE";
+        responseOptions: ["Ok"];
+      }
+    | { action: "REMOVE"; dsk: string; responseOptions: ["Ok"] }
+    | { action: "REMOVE_ALL"; responseOptions: ["Ok"] }
+    | {
+        action: "SET_KEYS";
+        dsk: string;
+        securityClasses: ProvisioningSecurityClass[];
+        responseOptions: ["Ok"];
+      }
+    | {
+        action: "SET_STATUS";
+        dsk: string;
+        status: "ACTIVE" | "INACTIVE";
+        responseOptions: ["Ok"];
+      }
+    | {
+        action:
+          | "CHECK_EXISTS"
+          | "CHECK_ABSENT"
+          | "CHECK_PENDING"
+          | "CHECK_INCLUDED"
+          | "CHECK_ACTIVE"
+          | "CHECK_INACTIVE";
+        dsk: string;
+        responseOptions: ["Yes", "No"];
+      }
+  );
+
+// =============================================================================
 // Union of all DUT message types
 // =============================================================================
 
@@ -636,28 +806,55 @@ export type DUTMessage =
   | VerifyNotificationMessage
   | VerifySceneMessage
   | DUTCapabilityQueryMessage
+  | CheckDUTMetadataMessage
   | CCCapabilityQueryMessage
   | ActivateNetworkModeMessage
   | OpenUIMessage
   | WaitForInterviewMessage
+  | WaitForInclusionIdleMessage
+  | WaitForNodeRemovalMessage
   | CheckNetworkStatusMessage
+  | CheckCCVisibilityMessage
+  | CheckSecurityClassMessage
+  | CheckS2GrantRequestMessage
+  | CheckS2PinRequestMessage
+  | FactoryResetMessage
+  | RemoveFailedNodeMessage
+  | ReplaceFailedNodeMessage
   | StartStopLevelChangeMessage
   | CheckEndpointCapabilityMessage
   | TrySetConfigParameterMessage
   | ShouldDisregardRecommendationMessage
   | TriggerReInterviewMessage
   | QueryUserCodesMessage
-  | VerifyIndicatorIdentifyMessage;
+  | VerifyIndicatorIdentifyMessage
+  | ManageProvisioningMessage;
 
 // =============================================================================
 // Orchestrator-only state (not sent to DUT)
 // =============================================================================
 
 export interface OrchestratorState {
+  lastAddedNodeId?: number;
+  lastRemovedNodeId?: number;
+  failedNodeTargetId?: number;
+  lastAddedProvisioningDsk?: string;
+  lastRemovedProvisioningDsk?: string;
   forceS0?: boolean;
+  // The preceding log line defines how to handle the next DSK-only box
+  provisioningAction?: "ADD" | "REMOVE";
+  // The preceding log line identifies the next blank Ok box as an interview wait
+  waitForInterviewPrompt?: boolean;
   verifyUIContext?: {
     commandClass: string;
     nodeId: number;
   };
   recommendationContext?: string;
+  // CTT asks the same vague `Wait until the DUT is ready` question after inclusion, removal, reset, setup, and an expected abort
+  // The question does not say whether to wait for inclusion, removal, or restart/setup completion
+  // The parser remembers the preceding DUT action, plus the node change that happened during it
+  readinessContext?:
+    | { operation: "INCLUSION"; addedNodeId?: number }
+    | { operation: "NODE_REMOVAL"; removedNodeId?: number }
+    | { operation: "DUT_READY" };
 }

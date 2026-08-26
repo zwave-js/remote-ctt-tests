@@ -20,7 +20,12 @@ const dutCapabilityResponses: Record<
   LEARN_MODE_ACCESSIBLE: "No",
   FACTORY_RESET: "Yes",
   REMOVE_FAILED_NODE: "Yes",
-  ICON_TYPE_MATCH: "Yes",
+  REPLACE_FAILED_NODE: "Yes",
+  ICON_TYPE_MATCH: (ctx) =>
+    ctx.driver.options.vendor?.installerIcon === 0x0500 &&
+    ctx.driver.options.vendor?.userIcon === 0x0500
+      ? "Yes"
+      : "No",
   IDENTIFY_OTHER_PURPOSE: "No",
   CONTROLS_UNLISTED_CCS: "No",
   ALL_DOCUMENTED_AS_CONTROLLED: "Yes",
@@ -35,6 +40,15 @@ const dutCapabilityResponses: Record<
     return "No";
   },
   MAINS_POWERED: "Yes",
+  MANAGE_FULL_SPAN_TABLE: "Yes",
+  SELECT_GRANTED_SECURITY_CLASSES: "Yes",
+  CONFIGURE_PROVISIONING_ENTRY_SECURITY_CLASSES: "Yes",
+  // zwave-js provisioning entries expose no per-entry bootstrapping-mode field
+  CONFIGURE_PROVISIONING_ENTRY_BOOTSTRAPPING_MODE: "No",
+  CONFIGURE_PROVISIONING_ENTRY_STATUS: "Yes",
+  HAS_PASSWORD_PROTECTED_S0_BOOTSTRAP_MENU: "No",
+  // zwave-js does not request S0 bootstrapping after an Inclusion Controller adds a node
+  INTENDED_INSECURE_INCLUSION_OF_S0_NODE_BY_INCLUSION_CONTROLLER: "Yes",
 };
 
 // CC capability responses by commandClass and capabilityId

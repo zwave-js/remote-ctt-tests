@@ -11,6 +11,7 @@ import {
   cancelTestRun,
 } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
+import type { CttExecutionMode } from "./runner-ipc.ts";
 import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
@@ -51,6 +52,19 @@ const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
 const groupArgs = args.filter((arg) => arg.startsWith("--group="));
 const GROUPS: string[] = groupArgs.flatMap((arg) =>
   arg.split("=")[1].split(",")
+);
+const executionModeArgs = args.filter((arg) => arg.startsWith("--mode="));
+const EXECUTION_MODES: CttExecutionMode[] = executionModeArgs.flatMap((arg) =>
+  arg
+    .slice("--mode=".length)
+    .split(",")
+    .map((mode) => {
+      if (mode === "Classic" || mode === "LR") return mode;
+      console.error(
+        `Invalid execution mode "${mode}". Use Classic or LR.`
+      );
+      process.exit(1);
+    })
 );
 // Support multiple --exclude= arguments or comma-separated test names to exclude
 const excludeArgs = args.filter((arg) => arg.startsWith("--exclude="));
@@ -510,7 +524,10 @@ class ProcessManager {
     const results = await runTestCases({
       testCaseNames: testNames,
       endPointIds: [],
-      ZWaveExecutionModes: [],
+      // CTT names the LR execution mode "LongRangeStar" in its RPC API.
+      ZWaveExecutionModes: EXECUTION_MODES.map((mode) =>
+        mode === "LR" ? "LongRangeStar" : "Classic"
+      ),
     });
 
     const elapsed = Date.now() - startTime;
@@ -662,6 +679,8 @@ class ProcessManager {
     this.wsServer = createWebSocketServer({
       port: 4712,
       runnerHost: this.runnerHost,
+      executionMode:
+        EXECUTION_MODES.length === 1 ? EXECUTION_MODES[0] : undefined,
       onFatalError: () => this.cleanup(),
       onProjectLoaded: async () => {
         // Mark loaded so a later CTT exit is treated as shutdown, not a
@@ -700,6 +719,9 @@ class ProcessManager {
             );
             console.log(
               "  npm start -- --group=<g1>,<g2>         Run tests from multiple groups"
+            );
+            console.log(
+              "  npm start -- --mode=<Classic|LR>       Filter by Z-Wave execution mode"
             );
             console.log(
               "  npm start -- --exclude=<name>          Exclude tests matching name"

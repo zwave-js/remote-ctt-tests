@@ -4,21 +4,10 @@
  * Automates Z-Wave node exclusion (removing devices from the network).
  */
 
+import { wait } from "alcalzone-shared/async";
 import { registerHandler } from "../../prompt-handlers.ts";
 
 registerHandler(/.*/, {
-  async onTestStart(ctx) {
-    const { driver, includedNodes } = ctx;
-
-    // Listen for node removal to update includedNodes
-    driver.controller.on("node removed", (node) => {
-      const index = includedNodes.indexOf(node);
-      if (index !== -1) {
-        includedNodes.splice(index, 1);
-      }
-    });
-  },
-
   onPrompt: async (ctx) => {
     // Handle ACTIVATE_NETWORK_MODE for REMOVE mode
     if (
@@ -29,6 +18,15 @@ registerHandler(/.*/, {
 
       await driver.controller.beginExclusion();
       return "Ok";
+    }
+
+    if (ctx.message?.type === "WAIT_FOR_NODE_REMOVAL") {
+      const { nodeId } = ctx.message;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        if (!ctx.driver.controller.nodes.has(nodeId)) return "Ok";
+        await wait(1000);
+      }
+      throw new Error(`Node ${nodeId} was not removed within 30 seconds`);
     }
 
     // Let other prompts fall through to manual handling
