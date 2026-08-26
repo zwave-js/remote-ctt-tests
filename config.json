@@ -9,7 +9,7 @@
     // Z-Wave network home ID (used for storage file filtering)
     "homeId": "d2658d0f",
 
-    // Directory containing DUT storage/cache files
+    // Known-good DUT state used to create setup/network-state.zip
     "storageDir": "dut/zwave-js/storage",
 
     // Glob patterns to match storage files (supports %HOME_ID_LOWER% and %HOME_ID_UPPER% placeholders)

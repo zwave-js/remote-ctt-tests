@@ -1,4 +1,4 @@
-import { spawn, spawnSync, ChildProcess } from "child_process";
+import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
@@ -9,26 +9,36 @@ import {
   closeCTT,
   getTestCases,
   cancelTestRun,
+  configureCttClient,
 } from "./ctt-client.ts";
 import { RunnerHost } from "./runner-host.ts";
 import type { CttExecutionMode } from "./runner-ipc.ts";
+import {
+  LOG_DIR_ENV_VAR,
+  SERVER_PORT_ENV_VAR,
+  STORAGE_DIR_ENV_VAR,
+} from "./runner-ipc.ts";
 import { CTTDeviceProxy, type FrameHandler } from "./ctt-device-proxy.ts";
+import {
+  createRunContext,
+  type RunContext,
+  type TcpPortName,
+} from "./run-context.ts";
+import {
+  cleanupStaleRuns,
+  ProcessManifest,
+} from "./process-manifest.ts";
+import {
+  processGroupHasMembers,
+  signalOwnedProcess,
+} from "./process-identity.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const PID_FILE = path.join(__dirname, "..", ".ctt-pids.json");
-
-interface PidFileData {
-  startTime: string;
-  pids: {
-    name: string;
-    pid: number;
-  }[];
-}
+const REPO_ROOT = path.join(__dirname, "..");
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -40,19 +50,15 @@ const testArgs = args.filter((arg) => arg.startsWith("--test="));
 // Also treat all positional arguments (not starting with --) as test names
 const positionalArgs = args.filter((arg) => !arg.startsWith("--"));
 const TEST_NAMES: string[] = [
-  ...testArgs.flatMap((arg) => arg.split("=")[1].split(",")),
+  ...testArgs.flatMap(parseArgumentList),
   ...positionalArgs,
 ];
 // Support multiple --category= arguments or comma-separated categories
 const categoryArgs = args.filter((arg) => arg.startsWith("--category="));
-const CATEGORIES: string[] = categoryArgs.flatMap((arg) =>
-  arg.split("=")[1].split(",")
-);
+const CATEGORIES: string[] = categoryArgs.flatMap(parseArgumentList);
 // Support multiple --group= arguments or comma-separated groups (e.g., Automatic, Interactive)
 const groupArgs = args.filter((arg) => arg.startsWith("--group="));
-const GROUPS: string[] = groupArgs.flatMap((arg) =>
-  arg.split("=")[1].split(",")
-);
+const GROUPS: string[] = groupArgs.flatMap(parseArgumentList);
 const executionModeArgs = args.filter((arg) => arg.startsWith("--mode="));
 const EXECUTION_MODES: CttExecutionMode[] = executionModeArgs.flatMap((arg) =>
   arg
@@ -68,9 +74,12 @@ const EXECUTION_MODES: CttExecutionMode[] = executionModeArgs.flatMap((arg) =>
 );
 // Support multiple --exclude= arguments or comma-separated test names to exclude
 const excludeArgs = args.filter((arg) => arg.startsWith("--exclude="));
-const EXCLUDE_TESTS: string[] = excludeArgs.flatMap((arg) =>
-  arg.split("=")[1].split(",")
-);
+const EXCLUDE_TESTS: string[] = excludeArgs.flatMap(parseArgumentList);
+
+function parseArgumentList(argument: string): string[] {
+  const separator = argument.indexOf("=");
+  return argument.slice(separator + 1).split(",");
+}
 
 // Load config.json
 interface Config {
@@ -96,7 +105,7 @@ const config = loadConfig();
 // Parse --dut argument (default to config runner path)
 const dutArg = args.find((arg) => arg.startsWith("--dut="));
 const DUT_PATH = dutArg
-  ? dutArg.split("=")[1]
+  ? dutArg.slice("--dut=".length)
   : path.join(__dirname, "..", config.dut.runnerPath);
 
 const CTT_PATH =
@@ -106,10 +115,13 @@ interface ManagedProcess {
   name: string;
   process: ChildProcess;
   pid?: number;
+  processGroup: boolean;
 }
 
 class ProcessManager {
   private processes: ManagedProcess[] = [];
+  private readonly context: RunContext;
+  private readonly manifest: ProcessManifest;
   private wsServer?: ManagedWebSocketServer;
   private runnerHost?: RunnerHost;
   private deviceProxy?: CTTDeviceProxy;
@@ -123,117 +135,45 @@ class ProcessManager {
   private cttLaunchAttempts = 0;
   private readonly maxCttLaunchAttempts = 5;
 
-  /**
-   * Load PID file data if it exists
-   */
-  private loadPidFile(): PidFileData | null {
-    try {
-      if (fs.existsSync(PID_FILE)) {
-        const data = fs.readFileSync(PID_FILE, "utf-8");
-        return JSON.parse(data) as PidFileData;
-      }
-    } catch (error) {
-      console.warn("Failed to read PID file:", error);
-    }
-    return null;
+  constructor(context: RunContext) {
+    this.context = context;
+    this.manifest = new ProcessManifest(
+      context.id,
+      context.paths,
+      context.ports
+    );
   }
 
-  /**
-   * Save current PIDs to file
-   */
-  private savePidFile(): void {
-    const pids: PidFileData["pids"] = this.processes
-      .filter((p) => p.pid !== undefined)
-      .map((p) => ({
-        name: p.name,
-        pid: p.pid!,
-      }));
-
-    // Add runner PID if available
-    const runnerPid = this.runnerHost?.getRunnerPid();
-    if (runnerPid) {
-      pids.push({
-        name: `${config.dut.name} Runner`,
-        pid: runnerPid,
-      });
-    }
-
-    const data: PidFileData = {
-      startTime: new Date().toISOString(),
-      pids,
-    };
-
-    try {
-      fs.writeFileSync(PID_FILE, JSON.stringify(data, null, 2));
-      console.log(c.dim(`PIDs saved to ${PID_FILE}`));
-    } catch (error) {
-      console.warn("Failed to write PID file:", error);
-    }
+  private trackProcess(
+    managedProcess: ManagedProcess
+  ): void {
+    this.processes.push(managedProcess);
+    this.manifest.register(
+      managedProcess.name,
+      managedProcess.pid,
+      managedProcess.processGroup
+    );
   }
 
-  /**
-   * Delete the PID file
-   */
-  private deletePidFile(): void {
-    try {
-      if (fs.existsSync(PID_FILE)) {
-        fs.unlinkSync(PID_FILE);
-        console.log(c.dim("PID file cleaned up"));
-      }
-    } catch (error) {
-      console.warn("Failed to delete PID file:", error);
-    }
+  private releasePorts(names: TcpPortName[]): Promise<void[]> {
+    return Promise.all(
+      names.map((name) => this.context.reservations.handoff(name))
+    );
   }
 
-  /**
-   * Kill any orphaned processes from a previous run
-   */
-  async killOrphanedProcesses(): Promise<void> {
-    const pidData = this.loadPidFile();
-
-    if (pidData) {
-      console.log(c.yellow(`\nFound PID file from ${pidData.startTime}`));
-      console.log(c.yellow("Cleaning up orphaned processes...\n"));
-
-      for (const { name, pid } of pidData.pids) {
-        console.log(c.dim(`Killing process: ${name} (PID ${pid})`));
-        // Kill the whole process group first (negative PID), then the leader,
-        // in case the process did not start its own group.
-        try {
-          process.kill(-pid, "SIGKILL");
-        } catch {
-          // Ignore - group may not exist
-        }
-        try {
-          process.kill(pid, "SIGKILL");
-        } catch {
-          // Ignore - process may already be dead
-        }
-      }
-
-      this.deletePidFile();
-    }
-
-    // Always sweep lingering stack / CTT processes by name, even when there is
-    // no PID file. A crashed or force-quit run leaves no PID file but can leave
-    // orphans holding the device/RPC ports, which makes a freshly launched CTT
-    // abort ("bind: Address already in use" -> CTT exits with a signal).
-    const before = spawnSync("pgrep", ["-f", "ZW_zwave|ZWaveCTT|zniffer.py"], {
-      encoding: "utf-8",
-    });
-    if (before.stdout && before.stdout.trim()) {
-      console.log(c.yellow("Sweeping lingering Z-Wave / CTT processes...\n"));
-    }
-    spawnSync("pkill", ["-9", "-f", "ZW_zwave"], { stdio: "ignore" });
-    spawnSync("pkill", ["-9", "-f", "ZWaveCTT"], { stdio: "ignore" });
-    spawnSync("pkill", ["-9", "-f", "zniffer.py"], { stdio: "ignore" });
-
-    // Give the OS a moment to release the ports
-    await setTimeout(1000);
-  }
-
-  startZWaveStack(): void {
+  async startZWaveStack(): Promise<void> {
     console.log("Starting Z-Wave stack...");
+
+    await this.releasePorts([
+      "controller1",
+      "controller2",
+      "controller3",
+      "endDevice1",
+      "endDevice2",
+      "zniffer",
+    ]);
+    await this.context.reservations.handoff("znifferDiscovery");
+    await this.context.reservations.handoffZneBlock();
 
     const timestamp = () => {
       const now = new Date();
@@ -247,9 +187,28 @@ class ProcessManager {
     // Spawn detached so bash becomes a process-group leader; the .elf and
     // python children can then be killed as a group via the negative PID.
     const proc = spawn("bash", ["./zwave_stack/run.sh"], {
-      cwd: path.join(__dirname, ".."),
+      cwd: REPO_ROOT,
       stdio: "pipe",
       detached: true,
+      env: {
+        ...process.env,
+        ZWAVE_STORAGE_DIR: this.context.paths.stackStorage,
+        ZWAVE_NODE_TEMP_DIR: this.context.paths.nodeTemp,
+        ZWAVE_CONTROLLER1_PORT:
+          this.context.ports.tcp.controller1.toString(),
+        ZWAVE_CONTROLLER2_PORT:
+          this.context.ports.tcp.controller2.toString(),
+        ZWAVE_CONTROLLER3_PORT:
+          this.context.ports.tcp.controller3.toString(),
+        ZWAVE_ENDDEVICE1_PORT:
+          this.context.ports.tcp.endDevice1.toString(),
+        ZWAVE_ENDDEVICE2_PORT:
+          this.context.ports.tcp.endDevice2.toString(),
+        ZWAVE_ZNIFFER_PORT: this.context.ports.tcp.zniffer.toString(),
+        ZWAVE_ZNIFFER_DISCOVERY_PORT:
+          this.context.ports.udp.znifferDiscovery.toString(),
+        ZWAVE_ZNE_PORT: this.context.ports.zneBase.toString(),
+      },
     });
 
     proc.stdout?.on("data", (data) => {
@@ -265,20 +224,19 @@ class ProcessManager {
     });
 
     proc.on("exit", (code) => {
+      if (this.isCleaningUp) return;
       console.error(
         `Z-Wave stack process exited with code ${code}, aborting...`
       );
-      this.cleanup();
+      this.cleanup(true);
     });
 
-    this.processes.push({
+    this.trackProcess({
       name: "Z-Wave Stack",
       process: proc,
       pid: proc.pid,
+      processGroup: true,
     });
-
-    // Save PIDs after adding this process
-    this.savePidFile();
 
     console.log("Z-Wave stack started");
   }
@@ -323,8 +281,7 @@ class ProcessManager {
 
         // Read the private key from the device's manufacturer token storage
         const tokenPath = path.join(
-          __dirname,
-          "../zwave_stack/storage",
+          this.context.paths.stackStorage,
           config.name.toLowerCase(),
           "nvm_stack/20.bin"
         );
@@ -352,30 +309,36 @@ class ProcessManager {
     const configs = [
       {
         name: "Controller2",
-        listenPort: 5001,
+        listenPort: this.context.ports.tcp.proxyController2,
         targetHost: "127.0.0.1",
-        targetPort: 6001,
+        targetPort: this.context.ports.tcp.controller2,
       },
       {
         name: "Controller3",
-        listenPort: 5002,
+        listenPort: this.context.ports.tcp.proxyController3,
         targetHost: "127.0.0.1",
-        targetPort: 6002,
+        targetPort: this.context.ports.tcp.controller3,
       },
       {
         name: "EndDevice1",
-        listenPort: 5003,
+        listenPort: this.context.ports.tcp.proxyEndDevice1,
         targetHost: "127.0.0.1",
-        targetPort: 6003,
+        targetPort: this.context.ports.tcp.endDevice1,
       },
       {
         name: "EndDevice2",
-        listenPort: 5004,
+        listenPort: this.context.ports.tcp.proxyEndDevice2,
         targetHost: "127.0.0.1",
-        targetPort: 6004,
+        targetPort: this.context.ports.tcp.endDevice2,
       },
     ];
 
+    await this.releasePorts([
+      "proxyController2",
+      "proxyController3",
+      "proxyEndDevice1",
+      "proxyEndDevice2",
+    ]);
     this.deviceProxy = new CTTDeviceProxy(configs, frameHandler);
     await this.deviceProxy.start();
   }
@@ -383,9 +346,22 @@ class ProcessManager {
   async startRunner(): Promise<void> {
     console.log(`Starting ${config.dut.name} runner: ${DUT_PATH}`);
 
+    await this.releasePorts(["runnerIpc", "dutServer"]);
     this.runnerHost = new RunnerHost({
       runnerPath: DUT_PATH,
-      onUnexpectedExit: () => this.cleanup(),
+      ipcPort: this.context.ports.tcp.runnerIpc,
+      runnerEnv: {
+        [STORAGE_DIR_ENV_VAR]: this.context.paths.dutStorage,
+        [LOG_DIR_ENV_VAR]: this.context.paths.dutLogs,
+        [SERVER_PORT_ENV_VAR]:
+          this.context.ports.tcp.dutServer.toString(),
+      },
+      onUnexpectedExit: () => {
+        if (!this.isCleaningUp) this.cleanup(true);
+      },
+      onSpawn: (pid) => {
+        this.manifest.register(`${config.dut.name} Runner`, pid, false);
+      },
     });
 
     // Initialize the runner (spawns process, waits for ready)
@@ -393,7 +369,7 @@ class ProcessManager {
 
     // Start the DUT
     await this.runnerHost.start({
-      controllerUrl: "tcp://127.0.0.1:5000",
+      controllerUrl: `tcp://127.0.0.1:${this.context.ports.tcp.controller1}`,
       securityKeys: {
         S2_Unauthenticated: "CE07372267DCB354DB216761B6E9C378",
         S2_Authenticated: "30B5CCF3F482A92E2F63A5C5E218149A",
@@ -406,39 +382,45 @@ class ProcessManager {
       },
     });
 
-    // Update PID file with runner PID
-    this.savePidFile();
   }
 
-  async stopRunner(): Promise<void> {
-    if (this.runnerHost) {
+  async stopRunner(): Promise<boolean> {
+    if (!this.runnerHost) return true;
+    try {
       await this.runnerHost.cleanup();
+      return true;
+    } catch (error) {
+      console.error("Failed to stop runner:", error);
+      return false;
+    } finally {
       this.runnerHost = undefined;
     }
   }
 
-  startCTT(verbose: boolean = false): ManagedProcess {
+  async startCTT(verbose: boolean = false): Promise<ManagedProcess> {
     this.cttVerbose = verbose;
     this.cttLaunchAttempts++;
+    await this.context.reservations.handoff("cttRpc");
     const cttPath = path.join(CTT_PATH, "ZWaveCTT");
-    const solutionPath = path.join(
-      __dirname,
-      "..",
-      "ctt",
-      "project",
-      "zwave-js.cttsln"
-    );
+    const solutionPath = this.context.paths.cttSolution;
 
     // -autoUpdateProject lets CTT migrate/update the project's test cases on
     // load (required when loading a project authored by an older CTT version).
-    const cttArgs = [solutionPath, "-autoUpdateProject"];
+    const cttArgs = [
+      solutionPath,
+      "-local",
+      `127.0.0.1:${this.context.ports.tcp.cttRpc}`,
+      "-remote",
+      `127.0.0.1:${this.context.ports.tcp.cttCallback}`,
+      "-autoUpdateProject",
+    ];
 
     console.log(`Starting CTT: ${cttPath} ${cttArgs.join(" ")}`);
 
     // Always capture CTT's output to a log file (and echo to the console when
     // verbose). Discarding it with stdio:"ignore" hides the reason CTT dies
     // (e.g. a .NET exception that aborts the process with SIGABRT).
-    const cttLogPath = path.join(__dirname, "..", "ctt-remote.log");
+    const cttLogPath = this.context.paths.cttLog;
     const cttLog = fs.createWriteStream(cttLogPath, { flags: "a" });
 
     // Spawn detached so CTT becomes a process-group leader and any children
@@ -447,6 +429,10 @@ class ProcessManager {
       cwd: CTT_PATH,
       stdio: ["ignore", "pipe", "pipe"],
       detached: true,
+      env: {
+        ...process.env,
+        HOME: this.context.paths.cttHome,
+      },
     });
 
     const tee = (
@@ -487,7 +473,7 @@ class ProcessManager {
         // NOTE: setTimeout here is the promise-based version from
         // "timers/promises" (see imports), so use .then rather than a callback.
         void setTimeout(1000).then(() => {
-          if (!this.isCleaningUp) this.startCTT(this.cttVerbose);
+          if (!this.isCleaningUp) void this.startCTT(this.cttVerbose);
         });
         return;
       }
@@ -495,19 +481,17 @@ class ProcessManager {
       console.error(
         `CTT exited with ${how}, aborting... (CTT output logged to ${cttLogPath})`
       );
-      this.cleanup();
+      this.cleanup(true);
     });
 
     const managedProcess: ManagedProcess = {
       name: "CTT",
       process: cttProcess,
       pid: cttProcess.pid,
+      processGroup: true,
     };
 
-    this.processes.push(managedProcess);
-
-    // Save PIDs after adding this process
-    this.savePidFile();
+    this.trackProcess(managedProcess);
 
     return managedProcess;
   }
@@ -675,13 +659,14 @@ class ProcessManager {
     }
   }
 
-  startWebSocketServer(): void {
+  async startWebSocketServer(): Promise<void> {
+    await this.context.reservations.handoff("cttCallback");
     this.wsServer = createWebSocketServer({
-      port: 4712,
+      port: this.context.ports.tcp.cttCallback,
       runnerHost: this.runnerHost,
       executionMode:
         EXECUTION_MODES.length === 1 ? EXECUTION_MODES[0] : undefined,
-      onFatalError: () => this.cleanup(),
+      onFatalError: () => this.cleanup(true),
       onProjectLoaded: async () => {
         // Mark loaded so a later CTT exit is treated as shutdown, not a
         // startup-race retry.
@@ -735,6 +720,7 @@ class ProcessManager {
           }
         } catch (error) {
           console.error("Operation failed:", error);
+          this.hasTestFailures = true;
         }
 
         // Shutdown. Let CTT finish processing, then hand off to cleanup(),
@@ -750,13 +736,19 @@ class ProcessManager {
   killProcess(managedProcess: ManagedProcess): void {
     const { pid, process: proc } = managedProcess;
 
-    // Kill the whole process group (negative PID) so the stack's .elf/python
-    // children die with their bash leader. Fall back to the single process.
     if (pid) {
       try {
-        process.kill(-pid, "SIGTERM");
-      } catch {
-        // Group may not exist (process not detached) - fall through
+        if (
+          signalOwnedProcess(
+            pid,
+            managedProcess.processGroup,
+            "SIGTERM"
+          )
+        ) {
+          return;
+        }
+      } catch (error) {
+        console.error(`Error killing ${managedProcess.name}:`, error);
       }
     }
     if (proc && !proc.killed) {
@@ -768,7 +760,66 @@ class ProcessManager {
     }
   }
 
-  async cleanup(): Promise<void> {
+  private async terminateManagedProcesses(): Promise<boolean> {
+    for (const managedProcess of this.processes) {
+      this.killProcess(managedProcess);
+    }
+
+    const survivors: ManagedProcess[] = [];
+    for (const managedProcess of this.processes) {
+      if (!(await this.waitForProcessExit(managedProcess, 5000))) {
+        survivors.push(managedProcess);
+      }
+    }
+
+    for (const { pid, processGroup } of survivors) {
+      if (!pid) continue;
+      try {
+        signalOwnedProcess(pid, processGroup, "SIGKILL");
+      } catch {
+        // The process group may have exited after the timeout.
+      }
+    }
+
+    const stoppedAfterKill = await Promise.all(
+      survivors.map((managedProcess) =>
+        this.waitForProcessExit(managedProcess, 2000)
+      )
+    );
+    return stoppedAfterKill.every(Boolean);
+  }
+
+  private waitForProcessExit(
+    managedProcess: ManagedProcess,
+    timeout: number
+  ): Promise<boolean> {
+    return this.pollForProcessExit(managedProcess, Date.now() + timeout);
+  }
+
+  private async pollForProcessExit(
+    managedProcess: ManagedProcess,
+    deadline: number
+  ): Promise<boolean> {
+    while (this.isManagedProcessRunning(managedProcess)) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return false;
+      await setTimeout(Math.min(100, remaining));
+    }
+    return true;
+  }
+
+  private isManagedProcessRunning(managedProcess: ManagedProcess): boolean {
+    if (managedProcess.processGroup && managedProcess.pid !== undefined) {
+      return processGroupHasMembers(managedProcess.pid);
+    }
+    return (
+      managedProcess.process.exitCode === null &&
+      managedProcess.process.signalCode === null
+    );
+  }
+
+  async cleanup(failed = false): Promise<void> {
+    if (failed) this.hasTestFailures = true;
     if (this.isCleaningUp) return;
     this.isCleaningUp = true;
 
@@ -796,61 +847,54 @@ class ProcessManager {
     }
 
     // Stop DUT runner
-    await this.stopRunner();
+    const runnerStopped = await this.stopRunner();
 
     // Close device proxy
     if (this.deviceProxy) {
       await this.deviceProxy.close();
     }
 
-    // Kill all managed processes
-    for (const managedProcess of this.processes) {
-      this.killProcess(managedProcess);
-    }
+    const allProcessesStopped = await this.terminateManagedProcesses();
 
-    // Also kill any lingering stack / CTT processes by name to be thorough
-    try {
-      spawn("pkill", ["-f", "ZW_zwave"], { stdio: "ignore" });
-      spawn("pkill", ["-f", "ZWaveCTT"], { stdio: "ignore" });
-    } catch (error) {
-      // Ignore
+    await this.context.reservations.close();
+    if (runnerStopped && allProcessesStopped) {
+      this.manifest.complete(this.hasTestFailures);
+    } else {
+      console.error(
+        "Owned process groups did not exit; leaving the run marked as running for stale cleanup."
+      );
+      this.hasTestFailures = true;
     }
-
-    // Clean up PID file on successful shutdown
-    this.deletePidFile();
 
     // Exit with non-zero code if any tests failed
     process.exit(this.hasTestFailures ? 1 : 0);
   }
 
   /**
-   * Synchronously force-kill every managed process group (and the runner) plus
-   * any lingering stack/CTT processes. Used as a last resort on a repeated
-   * shutdown signal, where awaiting the graceful CTT close is not acceptable.
+   * Synchronously force-kill every process owned by this run.
    */
   private forceKillAll(): void {
-    const pids = this.processes.map((p) => p.pid);
-    const runnerPid = this.runnerHost?.getRunnerPid();
-    if (runnerPid) pids.push(runnerPid);
-
-    for (const pid of pids) {
-      if (!pid) continue;
+    for (const managedProcess of this.processes) {
+      if (!managedProcess.pid) continue;
       try {
-        process.kill(-pid, "SIGKILL");
+        signalOwnedProcess(
+          managedProcess.pid,
+          managedProcess.processGroup,
+          "SIGKILL"
+        );
       } catch {
-        // Group may not exist
+        // The process may already be dead.
       }
+    }
+    const runnerPid = this.runnerHost?.getRunnerPid();
+    if (runnerPid) {
       try {
-        process.kill(pid, "SIGKILL");
+        signalOwnedProcess(runnerPid, false, "SIGKILL");
       } catch {
-        // Already dead
+        // The runner may already be dead.
       }
     }
 
-    // Synchronous name-based sweep as a safety net
-    spawnSync("pkill", ["-9", "-f", "ZW_zwave"], { stdio: "ignore" });
-    spawnSync("pkill", ["-9", "-f", "ZWaveCTT"], { stdio: "ignore" });
-    this.deletePidFile();
   }
 
   setupExitHandlers(): void {
@@ -876,27 +920,29 @@ class ProcessManager {
     // Handle uncaught errors
     process.on("uncaughtException", (error) => {
       console.error("Uncaught exception:", error);
-      this.cleanup();
+      this.cleanup(true);
     });
 
     process.on("unhandledRejection", (reason, promise) => {
       console.error("Unhandled rejection at:", promise, "reason:", reason);
-      this.cleanup();
+      this.cleanup(true);
     });
   }
 }
 
 // Main execution
 async function main() {
-  const manager = new ProcessManager();
+  cleanupStaleRuns(path.join(REPO_ROOT, ".ctt-runs"));
+  const context = await createRunContext(REPO_ROOT);
+  configureCttClient(context.ports.tcp.cttRpc);
+  const manager = new ProcessManager(context);
   manager.setupExitHandlers();
 
   try {
-    // Kill any orphaned processes from a previous run
-    await manager.killOrphanedProcesses();
+    console.log(c.dim(`Run ${context.id}: ${context.paths.root}`));
 
     // Start Z-Wave stack
-    manager.startZWaveStack();
+    await manager.startZWaveStack();
 
     // Give Z-Wave devices a moment to fully initialize
     await setTimeout(2000);
@@ -906,13 +952,7 @@ async function main() {
 
     if (DEVICES_ONLY) {
       console.log("\n--devices-only mode: Only emulated devices are running.");
-      console.log("Z-Wave devices available at:");
-      console.log("  Controller 1: localhost:5000 (direct)");
-      console.log("  Controller 2: localhost:5001 (proxied from 6001)");
-      console.log("  Controller 3: localhost:5002 (proxied from 6002)");
-      console.log("  End Device 1: localhost:5003 (proxied from 6003)");
-      console.log("  End Device 2: localhost:5004 (proxied from 6004)");
-      console.log("  Zniffer:      localhost:4905 (direct)");
+      printServiceAddresses(context);
       console.log("\nPress Ctrl+C to stop.");
       return;
     }
@@ -922,32 +962,44 @@ async function main() {
 
     // Start WebSocket server for CTT communication
     // The runner handles CTT prompts via IPC
-    manager.startWebSocketServer();
+    await manager.startWebSocketServer();
 
     // Start CTT
-    manager.startCTT(VERBOSE);
+    await manager.startCTT(VERBOSE);
 
     console.log("\nAll services started successfully!");
-    console.log("Z-Wave devices available at:");
-    console.log(`  Controller 1 (${config.dut.name}): localhost:5000 (direct)`);
+    printServiceAddresses(context);
     console.log(
-      "  Controller 2 (CTT):       localhost:5001 (proxied from 6001)"
+      `  ${config.dut.name} Server: ws://127.0.0.1:${context.ports.tcp.dutServer}`
     );
-    console.log(
-      "  Controller 3 (CTT):       localhost:5002 (proxied from 6002)"
-    );
-    console.log(
-      "  End Device 1 (CTT):       localhost:5003 (proxied from 6003)"
-    );
-    console.log(
-      "  End Device 2 (CTT):       localhost:5004 (proxied from 6004)"
-    );
-    console.log("  Zniffer (CTT):            localhost:4905 (direct)");
-    console.log(`  ${config.dut.name} Server:         ws://localhost:3000`);
   } catch (error) {
     console.error("Failed to start services:", error);
-    await manager.cleanup();
+    await manager.cleanup(true);
   }
 }
 
-main();
+function printServiceAddresses(context: RunContext): void {
+  const { tcp } = context.ports;
+  console.log("Z-Wave devices available at:");
+  console.log(
+    `  Controller 1 (${config.dut.name}): 127.0.0.1:${tcp.controller1}`
+  );
+  console.log(
+    `  Controller 2 (CTT): 127.0.0.1:${tcp.proxyController2} -> ${tcp.controller2}`
+  );
+  console.log(
+    `  Controller 3 (CTT): 127.0.0.1:${tcp.proxyController3} -> ${tcp.controller3}`
+  );
+  console.log(
+    `  End Device 1 (CTT): 127.0.0.1:${tcp.proxyEndDevice1} -> ${tcp.endDevice1}`
+  );
+  console.log(
+    `  End Device 2 (CTT): 127.0.0.1:${tcp.proxyEndDevice2} -> ${tcp.endDevice2}`
+  );
+  console.log(`  Zniffer (CTT): 127.0.0.1:${tcp.zniffer}`);
+}
+
+main().catch((error) => {
+  console.error("Failed to initialize run:", error);
+  process.exit(1);
+});

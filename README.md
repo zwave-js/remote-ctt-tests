@@ -17,47 +17,37 @@ This project provides a complete framework for running Z-Wave CTT certification 
   sudo apt-get install -y libc6:i386 libstdc++6:i386
   ```
 - **python3** — used by the Zniffer simulator
-- The **`gh` CLI**, authenticated, for downloading the Z-Wave stack binaries and
-  the CTT package from GitHub
+- The **`gh` CLI**, authenticated, for downloading the Z-Wave stack binaries and the CTT package from GitHub
 
 ## Architecture
 
+```text
+                         ┌───────────────────────────────┐
+                         │ Orchestrator                  │
+                         │ allocates one isolated run    │
+                         └───────────────┬───────────────┘
+                                         │
+                ┌────────────────────────┼────────────────────────┐
+                │                        │                        │
+       dynamic RPC/callback       dynamic runner IPC       per-run files
+                │                        │                        │
+        ┌───────▼────────┐       ┌───────▼────────┐       ┌──────▼─────────┐
+        │ CTT Remote 4   │       │ DUT runner     │       │ .ctt-runs/id/  │
+        └───────┬────────┘       └───────┬────────┘       │ state, project │
+                │                        │                │ settings, logs │
+       four dynamic proxies      Controller 1 TCP         └────────────────┘
+                │                        │
+        ┌───────▼────────────────────────▼───────┐
+        │ Five emulated Z-Wave nodes             │
+        │ private routed ZNE UDP network         │
+        └───────────────────┬────────────────────┘
+                            │
+                     dynamic Zniffer TCP
 ```
-┌──────────────────────────────────────────────────────────┐
-│                      Linux (Local or CI)                  │
-│                                                           │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │ Emulated Z-Wave devices (native .elf + python3)     │ │
-│  │                                                     │ │
-│  │  • Controller 2 → TCP :5001 (CTT Controller2)       │ │
-│  │  • Controller 3 → TCP :5002 (CTT Controller3)       │ │
-│  │  • End Device 1 → TCP :5003 (CTT EndDevice1)        │ │
-│  │  • End Device 2 → TCP :5004 (CTT EndDevice2)        │ │
-│  │  • Zniffer      → TCP :4905 (CTT Zniffer)           │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                          ↑                                │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │ ZWaveCTT (CTT Remote 4, .NET 10)                    │ │
-│  │ Connects to controllers/devices on ports 5001-5004  │ │
-│  │ Serves JSON-RPC on :4711                             │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                          ↑                                │
-│                    WebSocket :4712                        │
-│                          ↓                                │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │ Orchestrator (src/start.ts)                         │ │
-│  │ Controls test execution and coordinates components   │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                          ↑                                │
-│                    WebSocket :4713 (IPC)                  │
-│                          ↓                                │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │ DUT Runner                                          │ │
-│  │ Manages DUT lifecycle and handles CTT prompts        │ │
-│  │  • Controller 1 → TCP :5000 (DUT)                   │ │
-│  └─────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────┘
-```
+
+Each invocation creates `.ctt-runs/<run-id>/` and reserves a fresh set of loopback ports. The orchestrator writes the selected ports into its copied CTT project before it starts CTT.
+
+All mutable storage, CTT settings, generated project files, and logs stay in that run directory. Static binaries, keys, handlers, and the committed CTT project are shared read-only.
 
 ## Installation
 
@@ -77,8 +67,7 @@ npm --prefix dut/zwave-js install   # DUT runner dependencies
 
 ### 3. Install Prerequisites
 
-Install the .NET 10 runtime, the 32-bit libraries, and `python3` as described in
-[Prerequisites](#prerequisites).
+Install the .NET 10 runtime, the 32-bit libraries, and `python3` as described in [Prerequisites](#prerequisites).
 
 ## Getting Started
 
@@ -88,14 +77,9 @@ Install the .NET 10 runtime, the 32-bit libraries, and `python3` as described in
 npm run setup
 ```
 
-This downloads and unpacks the Z-Wave stack binaries (from
-[Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries))
-into `zwave_stack/bin/`, the CTT package (from
-[zwave-js/byoctt](https://github.com/zwave-js/byoctt)) into `ctt/bin/`, and
-restores the saved network state from `setup/network-state.zip`. The individual
-scripts in `setup/` can also be run directly.
+This downloads and unpacks the Z-Wave stack binaries from [Z-Wave-Alliance/z-wave-stack-binaries](https://github.com/Z-Wave-Alliance/z-wave-stack-binaries) into `zwave_stack/bin/` and the CTT package from [zwave-js/byoctt](https://github.com/zwave-js/byoctt) into `ctt/bin/`. The harness extracts `setup/network-state.zip` into each run directory. The individual scripts in `setup/` can also be run directly.
 
-> **Note:** This setup assumes the DUT is a **controller**, which connects to the emulated controller on port 5000. Testing sample applications (end devices) should also be possible but requires copying additional files from the stack binaries, and updating the `zwave_stack/run.sh` script accordingly.
+> **Note:** This setup assumes the DUT is a **controller**. Testing sample applications requires copying additional stack binaries and updating `zwave_stack/run.sh`.
 
 ### Step 2: Run Emulated Devices
 
@@ -103,38 +87,24 @@ scripts in `setup/` can also be run directly.
 npm run devices
 ```
 
-Starts 6 Z-Wave binaries natively:
+Starts five Z-Wave nodes and one Zniffer with dynamically selected ports. The command prints every address and the run directory.
 
-| Device | Port | Purpose |
-|--------|------|---------|
-| Controller 1 | 5000 | **Your DUT connects here** |
-| Controller 2 | 5001 | CTT |
-| Controller 3 | 5002 | CTT |
-| End Device 1 | 5003 | CTT |
-| End Device 2 | 5004 | CTT |
-| Zniffer | 4905 | CTT packet capture |
-
-These can now be used to set up the CTT project.
-
-### Step 3: Launch CTT directly (optional)
+### Step 3: Migrate a CTT 3 project (optional)
 
 ```bash
-npm run ctt   # ctt/bin/ZWaveCTT ctt/project/zwave-js.cttsln
+npm run ctt
 ```
 
-CTT Remote 4 migrates the existing CTT 3 project on load.
+Use this only when importing a project created by CTT 3. CTT Remote updates the committed project in place. Review the generated changes before continuing.
 
 ### Step 4: Configure CTT Project
 
 1. Create a new project in the CTT GUI ("Classic" CTT is still needed for project creation)
-2. Set up 5 IP-based devices:
-   - 2x Controller: `127.0.0.1:5001` and `:5002`
-   - 2x End Device: `127.0.0.1:5003` and `:5004`
-   - 1x Zniffer: `127.0.0.1:4905`
+2. Set up five IP-based devices with the addresses printed by `npm run devices`.
 
 ### Step 5: Set Up CTT Network with DUT
 
-Configure DUT to connect to `tcp://127.0.0.1:5000`, then establish the test network:
+Configure the DUT with the printed Controller 1 URL. Then establish the test network:
 
 - **Option A:** DUT includes CTT devices into its network
 - **Option B:** CTT includes DUT into its network
@@ -159,7 +129,7 @@ ctt/project/
 
 Implement the IPC protocol (JSON-RPC 2.0 over WebSocket):
 
-- Connect to port 4713 (or `RUNNER_IPC_PORT` env var)
+- Connect to the WebSocket port in `RUNNER_IPC_PORT`
 - Required methods:
   - `ready` notification (on connect)
   - `start` (initialize DUT with controllerUrl and security keys)
@@ -186,7 +156,8 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
 
 - `runnerPath`: Path to your DUT runner script. Supports Node.js (TypeScript/JavaScript), Python, or any executable that your system can handle running directly, e.g. with a shebang.
 - `homeId`: Must match the Home ID of your test network (from CTT setup)
-- `storageDir` / `storageFileFilter`: Used to transfer DUT network state to GitHub for automated CI testing. The filter patterns support placeholders:
+- `storageDir`: Known-good DUT storage used only when creating the committed network-state archive.
+- `storageFileFilter`: Selects files from `storageDir` for that archive. The filter patterns support placeholders:
   - `%HOME_ID_LOWER%` - homeId in lowercase
   - `%HOME_ID_UPPER%` - homeId in uppercase
 
@@ -196,27 +167,16 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
 ./setup/pack-network-state-archive.ts
 ```
 
-This regenerates `setup/network-state.zip` (emulated-device storage + DUT
-storage), which is committed and used by CI. Regenerate it whenever the network
-state changes.
+This reads the known-good capture state from `zwave_stack/storage/` and `config.dut.storageDir`. The generated `setup/network-state.zip` is committed and becomes the immutable seed for CI and every individual test run. Regenerate it only after intentionally updating and validating the capture network.
 
-CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo
-downloads it from a private GitHub repository
-([zwave-js/byoctt](https://github.com/zwave-js/byoctt)) via
-`download-ctt-archive.ts`; hosting your own private repo and adapting that script
-is the recommended approach. Whatever the source, `unpack-ctt-archive.ts` expects
-the archive to contain:
+CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo downloads it from a private GitHub repository ([zwave-js/byoctt](https://github.com/zwave-js/byoctt)) via `download-ctt-archive.ts`; hosting your own private repo and adapting that script is the recommended approach. Whatever the source, `unpack-ctt-archive.ts` expects the archive to contain:
 
 ```
 ctt-setup.zip
-├── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
-└── appdata/      # optional seed for ~/.ctt4/ (e.g. a settings.json)
+└── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
 ```
 
-CTT reads its Linux settings from `~/.ctt4/settings.json`. The unpack script
-sets `SimplicityCommanderPath` to `/usr/bin/true` when no path is configured.
-The virtual test environment does not use Simplicity Commander, but ZATS scans
-the filesystem for it when the setting is empty.
+CTT reads its Linux settings from `~/.ctt4/settings.json`. The harness creates that file inside each run directory. It sets `SimplicityCommanderPath` to `/usr/bin/true`. The virtual test environment does not use Simplicity Commander, but ZATS scans the filesystem for it when the setting is empty.
 
 ### Step 10: Git Commit
 
@@ -227,8 +187,7 @@ the filesystem for it when the setting is empty.
 - CTT project files (`ctt/project/`) and keys (`ctt/keys/`)
 - Network state archive (`setup/network-state.zip`)
 
-`ctt/bin/`, `zwave_stack/bin/*.elf`, and `setup/ctt-setup.zip` are downloaded at
-setup time and are git-ignored.
+`ctt/bin/`, `zwave_stack/bin/*.elf`, and `setup/ctt-setup.zip` are downloaded at setup time and are git-ignored.
 
 ## Testing and CI/CD
 
@@ -292,9 +251,7 @@ npm run start -- --devices-only
 npm run start -- --test=CC_Binary_Switch_Set --verbose
 ```
 
-The project comes with a ready-to-use GitHub Actions workflow
-([.github/workflows/run-zwave.yml](.github/workflows/run-zwave.yml)) for running
-CTT tests on `ubuntu-latest`.
+The project comes with a ready-to-use GitHub Actions workflow ([.github/workflows/run-zwave.yml](.github/workflows/run-zwave.yml)) for running CTT tests on `ubuntu-latest`.
 
 Configure two repository secrets, each a GitHub PAT with **Contents: read**:
 
@@ -306,7 +263,8 @@ Configure two repository secrets, each a GitHub PAT with **Contents: read**:
 ### Check what is listening / running
 
 ```bash
-ss -ltnp                 # confirm ports 4711 (CTT), 4712 (orchestrator), 5000-5004, 4905
+cat .ctt-runs/*/run.json  # inspect allocated ports and owned processes
+ss -ltnp                  # inspect active loopback listeners
 pgrep -fa ZW_zwave       # stack binaries
 pgrep -fa ZWaveCTT       # CTT process
 ```
@@ -323,8 +281,7 @@ If anything is missing, install `libc6:i386 libstdc++6:i386` (see Prerequisites)
 
 ### CTT fails to start
 
-Confirm the .NET 10 runtime is present (`dotnet --list-runtimes` shows
-`Microsoft.NETCore.App 10.0.x`) and that `ctt/bin/ZWaveCTT` is executable.
+Confirm the .NET 10 runtime is present (`dotnet --list-runtimes` shows `Microsoft.NETCore.App 10.0.x`) and that `ctt/bin/ZWaveCTT` is executable.
 
 ### CTT fails with `Error - RequestNodeInfo failed!`
 

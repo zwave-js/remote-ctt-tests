@@ -102,13 +102,14 @@ zpal_region_lr_to_pti_ch_cfg_3_map = {
 
 
 class DiscoveryThread(threading.Thread):
-    def __init__(self, serial):
+    def __init__(self, serial, discovery_port):
         super().__init__()
 
         serial_no = binascii.hexlify(struct.pack('<I', int(serial))).decode()
 
         self._event = threading.Event()
         self._socket = None
+        self._discovery_port = discovery_port
         self._discover_response = binascii.unhexlify(f'466f756e6400000000000000000000000000000000000000000000000000000000000000000000000101000000000000{serial_no}409c00002c010000000000004a2d4c696e6b2050726f204f42000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
         self._discover_ex_response = binascii.unhexlify(f'466f756e6400000000000000000000000000000000000000000000000000000000000000000000000101000000000000{serial_no}409c00002c010000000000004a2d4c696e6b2050726f204f4200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000053696c69636f6e204c616273204a2d4c696e6b2050726f204f4220636f6d70696c65642053657020313620323032302031373a31303a353800436f7079726967687420323031362053696c69636f6e204c6162733a207777772e73696c6162732e636f6d000000000000000000000000ff01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
@@ -129,6 +130,8 @@ class DiscoveryThread(threading.Thread):
 
     def stop(self):
         self._event.set()
+        if self._socket is None:
+            return
         try:
             self._socket.shutdown(socket.SHUT_RDWR)
         except socket.error as e:
@@ -139,7 +142,7 @@ class DiscoveryThread(threading.Thread):
     def run(self):
         while self._run():
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self._socket.bind(('', 19020))
+            self._socket.bind(('', self._discovery_port))
 
             while self._run():
                 try:
@@ -159,17 +162,22 @@ class DiscoveryThread(threading.Thread):
 
 
 class ZnifferThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, tcp_port, zne_port, node_count):
         super().__init__()
         self._event = threading.Event()
         self._udp_socket = None
         self._tcp_socket = None
+        self._tcp_port = tcp_port
+        self._zne_port = zne_port
+        self._node_count = node_count
 
     def _run(self):
         return not self._event.is_set()
 
     def stop(self):
         self._event.set()
+        if self._tcp_socket is None:
+            return
         try:
             self._tcp_socket.shutdown(socket.SHUT_RDWR)
         except socket.error as e:
@@ -237,8 +245,11 @@ class ZnifferThread(threading.Thread):
         try:
             data = self._udp_socket.recv(1024, socket.MSG_DONTWAIT)
             if data:
-                pti_frame = self._prepare_pti_frame(data)
-                conn.sendall(pti_frame)
+                for node_id in range(1, self._node_count + 1):
+                    self._udp_socket.sendto(data, ('127.0.0.1', self._zne_port + node_id))
+                if conn is not None:
+                    pti_frame = self._prepare_pti_frame(data)
+                    conn.sendall(pti_frame)
         except socket.error as e:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
@@ -247,27 +258,25 @@ class ZnifferThread(threading.Thread):
                 print(e)
 
     def run(self):
-        MCAST_GRP = '224.0.0.0'
-        MCAST_PORT = 4321
-
-        self._udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self._udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._udp_socket.bind((MCAST_GRP, MCAST_PORT))
-        mreq = struct.pack('4sl', socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
-        self._udp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        self._udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._udp_socket.bind(('127.0.0.1', self._zne_port))
 
         self._tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._tcp_socket.setblocking(False)
-        self._tcp_socket.bind(('', 4905))
+        self._tcp_socket.bind(('', self._tcp_port))
         self._tcp_socket.listen(0)
 
         print('Waiting for connection...')
         while self._run():
             try:
-                select.select([self._tcp_socket], [], [])
+                rd, _, _ = select.select([self._udp_socket, self._tcp_socket], [], [])
                 if not self._run():
                     break
+                if self._udp_socket in rd:
+                    self._handle_zne(None)
+                if self._tcp_socket not in rd:
+                    continue
                 conn, addr = self._tcp_socket.accept()
             except socket.error as e:
                 err = e.args[0]
@@ -298,14 +307,18 @@ def signal_handler(sig, frame):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('serial', help='Serial number')
+parser.add_argument('--tcp-port', type=int, required=True)
+parser.add_argument('--discovery-port', type=int, required=True)
+parser.add_argument('--zne-port', type=int, required=True)
+parser.add_argument('--node-count', type=int, required=True)
 
 args = parser.parse_args()
 
 signal.signal(signal.SIGINT, signal_handler)
 print('Press Ctrl+C to stop\n')
 
-dt = DiscoveryThread(args.serial)
-zt = ZnifferThread()
+dt = DiscoveryThread(args.serial, args.discovery_port)
+zt = ZnifferThread(args.tcp_port, args.zne_port, args.node_count)
 dt.start()
 zt.start()
 

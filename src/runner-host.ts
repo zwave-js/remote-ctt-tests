@@ -26,7 +26,6 @@ import {
   isNodeRemovedNotification,
   isProvisioningEntryAddedNotification,
   isProvisioningEntryRemovedNotification,
-  DEFAULT_IPC_PORT,
   IPC_PORT_ENV_VAR,
 } from "./runner-ipc.ts";
 import {
@@ -64,12 +63,16 @@ type PromptResult = {
 export interface RunnerHostOptions {
   /** Path to the runner script */
   runnerPath: string;
-  /** Port for the IPC WebSocket server (default: 4713) */
-  ipcPort?: number;
+  /** Reserved port for the IPC WebSocket server */
+  ipcPort: number;
+  /** Per-run environment passed to the runner process */
+  runnerEnv?: NodeJS.ProcessEnv;
   /** Timeout for runner to connect and send ready (ms, default: 30000) */
   readyTimeout?: number;
   /** Callback when runner process exits unexpectedly */
   onUnexpectedExit?: () => void;
+  /** Callback immediately after the runner process is spawned */
+  onSpawn?: (pid: number) => void;
   /** CI mode - cancel test run on unhandled prompts (default: auto-detect via CI env var) */
   ciMode?: boolean;
   /**
@@ -83,8 +86,10 @@ export interface RunnerHostOptions {
 export class RunnerHost {
   private runnerPath: string;
   private ipcPort: number;
+  private runnerEnv: NodeJS.ProcessEnv;
   private readyTimeout: number;
   private onUnexpectedExit?: () => void;
+  private onSpawn?: (pid: number) => void;
   private ciMode: boolean;
   private promptTimeout: number;
 
@@ -119,9 +124,11 @@ export class RunnerHost {
 
   constructor(options: RunnerHostOptions) {
     this.runnerPath = path.resolve(options.runnerPath);
-    this.ipcPort = options.ipcPort ?? DEFAULT_IPC_PORT;
+    this.ipcPort = options.ipcPort;
+    this.runnerEnv = options.runnerEnv ?? {};
     this.readyTimeout = options.readyTimeout ?? 30000;
     this.onUnexpectedExit = options.onUnexpectedExit;
+    this.onSpawn = options.onSpawn;
     this.ciMode = options.ciMode ?? !!process.env.CI;
     this.promptTimeout = options.promptTimeout ?? 120000;
 
@@ -535,6 +542,8 @@ export class RunnerHost {
    * Cleanup: stop runner, close connections
    */
   async cleanup(): Promise<void> {
+    let runnerStopped = true;
+
     // Try to stop gracefully first
     if (this.runnerSocket?.readyState === WebSocket.OPEN) {
       try {
@@ -557,9 +566,21 @@ export class RunnerHost {
     }
 
     // Kill runner process
-    if (this.runnerProcess && !this.runnerProcess.killed) {
-      this.runnerProcess.kill();
-      this.runnerProcess = undefined;
+    if (this.runnerProcess) {
+      const runnerProcess = this.runnerProcess;
+      if (
+        runnerProcess.exitCode === null &&
+        runnerProcess.signalCode === null
+      ) {
+        runnerProcess.kill("SIGTERM");
+      }
+      if (!(await waitForChildExit(runnerProcess, 5000))) {
+        runnerProcess.kill("SIGKILL");
+        runnerStopped = await waitForChildExit(runnerProcess, 2000);
+      }
+      if (runnerStopped) {
+        this.runnerProcess = undefined;
+      }
     }
 
     // Close readline interface
@@ -573,6 +594,9 @@ export class RunnerHost {
     for (const [id, { reject }] of this.pendingRequests) {
       reject(new Error("Runner host shutting down"));
       this.pendingRequests.delete(id);
+    }
+    if (!runnerStopped) {
+      throw new Error("Runner process did not exit after SIGKILL");
     }
   }
 
@@ -654,10 +678,14 @@ export class RunnerHost {
     this.runnerProcess = spawn(command, args, {
       env: {
         ...process.env,
+        ...this.runnerEnv,
         [IPC_PORT_ENV_VAR]: this.ipcPort.toString(),
       },
       stdio: ["ignore", "inherit", "pipe"],
     });
+    if (this.runnerProcess.pid !== undefined) {
+      this.onSpawn?.(this.runnerProcess.pid);
+    }
 
     this.runnerProcess.stderr?.on("data", (data) => {
       const lines = data.toString().trim().split("\n");
@@ -850,4 +878,26 @@ export class RunnerHost {
     }
     // In non-CI mode, do nothing - let user input work
   }
+}
+
+function waitForChildExit(
+  child: ChildProcess,
+  timeout: number
+): Promise<boolean> {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const onExit = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    const timer = setTimeout(() => {
+      child.off("exit", onExit);
+      resolve(child.exitCode !== null || child.signalCode !== null);
+    }, timeout);
+    child.once("exit", onExit);
+    if (child.exitCode !== null || child.signalCode !== null) onExit();
+  });
 }
