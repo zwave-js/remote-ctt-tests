@@ -19,29 +19,27 @@ Trigger on requests like "run the full test suite", "see how far we get in
 CTT", "go through all the certification tests", "figure out why test X fails
 and fix it", or "give me a pass/fail report for the CTT suite".
 
-## Serial execution — never parallelize test runs
+## Parallel execution
 
-Only one test can run at a time: the emulated Z-Wave stack binaries, the CTT
-process, and the DUT all hold exclusive ports (5000-5004, 4711-4713, 4905) and
-share one on-disk network state. Run tests one after another with
-`npm run start -- --test=<name>`, never with concurrent `npm run start`
-invocations, and never split test execution across parallel subagents. This
-constraint applies only to test execution — research and investigation can and
-should run in parallel subagents (see below).
+Each `npm run start` invocation reserves its own ports and creates an isolated
+`.ctt-runs/<run-id>/` directory. The directory contains a fresh copy of the
+committed network state, CTT project, settings, and logs. Independent tests can
+run concurrently on one host. Limit concurrency to what the host can support.
+Keep code changes in the coordinating session so test workers do not edit the
+same files.
 
 ## Step-by-step workflow
 
 1. **Discover tests.** Run `npm run start -- --discover` to list every test
-   case with its category and group. Keep this list as the master checklist.
-2. **Restore network state before each test.** Run
-   [`setup/unpack-network-state-archive.ts`](../../../setup/unpack-network-state-archive.ts)
-   to reset the emulated devices' and DUT's storage to the known-good network
-   before every single test run, not just once at the start. This avoids
-   failures caused by state corruption or drift left over from a previous
-   test.
-3. **Run the test.** `npm run start -- --test=<name> --verbose`. Record
-   pass/fail and, for CTT, note the log folder it just created under
-   [`ctt/project/Log/<timestamp>/`](../../../ctt/project/Log).
+   case with its category, group, and execution mode. Treat the test name and
+   mode as one identity because one name can have both Classic and LR instances.
+   Keep this list as the master checklist.
+2. **Run the test.**
+   `npm run start -- --test=<name> --mode=<Classic|LR> --verbose`. Always pass
+   the discovered mode. The harness extracts a fresh network state
+   automatically. Record the run directory from the `Run <id>: <path>` output.
+3. **Record the result.** Note the CTT log folder under
+   `.ctt-runs/<run-id>/ctt/project/Log/<timestamp>/`.
 4. **On failure, triage before touching anything** (see Failure triage below).
 5. **After a harness fix, rerun the same test** to confirm the fix, then
    continue down the checklist.
@@ -104,10 +102,10 @@ failure:
    confirmed wrong, document it and keep the CTT log folder, same as for a CTT
    bug.
 
-## Delegate research, keep execution serial
+## Delegate research and isolated test runs
 
-Use subagents to keep the main context clean, but only for research and
-investigation, never for running tests:
+Use subagents to keep the main context clean. Test workers may run independent
+tests because each process owns its ports and state:
 
 - Delegate reading the AWG spec text, decompiling a test DLL, and comparing
   behavior against the spec to a subagent (e.g. an `explore` or
@@ -117,10 +115,10 @@ investigation, never for running tests:
 - Delegate writing up a documented bug entry (zwave-js bug note, or a
   `docs/testing-results.md` addition) to a subagent once the root cause is
   known.
-- Do not delegate the actual `npm run start -- --test=...` invocation, the
-  network-state restore, or rerunning a test after a harness fix — do those
-  yourself, sequentially, since they share the same live devices/CTT/DUT
-  processes and can't run concurrently.
+- Give each test worker a disjoint list of `(test name, execution mode)` pairs.
+  Have it pass `--mode` and report the run directory and verdict for every test.
+- Apply harness fixes in the coordinating session. Rerun affected tests after
+  the fix so workers do not test different revisions.
 
 ## Final summary format (--discover-like)
 
@@ -150,10 +148,14 @@ Every test must land in exactly one bucket:
 
 ## Reference files
 
-- [`setup/unpack-network-state-archive.ts`](../../../setup/unpack-network-state-archive.ts) — restores emulated-device and DUT storage to the known-good network state.
+- [`setup/network-state.zip`](../../../setup/network-state.zip) — committed
+  network-state seed extracted into every run.
+- [`src/run-context.ts`](../../../src/run-context.ts) — allocates per-run ports,
+  storage, CTT settings, project files, and logs.
 - [`src/start.ts`](../../../src/start.ts) — orchestrator; `--discover`, `--test=`, `--category=`, `--group=` flags.
 - [`dut/zwave-js/prompt-handlers.ts`](../../../dut/zwave-js/prompt-handlers.ts) and [`dut/zwave-js/handlers/`](../../../dut/zwave-js/handlers) — CTT prompt/log handlers (see the `implement-test-handler` skill).
 - [`docs/testing-results.md`](../../../docs/testing-results.md) — existing log of CTT/harness bugs and workarounds; add new findings here.
-- [`ctt/project/Log/`](../../../ctt/project/Log) — per-run CTT logs, timestamped; retain the folder for any run that exposed a zwave-js/CTT/wrong-test bug.
+- `.ctt-runs/<run-id>/ctt/project/Log/` — per-run CTT logs; retain the run
+  directory for any run that exposed a zwave-js/CTT/wrong-test bug.
 - [`ctt/bin/Zats/ZatsTests/`](../../../ctt/bin/Zats/ZatsTests) — compiled test-case DLLs, decompile when a test's own assertion is in question.
 - `/home/dominic/repositories/AWG/source` — raw Z-Wave specification text (reStructuredText) to verify expected behavior against.

@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as net from "net";
 import * as os from "os";
 import * as path from "path";
-import { randomUUID } from "crypto";
+import { randomInt, randomUUID } from "crypto";
 import {
   getProcessIdentity,
   matchesProcessIdentity,
@@ -124,8 +124,17 @@ export class PortReservations {
   }
 
   private async reserveTcp(name: TcpPortName): Promise<number> {
+    const ranges = getNonEphemeralPortRanges();
     for (let attempt = 0; attempt < 100; attempt++) {
-      const { server, port } = await this.bindTcp();
+      let server: net.Server;
+      let port: number;
+      try {
+        port = randomPort(ranges);
+        server = await this.bindTcp(port);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") continue;
+        throw error;
+      }
       if (this.claimLease(name, "tcp", port)) {
         this.reservations.set(name, server);
         return port;
@@ -136,11 +145,17 @@ export class PortReservations {
   }
 
   private async reserveUdp(name: UdpPortName): Promise<number> {
+    const ranges = getNonEphemeralPortRanges();
     for (let attempt = 0; attempt < 100; attempt++) {
       try {
-        return await this.bindUdp(name, 0);
+        return await this.bindUdp(name, randomPort(ranges));
       } catch (error) {
-        if (!(error instanceof PortAlreadyLeasedError)) throw error;
+        if (
+          !(error instanceof PortAlreadyLeasedError) &&
+          (error as NodeJS.ErrnoException).code !== "EADDRINUSE"
+        ) {
+          throw error;
+        }
       }
     }
     throw new Error(`Could not reserve a leased UDP port for ${name}`);
@@ -150,15 +165,21 @@ export class PortReservations {
     name: string,
     size: number
   ): Promise<number> {
+    const ranges = getNonEphemeralPortRanges().filter(
+      (range) => range.end - range.start + 1 >= size
+    );
+    if (ranges.length === 0) {
+      throw new Error(
+        `No non-ephemeral UDP range can fit a block of ${size} ports`
+      );
+    }
     for (let attempt = 0; attempt < 100; attempt++) {
       const keys: string[] = [];
       try {
         const baseKey = `${name}:0`;
-        const base = await this.bindUdp(baseKey, 0);
+        const base = randomPort(ranges, size);
+        await this.bindUdp(baseKey, base);
         keys.push(baseKey);
-        if (base + size > 65536) {
-          throw new Error("Allocated UDP base is too close to port 65535");
-        }
         for (let offset = 1; offset < size; offset++) {
           const key = `${name}:${offset}`;
           await this.bindUdp(key, base + offset);
@@ -198,7 +219,7 @@ export class PortReservations {
     });
   }
 
-  private bindTcp(): Promise<{ server: net.Server; port: number }> {
+  private bindTcp(port: number): Promise<net.Server> {
     return new Promise((resolve, reject) => {
       const server = net.createServer();
       const onError = (error: Error) => {
@@ -206,15 +227,9 @@ export class PortReservations {
         reject(error);
       };
       server.once("error", onError);
-      server.listen(0, "127.0.0.1", () => {
+      server.listen(port, "127.0.0.1", () => {
         server.off("error", onError);
-        const address = server.address();
-        if (!address || typeof address === "string") {
-          server.close();
-          reject(new Error("Could not reserve a TCP port"));
-          return;
-        }
-        resolve({ server, port: address.port });
+        resolve(server);
       });
     });
   }
@@ -281,6 +296,56 @@ export class PortReservations {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
+}
+
+interface PortRange {
+  start: number;
+  end: number;
+}
+
+function getNonEphemeralPortRanges(): PortRange[] {
+  const [ephemeralStart, ephemeralEnd] = fs
+    .readFileSync("/proc/sys/net/ipv4/ip_local_port_range", "utf8")
+    .trim()
+    .split(/\s+/)
+    .map(Number);
+  if (
+    !Number.isInteger(ephemeralStart) ||
+    !Number.isInteger(ephemeralEnd) ||
+    ephemeralStart! < 1 ||
+    ephemeralEnd! > 65535 ||
+    ephemeralStart! > ephemeralEnd!
+  ) {
+    throw new Error("Could not determine the Linux ephemeral port range");
+  }
+
+  return [
+    { start: 1024, end: ephemeralStart! - 1 },
+    { start: ephemeralEnd! + 1, end: 65535 },
+  ].filter((range) => range.start <= range.end);
+}
+
+function randomPort(ranges: PortRange[], blockSize = 1): number {
+  const weightedRanges = ranges
+    .map((range) => ({
+      range,
+      choices: range.end - range.start - blockSize + 2,
+    }))
+    .filter(({ choices }) => choices > 0);
+  const totalChoices = weightedRanges.reduce(
+    (total, { choices }) => total + choices,
+    0
+  );
+  if (totalChoices === 0) {
+    throw new Error(`No non-ephemeral port range can fit ${blockSize} ports`);
+  }
+
+  let choice = randomInt(totalChoices);
+  for (const { range, choices } of weightedRanges) {
+    if (choice < choices) return range.start + choice;
+    choice -= choices;
+  }
+  throw new Error("Could not select a non-ephemeral port");
 }
 
 function readLeaseOwner(file: string): ProcessIdentity | undefined {

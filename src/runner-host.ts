@@ -560,8 +560,18 @@ export class RunnerHost {
     }
 
     // Kill runner process
-    if (this.runnerProcess && !this.runnerProcess.killed) {
-      this.runnerProcess.kill();
+    if (this.runnerProcess) {
+      const runnerProcess = this.runnerProcess;
+      if (
+        runnerProcess.exitCode === null &&
+        runnerProcess.signalCode === null
+      ) {
+        runnerProcess.kill("SIGTERM");
+      }
+      if (!(await waitForChildExit(runnerProcess, 5000))) {
+        runnerProcess.kill("SIGKILL");
+        await waitForChildExit(runnerProcess, 2000);
+      }
       this.runnerProcess = undefined;
     }
 
@@ -854,4 +864,26 @@ export class RunnerHost {
     }
     // In non-CI mode, do nothing - let user input work
   }
+}
+
+function waitForChildExit(
+  child: ChildProcess,
+  timeout: number
+): Promise<boolean> {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const onExit = () => {
+      globalThis.clearTimeout(timer);
+      resolve(true);
+    };
+    const timer = globalThis.setTimeout(() => {
+      child.off("exit", onExit);
+      resolve(child.exitCode !== null || child.signalCode !== null);
+    }, timeout);
+    child.once("exit", onExit);
+    if (child.exitCode !== null || child.signalCode !== null) onExit();
+  });
 }

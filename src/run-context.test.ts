@@ -43,7 +43,23 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
       assert(!firstUdpPorts.has(port), `UDP port ${port} was reserved twice`);
     }
 
+    const [ephemeralStart, ephemeralEnd] = fs
+      .readFileSync("/proc/sys/net/ipv4/ip_local_port_range", "utf8")
+      .trim()
+      .split(/\s+/)
+      .map(Number);
     for (const context of contexts) {
+      for (const port of [
+        ...Object.values(context.ports.tcp),
+        context.ports.udp.znifferDiscovery,
+        ...znePorts(context.ports.zneBase),
+      ]) {
+        assert(
+          port < ephemeralStart! || port > ephemeralEnd!,
+          `Port ${port} is inside the ephemeral range`
+        );
+      }
+
       assert(fs.existsSync(path.join(context.paths.stackStorage, "controller1")));
       assert(fs.existsSync(path.join(context.paths.dutStorage, "cache.jsonl")));
 
@@ -72,8 +88,12 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
           path.join(context.paths.cttHome, ".ctt4", "settings.json"),
           "utf8"
         )
-      ) as { KeyStorageFolder: string };
+      ) as {
+        KeyStorageFolder: string;
+        SimplicityCommanderPath: string;
+      };
       assert.equal(settings.KeyStorageFolder, path.join(repoRoot, "ctt", "keys"));
+      assert.equal(settings.SimplicityCommanderPath, "/usr/bin/true");
     }
   } finally {
     await Promise.all(

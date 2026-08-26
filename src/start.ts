@@ -744,6 +744,62 @@ class ProcessManager {
     }
   }
 
+  private async terminateManagedProcesses(): Promise<void> {
+    for (const managedProcess of this.processes) {
+      this.killProcess(managedProcess);
+    }
+
+    const survivors: ManagedProcess[] = [];
+    for (const managedProcess of this.processes) {
+      if (!(await this.waitForProcessExit(managedProcess, 5000))) {
+        survivors.push(managedProcess);
+      }
+    }
+
+    for (const { pid } of survivors) {
+      if (!pid) continue;
+      try {
+        process.kill(-pid, "SIGKILL");
+      } catch {
+        // The process group may have exited after the timeout.
+      }
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // The process may have exited after the timeout.
+      }
+    }
+
+    await Promise.all(
+      survivors.map((managedProcess) =>
+        this.waitForProcessExit(managedProcess, 2000)
+      )
+    );
+  }
+
+  private waitForProcessExit(
+    managedProcess: ManagedProcess,
+    timeout: number
+  ): Promise<boolean> {
+    const child = managedProcess.process;
+    if (child.exitCode !== null || child.signalCode !== null) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      const onExit = () => {
+        globalThis.clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = globalThis.setTimeout(() => {
+        child.off("exit", onExit);
+        resolve(child.exitCode !== null || child.signalCode !== null);
+      }, timeout);
+      child.once("exit", onExit);
+      if (child.exitCode !== null || child.signalCode !== null) onExit();
+    });
+  }
+
   async cleanup(failed = false): Promise<void> {
     if (failed) this.hasTestFailures = true;
     if (this.isCleaningUp) return;
@@ -780,10 +836,7 @@ class ProcessManager {
       await this.deviceProxy.close();
     }
 
-    // Kill all managed processes
-    for (const managedProcess of this.processes) {
-      this.killProcess(managedProcess);
-    }
+    await this.terminateManagedProcesses();
 
     await this.context.reservations.releaseAll();
     this.manifest.complete(this.hasTestFailures);
@@ -813,8 +866,6 @@ class ProcessManager {
         // Already dead
       }
     }
-
-    this.manifest.complete(true);
   }
 
   setupExitHandlers(): void {

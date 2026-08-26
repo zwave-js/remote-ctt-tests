@@ -136,6 +136,7 @@ jobs:
         name: "Root Device.cttproj"
         path: .ctt-runs/*/ctt/project/root device/Root Device.cttproj
         if-no-files-found: ignore
+        include-hidden-files: true
 
     - name: Upload Z-Wave JS logs
       uses: actions/upload-artifact@v4
@@ -144,3 +145,4 @@ jobs:
         name: zwave-js-logs
         path: .ctt-runs/*/logs/dut/
         if-no-files-found: ignore
+        include-hidden-files: true
