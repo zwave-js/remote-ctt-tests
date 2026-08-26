@@ -1,3 +1,5 @@
+// Linux process identities prevent PID reuse from targeting an unrelated process
+
 import * as fs from "fs";
 
 export interface ProcessIdentity {

@@ -1,3 +1,5 @@
+// A run context isolates ports, writable state, generated configuration, and logs
+
 import { execFileSync } from "child_process";
 import * as dgram from "dgram";
 import * as fs from "fs";

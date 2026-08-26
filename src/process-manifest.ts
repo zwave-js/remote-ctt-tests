@@ -1,3 +1,5 @@
+// Run manifests preserve process ownership data for crash recovery
+
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "crypto";
