@@ -1,7 +1,8 @@
-import { CentralSceneCCValues, CentralSceneKeys, type ZWaveNode, type ZWaveNodeValueNotificationArgs } from "zwave-js";
+import { CentralSceneCCValues, CentralSceneKeys } from "zwave-js";
 import { CommandClasses } from "@zwave-js/core";
 import { registerHandler } from "../../prompt-handlers.ts";
 import type { VerifyStateMessage, VerifySceneMessage } from "../../../../src/ctt-message-types.ts";
+import type { NodeProxy } from "../../zwave-client.ts";
 
 const keyMapping: Record<string, CentralSceneKeys> = {
   "Key Pressed 1 time": CentralSceneKeys.KeyPressed,
@@ -20,7 +21,7 @@ let currentSceneCleanup: (() => void) | undefined;
 
 registerHandler("CCR_CentralSceneCC_Rev03", {
   async onTestStart(ctx) {
-    const { driver, state } = ctx;
+    const { client, state } = ctx;
 
     // Clean up any leftover listener from previous test
     if (currentSceneCleanup) {
@@ -31,7 +32,12 @@ registerHandler("CCR_CentralSceneCC_Rev03", {
     const sceneEvents = new Map<number, CentralSceneKeys>();
     state.set(SCENE_EVENTS, sceneEvents);
 
-    const onValueNotification = (node: ZWaveNode, args: ZWaveNodeValueNotificationArgs) => {
+    const onValueNotification = (node: NodeProxy | undefined, args: {
+      commandClass: number;
+      property: string;
+      propertyKey?: string | number;
+      value: unknown;
+    }) => {
       if (args.commandClass !== CommandClasses["Central Scene"]) return;
       if (CentralSceneCCValues.scene.is(args)) {
         // Property key is a zero-padded string
@@ -40,9 +46,9 @@ registerHandler("CCR_CentralSceneCC_Rev03", {
       }
     };
 
-    driver.on("node value notification", onValueNotification);
+    client.on("node value notification", onValueNotification);
     currentSceneCleanup = () => {
-      driver.off("node value notification", onValueNotification);
+      client.off("node value notification", onValueNotification);
     };
   },
 

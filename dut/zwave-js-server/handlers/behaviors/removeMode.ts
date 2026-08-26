@@ -5,14 +5,13 @@
  */
 
 import { registerHandler } from "../../prompt-handlers.ts";
-import type { ZWaveNode } from "zwave-js";
 
 // Module-level variable to track cleanup function (persists across test state clears)
 let currentRemovalCleanup: (() => void) | undefined;
 
 registerHandler(/.*/, {
   async onTestStart(ctx) {
-    const { driver, includedNodes } = ctx;
+    const { client, includedNodes } = ctx;
 
     // Clean up any leftover listener from previous test
     if (currentRemovalCleanup) {
@@ -21,16 +20,16 @@ registerHandler(/.*/, {
     }
 
     // Listen for node removal to update includedNodes
-    const onNodeRemoved = (node: ZWaveNode) => {
-      const index = includedNodes.indexOf(node);
+    const onNodeRemoved = (nodeId: number) => {
+      const index = includedNodes.findIndex((n) => n.id === nodeId);
       if (index !== -1) {
         includedNodes.splice(index, 1);
       }
     };
 
-    driver.controller.on("node removed", onNodeRemoved);
+    client.on("node removed", onNodeRemoved);
     currentRemovalCleanup = () => {
-      driver.controller.off("node removed", onNodeRemoved);
+      client.off("node removed", onNodeRemoved);
     };
   },
 
@@ -40,9 +39,9 @@ registerHandler(/.*/, {
       ctx.message?.type === "ACTIVATE_NETWORK_MODE" &&
       ctx.message.mode === "REMOVE"
     ) {
-      const { driver } = ctx;
+      const { client } = ctx;
 
-      await driver.controller.beginExclusion();
+      await client.sendCommand("controller.begin_exclusion", {});
       return "Ok";
     }
 
