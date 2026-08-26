@@ -35,6 +35,7 @@ jobs:
   run-zwave:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 270
 
     steps:
     - name: Checkout repository
@@ -92,6 +93,7 @@ jobs:
 
     ## Do the testing stuff
     - name: Run CTT tests
+      timeout-minutes: 240
       run: |
         npm start -- \
           --group=Automatic \
@@ -147,5 +149,16 @@ jobs:
       with:
         name: zwave-js-logs
         path: .ctt-runs/*/logs/dut/
+        if-no-files-found: ignore
+        include-hidden-files: true
+
+    - name: Upload CTT runtime diagnostics
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ctt-runtime-diagnostics
+        path: |
+          .ctt-runs/*/logs/ctt-remote.log
+          .ctt-runs/*/run.json
         if-no-files-found: ignore
         include-hidden-files: true

@@ -101,28 +101,30 @@ export class PortReservations {
         reservations,
       };
     } catch (error) {
-      await reservations.releaseAll();
+      await reservations.close();
       throw error;
     }
   }
 
-  async release(name: TcpPortName | UdpPortName): Promise<void> {
-    await this.releaseKey(name);
+  async handoff(name: TcpPortName | UdpPortName): Promise<void> {
+    await this.closeReservation(name);
   }
 
-  async releaseZneBlock(): Promise<void> {
+  async handoffZneBlock(): Promise<void> {
     const keys = [...this.reservations.keys()].filter((key) =>
       key.startsWith("zne:")
     );
-    await Promise.all(keys.map((key) => this.releaseKey(key)));
+    await Promise.all(keys.map((key) => this.closeReservation(key)));
   }
 
-  async releaseAll(): Promise<void> {
+  async close(): Promise<void> {
     const keys = new Set([
       ...this.reservations.keys(),
       ...this.leases.keys(),
     ]);
-    await Promise.all([...keys].map((key) => this.releaseKey(key, true)));
+    await Promise.all(
+      [...keys].map((key) => this.closeReservation(key, true))
+    );
   }
 
   private async reserveTcp(name: TcpPortName): Promise<number> {
@@ -132,12 +134,20 @@ export class PortReservations {
       let port: number;
       try {
         port = randomPort(ranges);
+        if (hasActiveLease("tcp", port)) continue;
         server = await this.bindTcp(port);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") continue;
         throw error;
       }
-      if (this.claimLease(name, "tcp", port)) {
+      let claimed: boolean;
+      try {
+        claimed = this.claimLease(name, "tcp", port);
+      } catch (error) {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+        throw error;
+      }
+      if (claimed) {
         this.reservations.set(name, server);
         return port;
       }
@@ -180,6 +190,13 @@ export class PortReservations {
       try {
         const baseKey = `${name}:0`;
         const base = randomPort(ranges, size);
+        if (
+          Array.from({ length: size }, (_, offset) => base + offset).some(
+            (port) => hasActiveLease("udp", port)
+          )
+        ) {
+          continue;
+        }
         await this.bindUdp(baseKey, base);
         keys.push(baseKey);
         for (let offset = 1; offset < size; offset++) {
@@ -189,7 +206,9 @@ export class PortReservations {
         }
         return base;
       } catch {
-        await Promise.all(keys.map((key) => this.releaseKey(key, true)));
+        await Promise.all(
+          keys.map((key) => this.closeReservation(key, true))
+        );
       }
     }
     throw new Error(`Could not reserve a contiguous UDP block of ${size} ports`);
@@ -197,6 +216,10 @@ export class PortReservations {
 
   private bindUdp(name: string, port: number): Promise<number> {
     return new Promise((resolve, reject) => {
+      if (hasActiveLease("udp", port)) {
+        reject(new PortAlreadyLeasedError(`UDP port ${port} is leased`));
+        return;
+      }
       const socket = dgram.createSocket("udp4");
       const onError = (error: Error) => {
         socket.close();
@@ -205,18 +228,23 @@ export class PortReservations {
       socket.once("error", onError);
       socket.bind(port, "127.0.0.1", () => {
         socket.off("error", onError);
-        const address = socket.address();
-        if (!this.claimLease(name, "udp", address.port)) {
+        try {
+          const address = socket.address();
+          if (!this.claimLease(name, "udp", address.port)) {
+            socket.close();
+            reject(
+              new PortAlreadyLeasedError(
+                `UDP port ${address.port} already has a lease`
+              )
+            );
+            return;
+          }
+          this.reservations.set(name, socket);
+          resolve(address.port);
+        } catch (error) {
           socket.close();
-          reject(
-            new PortAlreadyLeasedError(
-              `UDP port ${address.port} already has a lease`
-            )
-          );
-          return;
+          reject(error);
         }
-        this.reservations.set(name, socket);
-        resolve(address.port);
       });
     });
   }
@@ -241,12 +269,7 @@ export class PortReservations {
     protocol: "tcp" | "udp",
     port: number
   ): boolean {
-    const leasesRoot = path.join(
-      os.tmpdir(),
-      "remote-ctt-tests-port-leases"
-    );
-    fs.mkdirSync(leasesRoot, { recursive: true });
-    const leaseFile = path.join(leasesRoot, `${protocol}-${port}.json`);
+    const leaseFile = getLeaseFile(protocol, port);
     const candidateFile = `${leaseFile}.${process.pid}.${randomUUID()}.tmp`;
     fs.writeFileSync(
       candidateFile,
@@ -256,20 +279,13 @@ export class PortReservations {
 
     try {
       for (let attempt = 0; attempt < 3; attempt++) {
+        if (hasActiveLease(protocol, port)) return false;
         try {
           fs.linkSync(candidateFile, leaseFile);
           this.leases.set(name, leaseFile);
           return true;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-        }
-
-        const existingOwner = readLeaseOwner(leaseFile);
-        if (existingOwner && matchesProcessIdentity(existingOwner)) return false;
-        try {
-          fs.unlinkSync(leaseFile);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
         }
       }
       return false;
@@ -278,7 +294,7 @@ export class PortReservations {
     }
   }
 
-  private async releaseKey(
+  private async closeReservation(
     name: string,
     removeLease = false
   ): Promise<void> {
@@ -361,20 +377,75 @@ function readLeaseOwner(file: string): ProcessIdentity | undefined {
   }
 }
 
+function hasActiveLease(protocol: "tcp" | "udp", port: number): boolean {
+  const leaseFile = getLeaseFile(protocol, port);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let before: fs.Stats;
+    try {
+      before = fs.lstatSync(leaseFile);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    }
+
+    const owner = readLeaseOwner(leaseFile);
+    if (owner && matchesProcessIdentity(owner)) return true;
+
+    try {
+      const current = fs.lstatSync(leaseFile);
+      if (current.dev !== before.dev || current.ino !== before.ino) continue;
+      fs.unlinkSync(leaseFile);
+      return false;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    }
+  }
+  return true;
+}
+
+function getLeaseFile(protocol: "tcp" | "udp", port: number): string {
+  return path.join(getLeaseRoot(), `${protocol}-${port}.json`);
+}
+
+function getLeaseRoot(): string {
+  const uid = process.getuid?.();
+  if (uid === undefined) {
+    throw new Error("Port leases require a Linux user ID");
+  }
+
+  const leasesRoot = path.join(
+    os.tmpdir(),
+    `remote-ctt-tests-${uid}-port-leases`
+  );
+  try {
+    fs.mkdirSync(leasesRoot, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+
+  const stat = fs.lstatSync(leasesRoot);
+  if (
+    stat.isSymbolicLink() ||
+    !stat.isDirectory() ||
+    stat.uid !== uid ||
+    (stat.mode & 0o077) !== 0
+  ) {
+    throw new Error(
+      `Port lease directory must be owned by UID ${uid} with mode 0700: ${leasesRoot}`
+    );
+  }
+  return leasesRoot;
+}
+
 function cleanupStaleLeases(): void {
-  const leasesRoot = path.join(os.tmpdir(), "remote-ctt-tests-port-leases");
-  if (!fs.existsSync(leasesRoot)) return;
+  const leasesRoot = getLeaseRoot();
 
   for (const entry of fs.readdirSync(leasesRoot, { withFileTypes: true })) {
     if (!entry.isFile() || !/^(tcp|udp)-\d+\.json$/.test(entry.name)) continue;
     const leaseFile = path.join(leasesRoot, entry.name);
-    const owner = readLeaseOwner(leaseFile);
-    if (owner && matchesProcessIdentity(owner)) continue;
-    try {
-      fs.unlinkSync(leaseFile);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
+    const [, protocol, port] = /^(tcp|udp)-(\d+)\.json$/.exec(entry.name)!;
+    hasActiveLease(protocol as "tcp" | "udp", Number(port));
   }
 }
 
@@ -406,25 +477,28 @@ export async function createRunContext(repoRoot: string): Promise<RunContext> {
     manifest: path.join(root, "run.json"),
   };
 
-  for (const directory of [
-    paths.cttHome,
-    path.dirname(paths.cttLog),
-    paths.dutLogs,
-    paths.nodeTemp,
-  ]) {
-    fs.mkdirSync(directory, { recursive: true });
-  }
-
-  const { ports, reservations } = await PortReservations.create();
+  let reservations: PortReservations | undefined;
   try {
+    for (const directory of [
+      paths.cttHome,
+      path.dirname(paths.cttLog),
+      paths.dutLogs,
+      paths.nodeTemp,
+    ]) {
+      fs.mkdirSync(directory, { recursive: true });
+    }
+
+    const allocation = await PortReservations.create();
+    reservations = allocation.reservations;
+    const { ports } = allocation;
     initializeNetworkState(repoRoot, paths);
     initializeCttProject(repoRoot, paths, ports);
+    return { id, paths, ports, reservations };
   } catch (error) {
-    await reservations.releaseAll();
+    await reservations?.close();
+    fs.rmSync(root, { recursive: true, force: true });
     throw error;
   }
-
-  return { id, paths, ports, reservations };
 }
 
 function initializeNetworkState(

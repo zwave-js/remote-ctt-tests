@@ -8,8 +8,11 @@ import {
   getProcessIdentity,
   matchesProcessIdentity,
   processGroupCanBeTerminated,
+  signalOwnedProcess,
   type ProcessIdentity,
 } from "./process-identity.ts";
+
+const RUN_MANIFEST_SCHEMA_VERSION = 1;
 
 interface ManagedProcessIdentity extends ProcessIdentity {
   name: string;
@@ -17,6 +20,7 @@ interface ManagedProcessIdentity extends ProcessIdentity {
 }
 
 interface RunManifest {
+  schemaVersion: typeof RUN_MANIFEST_SCHEMA_VERSION;
   id: string;
   status: "running" | "completed" | "failed" | "stale-cleaned";
   startedAt: string;
@@ -37,6 +41,7 @@ export class ProcessManifest {
   ) {
     this.file = paths.manifest;
     this.data = {
+      schemaVersion: RUN_MANIFEST_SCHEMA_VERSION,
       id,
       status: "running",
       startedAt: new Date().toISOString(),
@@ -64,9 +69,7 @@ export class ProcessManifest {
   }
 
   private write(): void {
-    const temporaryFile = `${this.file}.tmp`;
-    fs.writeFileSync(temporaryFile, JSON.stringify(this.data, null, 2));
-    fs.renameSync(temporaryFile, this.file);
+    writeJsonAtomic(this.file, this.data);
   }
 }
 
@@ -86,10 +89,9 @@ export function cleanupStaleRuns(runsRoot: string): void {
         : matchesProcessIdentity(processIdentity);
       if (!canTerminate) continue;
       try {
-        process.kill(
-          processIdentity.processGroup
-            ? -processIdentity.pid
-            : processIdentity.pid,
+        signalOwnedProcess(
+          processIdentity.pid,
+          processIdentity.processGroup,
           "SIGKILL"
         );
       } catch {
@@ -99,18 +101,76 @@ export function cleanupStaleRuns(runsRoot: string): void {
 
     manifest.status = "stale-cleaned";
     manifest.finishedAt = new Date().toISOString();
-    const temporaryFile = `${manifestPath}.${process.pid}.${randomUUID()}.tmp`;
-    fs.writeFileSync(temporaryFile, JSON.stringify(manifest, null, 2));
-    fs.renameSync(temporaryFile, manifestPath);
+    writeJsonAtomic(manifestPath, manifest);
   }
 }
 
 function readManifest(file: string): RunManifest | undefined {
   if (!fs.existsSync(file)) return undefined;
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8")) as RunManifest;
+    const manifest: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (!isRunManifest(manifest)) {
+      console.warn(`Skipping unsupported run manifest ${file}`);
+      return undefined;
+    }
+    return manifest;
   } catch (error) {
     console.warn(`Skipping unreadable run manifest ${file}:`, error);
     return undefined;
+  }
+}
+
+function isRunManifest(value: unknown): value is RunManifest {
+  if (!isRecord(value)) return false;
+  if (value.schemaVersion !== RUN_MANIFEST_SCHEMA_VERSION) return false;
+  if (typeof value.id !== "string") return false;
+  if (
+    value.status !== "running" &&
+    value.status !== "completed" &&
+    value.status !== "failed" &&
+    value.status !== "stale-cleaned"
+  ) {
+    return false;
+  }
+  if (!isProcessIdentity(value.owner)) return false;
+  if (!Array.isArray(value.processes)) return false;
+  return value.processes.every(isManagedProcessIdentity);
+}
+
+function isManagedProcessIdentity(
+  value: unknown
+): value is ManagedProcessIdentity {
+  return (
+    isRecord(value) &&
+    isProcessIdentity(value) &&
+    typeof value.name === "string" &&
+    typeof value.processGroup === "boolean"
+  );
+}
+
+function isProcessIdentity(value: unknown): value is ProcessIdentity {
+  return (
+    isRecord(value) &&
+    typeof value.pid === "number" &&
+    Number.isInteger(value.pid) &&
+    typeof value.startTime === "string"
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function writeJsonAtomic(file: string, value: unknown): void {
+  const temporaryFile = `${file}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporaryFile, JSON.stringify(value, null, 2));
+    fs.renameSync(temporaryFile, file);
+  } finally {
+    try {
+      fs.unlinkSync(temporaryFile);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
 }

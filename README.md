@@ -22,17 +22,33 @@ This project provides a complete framework for running Z-Wave CTT certification 
 
 ## Architecture
 
+```text
+                         ┌───────────────────────────────┐
+                         │ Orchestrator                  │
+                         │ allocates one isolated run    │
+                         └───────────────┬───────────────┘
+                                         │
+                ┌────────────────────────┼────────────────────────┐
+                │                        │                        │
+       dynamic RPC/callback       dynamic runner IPC       per-run files
+                │                        │                        │
+        ┌───────▼────────┐       ┌───────▼────────┐       ┌──────▼─────────┐
+        │ CTT Remote 4   │       │ DUT runner     │       │ .ctt-runs/id/ │
+        └───────┬────────┘       └───────┬────────┘       │ state, project │
+                │                        │                │ settings, logs │
+       four dynamic proxies      Controller 1 TCP        └────────────────┘
+                │                        │
+        ┌───────▼────────────────────────▼───────┐
+        │ Five emulated Z-Wave nodes             │
+        │ private routed ZNE UDP network         │
+        └───────────────────┬────────────────────┘
+                            │
+                     dynamic Zniffer TCP
+```
+
 Each invocation creates `.ctt-runs/<run-id>/` and reserves a fresh set of
 loopback ports. The orchestrator writes the selected ports into its copied CTT
 project before it starts CTT.
-
-```text
-Orchestrator
-├── CTT Remote 4             dynamic RPC and callback ports
-├── DUT runner               dynamic IPC, controller, and server ports
-├── four CTT device proxies  dynamic listener and emulator ports
-└── routed ZNE hub           private UDP radio network and Zniffer port
-```
 
 All mutable storage, CTT settings, generated project files, and logs stay in
 that run directory. Static binaries, keys, handlers, and the committed CTT
@@ -87,13 +103,22 @@ npm run devices
 Starts five Z-Wave nodes and one Zniffer with dynamically selected ports. The
 command prints every address and the run directory.
 
-### Step 3: Configure CTT Project
+### Step 3: Migrate a CTT 3 project (optional)
+
+```bash
+npm run ctt
+```
+
+Use this only when importing a project created by CTT 3. CTT Remote updates the
+committed project in place. Review the generated changes before continuing.
+
+### Step 4: Configure CTT Project
 
 1. Create a new project in the CTT GUI ("Classic" CTT is still needed for project creation)
 2. Set up five IP-based devices with the addresses printed by
    `npm run devices`.
 
-### Step 4: Set Up CTT Network with DUT
+### Step 5: Set Up CTT Network with DUT
 
 Configure the DUT with the printed Controller 1 URL. Then establish the test
 network:
@@ -105,7 +130,7 @@ To test both scenarios, you'll need separate CTT projects.
 
 Make sure to finish creation of the network, including the query for DUT capabilities.
 
-### Step 5: Copy CTT Project Files
+### Step 6: Copy CTT Project Files
 
 Copy from CTT's project folder to `ctt/project/`:
 
@@ -117,7 +142,7 @@ ctt/project/
 └── ZWave_CTT_CommandClasses.cttxml    # Command classes definition
 ```
 
-### Step 6: Create DUT Runner Script
+### Step 7: Create DUT Runner Script
 
 Implement the IPC protocol (JSON-RPC 2.0 over WebSocket):
 
@@ -130,7 +155,7 @@ Implement the IPC protocol (JSON-RPC 2.0 over WebSocket):
 
 See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation and [docs/ipc-protocol.md](docs/ipc-protocol.md) for the full protocol specification.
 
-### Step 7: Update config.json
+### Step 8: Update config.json
 
 ```json
 {
@@ -155,17 +180,16 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
   - `%HOME_ID_LOWER%` - homeId in lowercase
   - `%HOME_ID_UPPER%` - homeId in uppercase
 
-### Step 8: Pack the network-state archive
+### Step 9: Pack the network-state archive
 
 ```bash
 ./setup/pack-network-state-archive.ts
 ```
 
 This reads the known-good capture state from `zwave_stack/storage/` and
-`config.dut.storageDir`. It never reads `.ctt-runs/`. The generated
-`setup/network-state.zip` is committed and becomes the immutable seed for CI
-and every individual test run. Regenerate it only after intentionally updating
-and validating the capture network.
+`config.dut.storageDir`. The generated `setup/network-state.zip` is committed
+and becomes the immutable seed for CI and every individual test run. Regenerate
+it only after intentionally updating and validating the capture network.
 
 CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo
 downloads it from a private GitHub repository
@@ -176,8 +200,7 @@ the archive to contain:
 
 ```
 ctt-setup.zip
-├── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
-└── appdata/      # ignored; the harness generates per-run settings
+└── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
 ```
 
 CTT reads its Linux settings from `~/.ctt4/settings.json`. The harness creates
@@ -185,7 +208,7 @@ that file inside each run directory. It sets `SimplicityCommanderPath` to
 `/usr/bin/true`. The virtual test environment does not use Simplicity Commander,
 but ZATS scans the filesystem for it when the setting is empty.
 
-### Step 9: Git Commit
+### Step 10: Git Commit
 
 **Check in:**
 

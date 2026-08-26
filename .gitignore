@@ -5,6 +5,12 @@ setup/zats-input-patch/**/obj/
 # Per-run state, generated projects, and logs
 .ctt-runs/
 
+# Legacy runtime files from the shared-state harness
+ctt/project/lock
+ctt/project/Log
+ctt/project/Backup_*/
+dut/zwave-js/log/
+
 # Known-good network-state capture directories
 zwave_stack/storage/
 dut/zwave-js/storage/

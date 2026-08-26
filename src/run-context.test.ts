@@ -1,7 +1,7 @@
 // These tests verify isolation between concurrent harness invocations
 
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -16,15 +16,10 @@ import {
 
 test("concurrent run contexts isolate ports, state, and CTT projects", async () => {
   const repoRoot = createFixtureRepository();
-  const firstContext = await createRunContext(repoRoot);
-  for (const name of Object.keys(firstContext.ports.tcp)) {
-    await firstContext.reservations.release(
-      name as keyof RuntimePorts["tcp"]
-    );
-  }
-  await firstContext.reservations.release("znifferDiscovery");
-  await firstContext.reservations.releaseZneBlock();
-  const contexts = [firstContext, await createRunContext(repoRoot)] as const;
+  const contexts = await Promise.all([
+    createRunContext(repoRoot),
+    createRunContext(repoRoot),
+  ]);
 
   try {
     assert.notEqual(contexts[0].paths.root, contexts[1].paths.root);
@@ -99,7 +94,7 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
     }
   } finally {
     await Promise.all(
-      contexts.map((context) => context.reservations.releaseAll())
+      contexts.map((context) => context.reservations.close())
     );
     fs.rmSync(repoRoot, { recursive: true, force: true });
   }
@@ -139,6 +134,79 @@ test("stale cleanup leaves active runs and marks dead runs", () => {
   assert.equal(data.status, "stale-cleaned");
 
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("stale cleanup kills owned processes and skips reused PIDs", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ctt-stale-test-"));
+  const runRoot = path.join(root, "stale");
+  fs.mkdirSync(runRoot);
+  const paths = createRuntimePaths(runRoot);
+  const manifest = new ProcessManifest("stale", paths, createRuntimePorts());
+  const orphan = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+    stdio: "ignore",
+  });
+  const reused = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+    stdio: "ignore",
+  });
+
+  try {
+    manifest.register("Owned orphan", orphan.pid, false);
+    const data = JSON.parse(fs.readFileSync(paths.manifest, "utf8")) as {
+      owner: { pid: number };
+      processes: Array<{
+        name: string;
+        pid: number;
+        startTime: string;
+        processGroup: boolean;
+      }>;
+    };
+    data.owner.pid = 2_000_000_000;
+    data.processes.push({
+      name: "Reused PID",
+      pid: reused.pid!,
+      startTime: "0",
+      processGroup: false,
+    });
+    fs.writeFileSync(paths.manifest, JSON.stringify(data));
+
+    const orphanExit = new Promise<void>((resolve) =>
+      orphan.once("exit", () => resolve())
+    );
+    cleanupStaleRuns(root);
+    await orphanExit;
+    assert.doesNotThrow(() => process.kill(reused.pid!, 0));
+  } finally {
+    reused.kill("SIGKILL");
+    orphan.kill("SIGKILL");
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("stale cleanup skips unknown manifest schemas", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ctt-schema-test-"));
+  const runRoot = path.join(root, "unknown");
+  fs.mkdirSync(runRoot);
+  const manifestPath = path.join(runRoot, "run.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({ schemaVersion: 999, status: "running" })
+  );
+
+  assert.doesNotThrow(() => cleanupStaleRuns(root));
+  assert.equal(
+    JSON.parse(fs.readFileSync(manifestPath, "utf8")).status,
+    "running"
+  );
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("failed run construction removes its partial directory", async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ctt-failed-run-"));
+  fs.mkdirSync(path.join(repoRoot, "ctt", "project"), { recursive: true });
+
+  await assert.rejects(createRunContext(repoRoot));
+  assert.deepEqual(fs.readdirSync(path.join(repoRoot, ".ctt-runs")), []);
+  fs.rmSync(repoRoot, { recursive: true, force: true });
 });
 
 function createFixtureRepository(): string {

@@ -53,6 +53,20 @@ export function processGroupHasMembers(processGroupId: number): boolean {
   return false;
 }
 
+export function signalOwnedProcess(
+  pid: number,
+  processGroup: boolean,
+  signal: NodeJS.Signals
+): boolean {
+  try {
+    process.kill(processGroup ? -pid : pid, signal);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+    throw error;
+  }
+}
+
 function parseStatFields(stat: string): string[] | undefined {
   const commandEnd = stat.lastIndexOf(") ");
   if (commandEnd === -1) return undefined;

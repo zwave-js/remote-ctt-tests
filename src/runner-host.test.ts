@@ -16,7 +16,7 @@ test("records the runner as soon as it is spawned", async () => {
   fs.writeFileSync(runnerPath, "setInterval(() => {}, 1000);\n");
 
   const { ports, reservations } = await PortReservations.create();
-  await reservations.release("runnerIpc");
+  await reservations.handoff("runnerIpc");
   const manifest = new ProcessManifest(
     "runner-spawn-test",
     {
@@ -56,7 +56,7 @@ test("records the runner as soon as it is spawned", async () => {
     await assert.rejects(initialization, /did not send ready notification/);
   } finally {
     await host.cleanup();
-    await reservations.releaseAll();
+    await reservations.close();
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

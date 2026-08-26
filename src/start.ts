@@ -28,7 +28,10 @@ import {
   cleanupStaleRuns,
   ProcessManifest,
 } from "./process-manifest.ts";
-import { processGroupHasMembers } from "./process-identity.ts";
+import {
+  processGroupHasMembers,
+  signalOwnedProcess,
+} from "./process-identity.ts";
 import c from "ansi-colors";
 import { setTimeout } from "timers/promises";
 import JSON5 from "json5";
@@ -154,7 +157,7 @@ class ProcessManager {
 
   private releasePorts(names: TcpPortName[]): Promise<void[]> {
     return Promise.all(
-      names.map((name) => this.context.reservations.release(name))
+      names.map((name) => this.context.reservations.handoff(name))
     );
   }
 
@@ -169,8 +172,8 @@ class ProcessManager {
       "endDevice2",
       "zniffer",
     ]);
-    await this.context.reservations.release("znifferDiscovery");
-    await this.context.reservations.releaseZneBlock();
+    await this.context.reservations.handoff("znifferDiscovery");
+    await this.context.reservations.handoffZneBlock();
 
     const timestamp = () => {
       const now = new Date();
@@ -381,9 +384,15 @@ class ProcessManager {
 
   }
 
-  async stopRunner(): Promise<void> {
-    if (this.runnerHost) {
+  async stopRunner(): Promise<boolean> {
+    if (!this.runnerHost) return true;
+    try {
       await this.runnerHost.cleanup();
+      return true;
+    } catch (error) {
+      console.error("Failed to stop runner:", error);
+      return false;
+    } finally {
       this.runnerHost = undefined;
     }
   }
@@ -391,7 +400,7 @@ class ProcessManager {
   async startCTT(verbose: boolean = false): Promise<ManagedProcess> {
     this.cttVerbose = verbose;
     this.cttLaunchAttempts++;
-    await this.context.reservations.release("cttRpc");
+    await this.context.reservations.handoff("cttRpc");
     const cttPath = path.join(CTT_PATH, "ZWaveCTT");
     const solutionPath = this.context.paths.cttSolution;
 
@@ -651,7 +660,7 @@ class ProcessManager {
   }
 
   async startWebSocketServer(): Promise<void> {
-    await this.context.reservations.release("cttCallback");
+    await this.context.reservations.handoff("cttCallback");
     this.wsServer = createWebSocketServer({
       port: this.context.ports.tcp.cttCallback,
       runnerHost: this.runnerHost,
@@ -727,13 +736,19 @@ class ProcessManager {
   killProcess(managedProcess: ManagedProcess): void {
     const { pid, process: proc } = managedProcess;
 
-    // Kill the whole process group (negative PID) so the stack's .elf/python
-    // children die with their bash leader. Fall back to the single process.
     if (pid) {
       try {
-        process.kill(-pid, "SIGTERM");
-      } catch {
-        // Group may not exist (process not detached) - fall through
+        if (
+          signalOwnedProcess(
+            pid,
+            managedProcess.processGroup,
+            "SIGTERM"
+          )
+        ) {
+          return;
+        }
+      } catch (error) {
+        console.error(`Error killing ${managedProcess.name}:`, error);
       }
     }
     if (proc && !proc.killed) {
@@ -757,17 +772,12 @@ class ProcessManager {
       }
     }
 
-    for (const { pid } of survivors) {
+    for (const { pid, processGroup } of survivors) {
       if (!pid) continue;
       try {
-        process.kill(-pid, "SIGKILL");
+        signalOwnedProcess(pid, processGroup, "SIGKILL");
       } catch {
         // The process group may have exited after the timeout.
-      }
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {
-        // The process may have exited after the timeout.
       }
     }
 
@@ -837,7 +847,7 @@ class ProcessManager {
     }
 
     // Stop DUT runner
-    await this.stopRunner();
+    const runnerStopped = await this.stopRunner();
 
     // Close device proxy
     if (this.deviceProxy) {
@@ -846,8 +856,8 @@ class ProcessManager {
 
     const allProcessesStopped = await this.terminateManagedProcesses();
 
-    await this.context.reservations.releaseAll();
-    if (allProcessesStopped) {
+    await this.context.reservations.close();
+    if (runnerStopped && allProcessesStopped) {
       this.manifest.complete(this.hasTestFailures);
     } else {
       console.error(
@@ -864,23 +874,27 @@ class ProcessManager {
    * Synchronously force-kill every process owned by this run.
    */
   private forceKillAll(): void {
-    const pids = this.processes.map((p) => p.pid);
-    const runnerPid = this.runnerHost?.getRunnerPid();
-    if (runnerPid) pids.push(runnerPid);
-
-    for (const pid of pids) {
-      if (!pid) continue;
+    for (const managedProcess of this.processes) {
+      if (!managedProcess.pid) continue;
       try {
-        process.kill(-pid, "SIGKILL");
+        signalOwnedProcess(
+          managedProcess.pid,
+          managedProcess.processGroup,
+          "SIGKILL"
+        );
       } catch {
-        // Group may not exist
-      }
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {
-        // Already dead
+        // The process may already be dead.
       }
     }
+    const runnerPid = this.runnerHost?.getRunnerPid();
+    if (runnerPid) {
+      try {
+        signalOwnedProcess(runnerPid, false, "SIGKILL");
+      } catch {
+        // The runner may already be dead.
+      }
+    }
+
   }
 
   setupExitHandlers(): void {

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$SCRIPT_DIR/bin"
 
@@ -37,27 +38,36 @@ run_with_prefix() {
   "$@" 2>&1 | sed -u "s/^/[$prefix] /"
 }
 
+declare -A process_names
+
+start_process() {
+  local name="$1"
+  shift
+  run_with_prefix "$name" "$@" &
+  process_names[$!]="$name"
+}
+
 echo "Starting Controller 1 (Z-Wave JS) on port $ZWAVE_CONTROLLER1_PORT..."
-run_with_prefix "Controller1" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER1_PORT" --storage "$ZWAVE_STORAGE_DIR/controller1" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller1" --id 1 --zne-port "$ZWAVE_ZNE_PORT" &
+start_process "Controller1" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER1_PORT" --storage "$ZWAVE_STORAGE_DIR/controller1" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller1" --id 1 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting Controller 2 (CTT) on port $ZWAVE_CONTROLLER2_PORT..."
-run_with_prefix "Controller2" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER2_PORT" --storage "$ZWAVE_STORAGE_DIR/controller2" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller2" --id 2 --zne-port "$ZWAVE_ZNE_PORT" &
+start_process "Controller2" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER2_PORT" --storage "$ZWAVE_STORAGE_DIR/controller2" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller2" --id 2 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting Controller 3 (CTT) on port $ZWAVE_CONTROLLER3_PORT..."
-run_with_prefix "Controller3" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER3_PORT" --storage "$ZWAVE_STORAGE_DIR/controller3" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller3" --id 3 --zne-port "$ZWAVE_ZNE_PORT" &
+start_process "Controller3" "$BIN_DIR/ZW_zwave_ncp_serial_api_controller.elf" --port "$ZWAVE_CONTROLLER3_PORT" --storage "$ZWAVE_STORAGE_DIR/controller3" --tmp-path "$ZWAVE_NODE_TEMP_DIR/controller3" --id 3 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting End Device 1 on port $ZWAVE_ENDDEVICE1_PORT..."
-run_with_prefix "EndDevice1" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port "$ZWAVE_ENDDEVICE1_PORT" --storage "$ZWAVE_STORAGE_DIR/enddevice1" --tmp-path "$ZWAVE_NODE_TEMP_DIR/enddevice1" --id 4 --zne-port "$ZWAVE_ZNE_PORT" &
+start_process "EndDevice1" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port "$ZWAVE_ENDDEVICE1_PORT" --storage "$ZWAVE_STORAGE_DIR/enddevice1" --tmp-path "$ZWAVE_NODE_TEMP_DIR/enddevice1" --id 4 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting End Device 2 on port $ZWAVE_ENDDEVICE2_PORT..."
-run_with_prefix "EndDevice2" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port "$ZWAVE_ENDDEVICE2_PORT" --storage "$ZWAVE_STORAGE_DIR/enddevice2" --tmp-path "$ZWAVE_NODE_TEMP_DIR/enddevice2" --id 5 --zne-port "$ZWAVE_ZNE_PORT" &
+start_process "EndDevice2" "$BIN_DIR/ZW_zwave_ncp_serial_api_end_device.elf" --port "$ZWAVE_ENDDEVICE2_PORT" --storage "$ZWAVE_STORAGE_DIR/enddevice2" --tmp-path "$ZWAVE_NODE_TEMP_DIR/enddevice2" --id 5 --zne-port "$ZWAVE_ZNE_PORT"
 
 echo "Starting Zniffer on port $ZWAVE_ZNIFFER_PORT..."
-run_with_prefix "Zniffer" python3 "$BIN_DIR/zniffer.py" 1234 \
+start_process "Zniffer" python3 "$BIN_DIR/zniffer.py" 1234 \
   --tcp-port "$ZWAVE_ZNIFFER_PORT" \
   --discovery-port "$ZWAVE_ZNIFFER_DISCOVERY_PORT" \
   --zne-port "$ZWAVE_ZNE_PORT" \
-  --node-count 5 &
+  --node-count 5
 
 echo "All Z-Wave binaries started!"
 echo "Controller 1: localhost:$ZWAVE_CONTROLLER1_PORT (Z-Wave JS FirstController)"
@@ -67,4 +77,15 @@ echo "End Device 1: localhost:$ZWAVE_ENDDEVICE1_PORT (CTT FirstEndDevice)"
 echo "End Device 2: localhost:$ZWAVE_ENDDEVICE2_PORT (CTT SecondEndDevice)"
 echo "Zniffer:      localhost:$ZWAVE_ZNIFFER_PORT"
 
-wait
+exited_pid=""
+if wait -n -p exited_pid "${!process_names[@]}"; then
+  exit_status=1
+else
+  exit_status=$?
+fi
+if [[ -n "$exited_pid" ]]; then
+  echo "${process_names[$exited_pid]} exited; stopping the Z-Wave stack." >&2
+else
+  echo "The Z-Wave stack was interrupted." >&2
+fi
+exit "$exit_status"

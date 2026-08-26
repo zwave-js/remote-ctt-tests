@@ -542,6 +542,8 @@ export class RunnerHost {
    * Cleanup: stop runner, close connections
    */
   async cleanup(): Promise<void> {
+    let runnerStopped = true;
+
     // Try to stop gracefully first
     if (this.runnerSocket?.readyState === WebSocket.OPEN) {
       try {
@@ -574,9 +576,11 @@ export class RunnerHost {
       }
       if (!(await waitForChildExit(runnerProcess, 5000))) {
         runnerProcess.kill("SIGKILL");
-        await waitForChildExit(runnerProcess, 2000);
+        runnerStopped = await waitForChildExit(runnerProcess, 2000);
       }
-      this.runnerProcess = undefined;
+      if (runnerStopped) {
+        this.runnerProcess = undefined;
+      }
     }
 
     // Close readline interface
@@ -590,6 +594,9 @@ export class RunnerHost {
     for (const [id, { reject }] of this.pendingRequests) {
       reject(new Error("Runner host shutting down"));
       this.pendingRequests.delete(id);
+    }
+    if (!runnerStopped) {
+      throw new Error("Runner process did not exit after SIGKILL");
     }
   }
 
@@ -883,10 +890,10 @@ function waitForChildExit(
 
   return new Promise((resolve) => {
     const onExit = () => {
-      globalThis.clearTimeout(timer);
+      clearTimeout(timer);
       resolve(true);
     };
-    const timer = globalThis.setTimeout(() => {
+    const timer = setTimeout(() => {
       child.off("exit", onExit);
       resolve(child.exitCode !== null || child.signalCode !== null);
     }, timeout);
