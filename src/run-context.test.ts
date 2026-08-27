@@ -82,7 +82,7 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
 
       const settings = JSON.parse(
         fs.readFileSync(
-          path.join(context.paths.cttHome, ".ctt4", "settings.json"),
+          path.join(context.paths.cttHome, ".ctt-4", "settings.json"),
           "utf8"
         )
       ) as {

@@ -532,7 +532,7 @@ function initializeCttProject(
   fs.cpSync(sourceProject, paths.cttProject, { recursive: true });
 
   const keysDir = path.join(repoRoot, "ctt", "keys");
-  const cttSettingsDir = path.join(paths.cttHome, ".ctt4");
+  const cttSettingsDir = path.join(paths.cttHome, ".ctt-4");
   fs.mkdirSync(cttSettingsDir, { recursive: true });
   fs.writeFileSync(
     path.join(cttSettingsDir, "settings.json"),
