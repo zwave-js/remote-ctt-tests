@@ -176,7 +176,10 @@ ctt-setup.zip
 └── ctt-bin/      # the CTT Remote 4 Linux distribution: the ZWaveCTT apphost + its DLLs
 ```
 
-CTT reads its Linux settings from `~/.ctt4/settings.json`. The harness creates that file inside each run directory. It sets `SimplicityCommanderPath` to `/usr/bin/true`. The virtual test environment does not use Simplicity Commander, but ZATS scans the filesystem for it when the setting is empty.
+CTT reads its Linux settings from `~/.ctt-4/settings.json`. The harness creates that file inside each run directory. It sets `SimplicityCommanderPath` to `/usr/bin/true`. The virtual test environment does not use Simplicity Commander, but ZATS scans the filesystem for it when the setting is empty.
+
+The download script defaults to the `ctt-4.0.4-alpha-20260827` byoCTT release.
+Set `CTT_RELEASE_TAG` to use another release.
 
 ### Step 10: Git Commit
 

@@ -2,7 +2,7 @@
 /**
  * Downloads the CTT setup archive from GitHub.
  *
- * Fetches the latest `ctt-setup.zip` release asset from the zwave-js/byoctt
+ * Fetches the configured `ctt-setup.zip` release asset from the zwave-js/byoctt
  * repository into setup/ctt-setup.zip.
  *
  * Requires the `gh` CLI authenticated with access to byoctt
@@ -17,6 +17,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
 
 const REPO = "zwave-js/byoctt";
+const RELEASE_TAG =
+  process.env.CTT_RELEASE_TAG || "ctt-4.0.4-alpha-20260827";
 const OUTPUT_DIR = path.join(repoRoot, "setup");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "ctt-setup.zip");
 
@@ -27,7 +29,17 @@ fs.rmSync(OUTPUT_FILE, { force: true });
 console.log(`  Downloading from ${REPO}...`);
 execFileSync(
   "gh",
-  ["release", "download", "--repo", REPO, "--pattern", "ctt-setup.zip", "-D", OUTPUT_DIR],
+  [
+    "release",
+    "download",
+    RELEASE_TAG,
+    "--repo",
+    REPO,
+    "--pattern",
+    "ctt-setup.zip",
+    "-D",
+    OUTPUT_DIR,
+  ],
   { stdio: "inherit" }
 );
 
