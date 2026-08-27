@@ -5,6 +5,7 @@
  * Packages:
  *   - zwave_stack/storage/                      -> storage/
  *   - DUT storage files (config.json globs)     -> dut-storage/
+ *   - CTT key for config.dut.homeId              -> ctt-keys/
  *
  * Maintainer tool: run after capturing a good network state locally.
  */
@@ -29,6 +30,7 @@ const homeIdLower = config.dut.homeId.toLowerCase();
 const homeIdUpper = config.dut.homeId.toUpperCase();
 const dutStorageDir = path.join(repoRoot, config.dut.storageDir);
 const zwaveStorage = path.join(repoRoot, "zwave_stack", "storage");
+const cttKeyFile = path.join(repoRoot, "ctt", "keys", `${homeIdUpper}.txt`);
 const outputFile = path.join(repoRoot, "setup", "network-state.zip");
 
 if (!fs.existsSync(zwaveStorage)) {
@@ -36,6 +38,11 @@ if (!fs.existsSync(zwaveStorage)) {
 }
 if (!fs.existsSync(dutStorageDir)) {
   throw new Error(`Known-good DUT state not found: ${dutStorageDir}`);
+}
+if (!fs.existsSync(cttKeyFile) || !fs.statSync(cttKeyFile).isFile()) {
+  throw new Error(
+    `CTT key for Home ID ${homeIdUpper} not found: ${cttKeyFile}`
+  );
 }
 
 // Convert a glob with `*` wildcards into an anchored RegExp.
@@ -82,13 +89,22 @@ try {
     );
   }
 
+  console.log("  Staging CTT key...");
+  const cttKeysStaging = path.join(tempDir, "ctt-keys");
+  fs.mkdirSync(cttKeysStaging);
+  fs.copyFileSync(cttKeyFile, path.join(cttKeysStaging, `${homeIdUpper}.txt`));
+
   // (Re)create the zip from the staging dir contents
   fs.rmSync(outputFile, { force: true });
   console.log("  Compressing archive...");
-  execFileSync("zip", ["-r", "-q", outputFile, "storage", "dut-storage"], {
-    cwd: tempDir,
-    stdio: "inherit",
-  });
+  execFileSync(
+    "zip",
+    ["-r", "-q", outputFile, "storage", "dut-storage", "ctt-keys"],
+    {
+      cwd: tempDir,
+      stdio: "inherit",
+    }
+  );
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

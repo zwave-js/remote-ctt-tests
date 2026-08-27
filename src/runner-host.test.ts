@@ -23,6 +23,7 @@ test("records the runner as soon as it is spawned", async () => {
       root,
       cttProject: path.join(root, "ctt", "project"),
       cttSolution: path.join(root, "ctt", "project", "project.cttsln"),
+      cttKeys: path.join(root, "ctt", "keys"),
       cttHome: path.join(root, "home"),
       cttLog: path.join(root, "logs", "ctt.log"),
       stackStorage: path.join(root, "state", "zwave-stack"),

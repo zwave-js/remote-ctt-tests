@@ -167,7 +167,18 @@ See [dut/zwave-js/run.ts](dut/zwave-js/run.ts) for a reference implementation an
 ./setup/pack-network-state-archive.ts
 ```
 
-This reads the known-good capture state from `zwave_stack/storage/` and `config.dut.storageDir`. The generated `setup/network-state.zip` is committed and becomes the immutable seed for CI and every individual test run. Regenerate it only after intentionally updating and validating the capture network.
+This reads the known-good capture state from `zwave_stack/storage/` and `config.dut.storageDir`. It also requires `ctt/keys/<HOME_ID>.txt` for `config.dut.homeId`. The generated `setup/network-state.zip` is committed and becomes the immutable seed for CI and every individual test run. Regenerate it only after intentionally updating and validating the capture network.
+
+The archive contains:
+
+```
+network-state.zip
+├── storage/       # Z-Wave stack state
+├── dut-storage/   # DUT state selected by storageFileFilter
+└── ctt-keys/      # CTT key for config.dut.homeId
+```
+
+Each run extracts these files into its isolated run directory. Both CTT key settings point to that run's `ctt/keys/` directory.
 
 CTT is closed-source and must be vendored as a `ctt-setup.zip` archive. This repo downloads it from a private GitHub repository ([zwave-js/byoctt](https://github.com/zwave-js/byoctt)) via `download-ctt-archive.ts`; hosting your own private repo and adapting that script is the recommended approach. Whatever the source, `unpack-ctt-archive.ts` expects the archive to contain:
 
@@ -187,7 +198,7 @@ Set `CTT_RELEASE_TAG` to use another release.
 
 - `config.json`
 - DUT runner script (`your-dut/run.ts`)
-- CTT project files (`ctt/project/`) and keys (`ctt/keys/`)
+- CTT project files (`ctt/project/`)
 - Network state archive (`setup/network-state.zip`)
 
 `ctt/bin/`, `zwave_stack/bin/*.elf`, and `setup/ctt-setup.zip` are downloaded at setup time and are git-ignored.

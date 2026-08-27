@@ -14,7 +14,7 @@ import {
   type RuntimePorts,
 } from "./run-context.ts";
 
-test("concurrent run contexts isolate ports, state, and CTT projects", async () => {
+test("concurrent run contexts isolate ports, state, CTT keys, and projects", async () => {
   const repoRoot = createFixtureRepository();
   const contexts = await Promise.all([
     createRunContext(repoRoot),
@@ -23,6 +23,7 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
 
   try {
     assert.notEqual(contexts[0].paths.root, contexts[1].paths.root);
+    assert.notEqual(contexts[0].paths.cttKeys, contexts[1].paths.cttKeys);
 
     const firstTcpPorts = new Set(Object.values(contexts[0].ports.tcp));
     for (const port of Object.values(contexts[1].ports.tcp)) {
@@ -59,6 +60,7 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
 
       assert(fs.existsSync(path.join(context.paths.stackStorage, "controller1")));
       assert(fs.existsSync(path.join(context.paths.dutStorage, "cache.jsonl")));
+      assert(fs.existsSync(path.join(context.paths.cttKeys, "D2658D0F.txt")));
 
       const solution = fs.readFileSync(context.paths.cttSolution, "utf8");
       assert.match(
@@ -89,8 +91,16 @@ test("concurrent run contexts isolate ports, state, and CTT projects", async () 
         KeyStorageFolder: string;
         SimplicityCommanderPath: string;
       };
-      assert.equal(settings.KeyStorageFolder, path.join(repoRoot, "ctt", "keys"));
+      assert.equal(settings.KeyStorageFolder, context.paths.cttKeys);
       assert.equal(settings.SimplicityCommanderPath, "/usr/bin/true");
+
+      const zatsSettings = JSON.parse(
+        fs.readFileSync(
+          path.join(context.paths.cttProject, "Config", "ZatsSettings.json"),
+          "utf8"
+        )
+      ) as { KeysStoragePath: string };
+      assert.equal(zatsSettings.KeysStoragePath, context.paths.cttKeys);
     }
   } finally {
     await Promise.all(
@@ -209,11 +219,23 @@ test("failed run construction removes its partial directory", async () => {
   fs.rmSync(repoRoot, { recursive: true, force: true });
 });
 
-function createFixtureRepository(): string {
+test("run construction rejects an archive without CTT keys", async () => {
+  const repoRoot = createFixtureRepository({ includeCttKeys: false });
+
+  await assert.rejects(
+    createRunContext(repoRoot),
+    /Network state archive has no ctt-keys directory/
+  );
+  assert.deepEqual(fs.readdirSync(path.join(repoRoot, ".ctt-runs")), []);
+  fs.rmSync(repoRoot, { recursive: true, force: true });
+});
+
+function createFixtureRepository(
+  options: { includeCttKeys?: boolean } = {}
+): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ctt-context-test-"));
   const configDir = path.join(root, "ctt", "project", "Config");
   fs.mkdirSync(configDir, { recursive: true });
-  fs.mkdirSync(path.join(root, "ctt", "keys"), { recursive: true });
   fs.mkdirSync(path.join(root, "setup"), { recursive: true });
 
   fs.writeFileSync(
@@ -251,14 +273,24 @@ function createFixtureRepository(): string {
     path.join(archiveRoot, "dut-storage", "cache.jsonl"),
     "{}"
   );
+  if (options.includeCttKeys !== false) {
+    fs.mkdirSync(path.join(archiveRoot, "ctt-keys"));
+    fs.writeFileSync(
+      path.join(archiveRoot, "ctt-keys", "D2658D0F.txt"),
+      "fixture-key"
+    );
+  }
+  const archiveDirectories = ["storage", "dut-storage"];
+  if (options.includeCttKeys !== false) {
+    archiveDirectories.push("ctt-keys");
+  }
   execFileSync(
     "zip",
     [
       "-q",
       "-r",
       path.join(root, "setup", "network-state.zip"),
-      "storage",
-      "dut-storage",
+      ...archiveDirectories,
     ],
     { cwd: archiveRoot }
   );
@@ -275,6 +307,7 @@ function createRuntimePaths(root: string): RuntimePaths {
     root,
     cttProject: path.join(root, "ctt", "project"),
     cttSolution: path.join(root, "ctt", "project", "project.cttsln"),
+    cttKeys: path.join(root, "ctt", "keys"),
     cttHome: path.join(root, "home"),
     cttLog: path.join(root, "logs", "ctt.log"),
     stackStorage: path.join(root, "state", "zwave-stack"),

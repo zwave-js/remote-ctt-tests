@@ -41,6 +41,7 @@ export interface RuntimePaths {
   root: string;
   cttProject: string;
   cttSolution: string;
+  cttKeys: string;
   cttHome: string;
   cttLog: string;
   stackStorage: string;
@@ -468,6 +469,7 @@ export async function createRunContext(repoRoot: string): Promise<RunContext> {
     root,
     cttProject: path.join(root, "ctt", "project"),
     cttSolution: path.join(root, "ctt", "project", "zwave-js.cttsln"),
+    cttKeys: path.join(root, "ctt", "keys"),
     cttHome: path.join(root, "home"),
     cttLog: path.join(root, "logs", "ctt-remote.log"),
     stackStorage: path.join(root, "state", "zwave-stack"),
@@ -511,6 +513,7 @@ function initializeNetworkState(
 
   const extractedStackStorage = path.join(stateRoot, "storage");
   const extractedDutStorage = path.join(stateRoot, "dut-storage");
+  const extractedCttKeys = path.join(stateRoot, "ctt-keys");
   if (!fs.existsSync(extractedStackStorage)) {
     throw new Error(`Network state archive has no storage directory: ${archive}`);
   }
@@ -519,8 +522,15 @@ function initializeNetworkState(
       `Network state archive has no dut-storage directory: ${archive}`
     );
   }
+  if (!fs.existsSync(extractedCttKeys)) {
+    throw new Error(
+      `Network state archive has no ctt-keys directory: ${archive}`
+    );
+  }
   fs.renameSync(extractedStackStorage, paths.stackStorage);
   fs.renameSync(extractedDutStorage, paths.dutStorage);
+  fs.mkdirSync(path.dirname(paths.cttKeys), { recursive: true });
+  fs.renameSync(extractedCttKeys, paths.cttKeys);
 }
 
 function initializeCttProject(
@@ -531,14 +541,13 @@ function initializeCttProject(
   const sourceProject = path.join(repoRoot, "ctt", "project");
   fs.cpSync(sourceProject, paths.cttProject, { recursive: true });
 
-  const keysDir = path.join(repoRoot, "ctt", "keys");
   const cttSettingsDir = path.join(paths.cttHome, ".ctt-4");
   fs.mkdirSync(cttSettingsDir, { recursive: true });
   fs.writeFileSync(
     path.join(cttSettingsDir, "settings.json"),
     JSON.stringify(
       {
-        KeyStorageFolder: keysDir,
+        KeyStorageFolder: paths.cttKeys,
         SimplicityCommanderPath: "/usr/bin/true",
       },
       null,
@@ -554,7 +563,7 @@ function initializeCttProject(
   const zatsSettings = JSON.parse(
     fs.readFileSync(zatsSettingsPath, "utf8").replace(/^\uFEFF/, "")
   ) as Record<string, unknown>;
-  zatsSettings.KeysStoragePath = keysDir;
+  zatsSettings.KeysStoragePath = paths.cttKeys;
   fs.writeFileSync(zatsSettingsPath, JSON.stringify(zatsSettings, null, 2));
 
   patchZatsDefinition(paths, ports);
