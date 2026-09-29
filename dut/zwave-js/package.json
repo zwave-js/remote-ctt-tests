@@ -12,7 +12,7 @@
   "dependencies": {
     "@zwave-js/server": "^3.10.1",
     "alcalzone-shared": "^5.0.0",
-    "ws": "^8.18.0",
+    "ws": "^8.22.0",
     "zwave-js": "^15.27.1"
   },
   "devDependencies": {
